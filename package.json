@@ -1,0 +1,19 @@
+{
+  "name": "corporate-technologies-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Corporate Technologies - Ecommerce Platform for Printing Products and Inks",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "preview": "npm run preview --prefix frontend"
+  },
+  "keywords": [
+    "corporate-technologies",
+    "splashjet",
+    "ecommerce",
+    "react",
+    "vite"
+  ],
+  "author": "Corporate Technologies BD"
+}

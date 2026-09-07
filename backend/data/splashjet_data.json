@@ -1,0 +1,13 @@
+[
+  {
+    "title": "Splashjet Pigment Ink",
+    "brand": "Splashjet",
+    "category": "Splashjet Ink",
+    "regular_price": 1500,
+    "sale_price": 600,
+    "stock_quantity": 20,
+    "discount_label": "-60%",
+    "image_url": "/splashjet_images/about-splashjet.jpg",
+    "price_range_label": ""
+  }
+]
