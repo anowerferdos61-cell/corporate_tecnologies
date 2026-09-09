@@ -1,6 +1,7 @@
 import React from 'react';
 import { Phone, MapPin, Mail, Facebook, ExternalLink } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import CorporateLogo from './CorporateLogo';
 
 /**
  * Corporate Technologies Authentic Footer
@@ -47,9 +48,9 @@ export default function Footer({ onNavigate, onOpenAdmin }) {
           
           {/* Column 1: Brand Info */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-slate-900 tracking-tight leading-snug">
-              Corporate<br />Technologies
-            </h3>
+            <div className="flex items-center">
+              <CorporateLogo variant="dark" className="h-9 sm:h-10" />
+            </div>
             <p className="text-slate-600 text-xs sm:text-[13px] leading-relaxed max-w-xs">
               Bangladesh's premier authorized distributor for Splashjet Digital Printing Inks, Toshiba Copiers, Epson, Canon & HP Printers. Trusted ICT partner since 2012.
             </p>

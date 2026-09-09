@@ -20,7 +20,8 @@ import {
   PhoneCall,
   User,
   Home,
-  Truck
+  Truck,
+  BookOpen
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import CorporateLogo from './CorporateLogo';
@@ -262,30 +263,8 @@ export default function Navbar({
 
   return (
     <>
-      {/* 1. TOP RED ANNOUNCEMENT STRIP (Scrolls naturally with page) */}
-      <div className="bg-[#c92127] text-white py-1.5 px-4 text-center text-xs sm:text-sm font-medium tracking-wide">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="hidden md:flex items-center gap-4 text-xs text-red-100">
-            <span>Official Distributor: Splashjet Digital Inks</span>
-            <span>|</span>
-            <span>Fastest Home Delivery Nationwide</span>
-          </div>
-
-          <div className="flex-1 text-center font-medium tracking-wider text-xs sm:text-sm">
-            Quality Products at Better Price
-          </div>
-
-          <div className="hidden md:flex items-center gap-3 text-xs text-red-100">
-            <a href="tel:+8801777277740" className="hover:underline flex items-center gap-1 font-semibold">
-              <Phone className="w-3.5 h-3.5" />
-              <span>Hotline: 01777-277740</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. MAIN HEADER (Logo, Search, Nav Links, Cart) - FULL RED ON BOTH MOBILE & DESKTOP */}
-      <div className="bg-[#c92127] border-b border-[#a8191e] px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 sticky top-0 z-30 lg:static transition-colors shadow-xs">
+      {/* MAIN HEADER (Logo, Centered Search, Blog, Cart) */}
+      <div className="bg-[#c92127] border-b border-[#a8191e] px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-30 lg:static transition-colors shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 sm:gap-6">
           
           {/* Left: Brand Logo */}
@@ -307,48 +286,9 @@ export default function Navbar({
             </a>
           </div>
 
-          {/* Desktop Navigation Links: Shop, Splashjet Ink, Ink Finder (Clean & Spacious) */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-extrabold flex-shrink-0">
-            <a
-              href="/shop/"
-              onClick={(e) => {
-                e.preventDefault();
-                if (onNavigate) onNavigate('/shop/', 'Shop');
-              }}
-              className={`${currentRoute?.path === '/shop' || (currentRoute?.type === 'category' && currentRoute?.categorySlug === 'shop') ? 'text-white' : 'text-white/85 hover:text-white'} transition-colors py-1 cursor-pointer font-extrabold relative`}
-            >
-              Shop
-              {(currentRoute?.path === '/shop' || (currentRoute?.type === 'category' && currentRoute?.categorySlug === 'shop')) && (
-                <span className="absolute -bottom-1.5 left-0 right-0 h-[2.5px] bg-white rounded-full"></span>
-              )}
-            </a>
-
-            <a
-              href="/product-category/splashjet-ink/"
-              onClick={(e) => {
-                e.preventDefault();
-                if (onNavigate) onNavigate('/product-category/splashjet-ink/', 'Splashjet Ink');
-              }}
-              className={`${currentRoute?.categorySlug === 'splashjet-ink' ? 'text-white' : 'text-white/85 hover:text-white'} transition-colors py-1 cursor-pointer font-extrabold relative`}
-            >
-              Splashjet Ink
-              {currentRoute?.categorySlug === 'splashjet-ink' && (
-                <span className="absolute -bottom-1.5 left-0 right-0 h-[2.5px] bg-white rounded-full"></span>
-              )}
-            </a>
-
-            <button
-              onClick={onOpenInkFinder}
-              className="flex items-center gap-1.5 text-white/85 hover:text-white transition-colors py-1 cursor-pointer font-extrabold"
-            >
-              <SlidersHorizontal className="w-4 h-4 text-white" />
-              <span>Ink Finder</span>
-            </button>
-          </nav>
-
-          {/* Desktop Search Bar with Live Suggestions */}
-          <div ref={searchRef} className="relative flex-1 max-w-xs xl:max-w-sm hidden md:block">
-            <form onSubmit={handleSearchSubmit} className="relative">
+          {/* Center: Desktop Search Bar with Live Suggestions */}
+          <div ref={searchRef} className="relative flex-1 max-w-lg xl:max-w-2xl mx-2 sm:mx-6 lg:mx-8 hidden md:block">
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
               <input
                 type="text"
                 placeholder="Search products, models, or ink codes..."
@@ -424,9 +364,28 @@ export default function Navbar({
             )}
           </div>
 
-          {/* Right Action Icons (Cart & Mobile Search) */}
-          <div className="flex items-center gap-1.5 sm:gap-4 text-white flex-shrink-0">
+          {/* Right Action Icons (Blog, Cart & Mobile Menu) */}
+          <div className="flex items-center gap-2 sm:gap-3 text-white flex-shrink-0">
             
+            {/* Blog Button (Desktop only; on mobile it is inside the Menu drawer) */}
+            <a
+              href="/blog/"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigate) {
+                  onNavigate('/blog/', 'Blog');
+                } else {
+                  window.history.pushState({}, '', '/blog/');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }
+              }}
+              className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
+              title="Tech Blog & Guides"
+            >
+              <BookOpen className="w-4 h-4 text-white" />
+              <span>Blog</span>
+            </a>
+
             {/* Mobile Search Trigger */}
             <button
               onClick={() => setIsSearchModalOpen(!isSearchModalOpen)}
@@ -743,6 +702,42 @@ export default function Navbar({
                   <span className="flex items-center gap-2.5">
                     <Printer className="w-4 h-4 text-[#c92127]" />
                     <span>Splashjet Digital Inks</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </button>
+
+                {/* 6. Ink Finder */}
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (onOpenInkFinder) onOpenInkFinder();
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer group"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <SlidersHorizontal className="w-4 h-4 text-[#c92127]" />
+                    <span>ইঙ্ক ফাইন্ডার (Ink Finder)</span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] bg-red-100 text-[#c92127] font-black px-2 py-0.5 rounded-full">
+                      মডেল খুঁজুন
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </div>
+                </button>
+
+                {/* 7. Blog */}
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (onNavigate) onNavigate('/blog/', 'Blog');
+                    else window.location.href = '/blog/';
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <BookOpen className="w-4 h-4 text-[#c92127]" />
+                    <span>Tech Blog & Guides</span>
                   </span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </button>

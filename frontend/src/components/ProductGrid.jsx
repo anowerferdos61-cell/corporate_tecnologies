@@ -1,79 +1,96 @@
 import React, { useMemo } from 'react';
 import ProductCard from './ProductCard';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Droplet, Printer } from 'lucide-react';
 
 /**
- * Curates a balanced, engaging mixture of:
- * - Photocopiers (Toshiba e-Studio models)
- * - Printers (Epson, Canon, HP)
- * - Splashjet Inks (Epson, Canon, HP, Sublimation/DTF)
- * - Toners, Machinery & POS equipment
+ * Filter 8 top-selling pure Splashjet & compatible refill inks
  */
-function createPopularMixture(allProducts = []) {
+function getPopularInks(allProducts = [], count = 8) {
   if (!allProducts || allProducts.length === 0) return [];
-
-  const photocopiers = allProducts.filter(p => {
-    const cat = (p.category || '').toLowerCase();
-    const title = (p.title || '').toLowerCase();
-    return cat.includes('photocopy') || title.includes('photocopier') || title.includes('e-studio') || title.includes('toshiba');
-  });
-
-  const printers = allProducts.filter(p => {
-    const cat = (p.category || '').toLowerCase();
-    const title = (p.title || '').toLowerCase();
-    return cat.includes('printer') && !cat.includes('photocopy') && !title.includes('feed');
-  });
 
   const inks = allProducts.filter(p => {
     const cat = (p.category || '').toLowerCase();
     const title = (p.title || '').toLowerCase();
-    return cat.includes('splashjet') || (cat.includes('ink') && !cat.includes('printer')) || title.includes('splashjet') || title.includes('bottle ink');
+
+    // Exclude hardware printers
+    if (
+      title.includes('dcp-') ||
+      title.includes('mfc-') ||
+      (title.includes('printer') && !title.includes('ink for') && !title.includes('inkjet printer'))
+    ) {
+      return false;
+    }
+
+    const isInkCat = cat.includes('splashjet') || (cat.includes('ink') && !cat.includes('printer'));
+    const isInkTitle = title.includes('splashjet') || title.includes('refill ink') || title.includes('bottle') || title.includes('sublimation') || title.includes('dtf') || title.includes('cmybk');
+
+    return isInkCat || isInkTitle;
   });
 
-  const others = allProducts.filter(p => {
+  return inks.slice(0, count);
+}
+
+/**
+ * Filter 8 top-rated Printers & Photocopiers (Brother, Toshiba, Epson, POS)
+ */
+function getPopularPrinters(allProducts = [], count = 8) {
+  if (!allProducts || allProducts.length === 0) return [];
+
+  const printers = allProducts.filter(p => {
     const cat = (p.category || '').toLowerCase();
-    return cat.includes('machinery') || cat.includes('toner') || cat.includes('pos') || cat.includes('equipment');
+    const title = (p.title || '').toLowerCase();
+
+    // Exclude consumables
+    if (
+      title.includes('refill ink') || 
+      title.includes('compatible refill') || 
+      title.includes('cmybk') ||
+      (cat.includes('ink') && !cat.includes('printer'))
+    ) {
+      return false;
+    }
+
+    return (
+      cat.includes('printer') || 
+      cat.includes('photocopy') || 
+      title.includes('printer') || 
+      title.includes('photocopier') || 
+      title.includes('e-studio') ||
+      title.includes('brother') ||
+      title.includes('epson')
+    );
   });
 
-  const mixture = [];
-  const targetCount = 24; // 24 products (perfect 4-col desktop and 2-col mobile grid)
-  const maxLoops = Math.max(photocopiers.length, printers.length, inks.length, others.length, 15);
+  // Balanced mix of Brother ink tank printers, Toshiba digital photocopiers, and Epson
+  const brother = printers.filter(p => p.title.toLowerCase().includes('brother'));
+  const toshiba = printers.filter(p => p.title.toLowerCase().includes('toshiba'));
+  const epson = printers.filter(p => p.title.toLowerCase().includes('epson'));
+  const others = printers.filter(p => !p.title.toLowerCase().includes('brother') && !p.title.toLowerCase().includes('toshiba') && !p.title.toLowerCase().includes('epson'));
 
-  // Interleave evenly: [Photocopier, Printer, Splashjet Ink, Other / Toner]
-  for (let i = 0; i < maxLoops && mixture.length < targetCount; i++) {
-    if (photocopiers[i] && !mixture.some(m => m.id === photocopiers[i].id)) {
-      mixture.push(photocopiers[i]);
+  const selected = [];
+  const add = (p) => {
+    if (p && !selected.some(s => s.id === p.id) && selected.length < count) {
+      selected.push(p);
     }
-    if (printers[i] && !mixture.some(m => m.id === printers[i].id)) {
-      mixture.push(printers[i]);
-    }
-    if (inks[i] && !mixture.some(m => m.id === inks[i].id)) {
-      mixture.push(inks[i]);
-    }
-    if (others[i] && !mixture.some(m => m.id === others[i].id)) {
-      mixture.push(others[i]);
-    } else if (inks[i + 1] && !mixture.some(m => m.id === inks[i + 1].id)) {
-      mixture.push(inks[i + 1]);
-    }
-  }
+  };
 
-  // Fallback if mixture is smaller than desired
-  if (mixture.length < targetCount) {
-    allProducts.forEach(p => {
-      if (mixture.length < targetCount && !mixture.some(m => m.id === p.id)) {
-        mixture.push(p);
-      }
-    });
-  }
+  brother.slice(0, 3).forEach(add);
+  toshiba.slice(0, 3).forEach(add);
+  epson.slice(0, 1).forEach(add);
+  others.slice(0, 1).forEach(add);
 
-  return mixture.slice(0, targetCount);
+  // Fallback if needed
+  printers.forEach(add);
+
+  return selected.slice(0, count);
 }
 
 export default function ProductGrid({ products = [], loading = false, onNavigate }) {
-  // Generate the curated popular mixture of inks, photocopiers, printers, etc.
-  const displayProducts = useMemo(() => {
-    return createPopularMixture(products);
-  }, [products]);
+  // Extract curated 8 inks and 8 printers
+  const inkProducts = useMemo(() => getPopularInks(products, 8), [products]);
+  const printerProducts = useMemo(() => getPopularPrinters(products, 8), [products]);
+
+  const totalCount = inkProducts.length + printerProducts.length;
 
   return (
     <div className="w-full">
@@ -88,21 +105,72 @@ export default function ProductGrid({ products = [], loading = false, onNavigate
             </div>
           ))}
         </div>
-      ) : displayProducts.length === 0 ? (
+      ) : totalCount === 0 ? (
         <div className="bg-slate-50 rounded-3xl p-8 text-center border border-slate-200">
           <p className="text-sm text-slate-600">কোনো প্রোডাক্ট পাওয়া যায়নি।</p>
         </div>
       ) : (
-        <>
-          {/* Direct, clean product grid: 2 cols mobile, 3 cols tablet, 4 cols desktop */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-            {displayProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
-            ))}
+        <div className="space-y-12">
+          {/* 1. INK CATEGORY SECTION */}
+          <div>
+            {/* Category Header Banner - Centered with Red Border */}
+            <div className="border-2 border-[#c92127] bg-gradient-to-r from-red-50/70 via-white to-red-50/70 rounded-2xl p-4 sm:p-5 mb-6 text-center shadow-xs flex flex-col items-center justify-center">
+              <div className="inline-flex items-center gap-1.5 bg-[#c92127] text-white px-3 py-1 rounded-full text-xs font-black shadow-xs mb-2">
+                <Droplet className="w-3.5 h-3.5 fill-current" />
+                <span className="uppercase tracking-wider">ক্যাটাগরি</span>
+              </div>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  Splashjet Inks
+                </h3>
+                <span className="text-xs font-bold bg-red-100 text-[#c92127] px-2.5 py-0.5 rounded-full border border-red-200">
+                  {inkProducts.length} টি সেরা ইঙ্ক
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-lg">
+                Epson, Canon, HP ও ব্রাদারের জন্য ১০০% আসল প্রিমিয়াম রিফিল ইঙ্ক কালেকশন
+              </p>
+            </div>
+
+            {/* Inks 8-Product Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {inkProducts.map((product) => (
+                <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
+              ))}
+            </div>
           </div>
 
-          {/* Bottom View All Products CTA */}
-          <div className="mt-10 flex flex-col items-center justify-center">
+          {/* 2. PRINTERS & PHOTOCOPIERS SECTION */}
+          <div>
+            {/* Category Header Banner - Centered with Red Border */}
+            <div className="border-2 border-[#c92127] bg-gradient-to-r from-red-50/70 via-white to-red-50/70 rounded-2xl p-4 sm:p-5 mb-6 text-center shadow-xs flex flex-col items-center justify-center">
+              <div className="inline-flex items-center gap-1.5 bg-[#c92127] text-white px-3 py-1 rounded-full text-xs font-black shadow-xs mb-2">
+                <Printer className="w-3.5 h-3.5" />
+                <span className="uppercase tracking-wider">ক্যাটাগরি</span>
+              </div>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                  Printers & Photocopiers
+                </h3>
+                <span className="text-xs font-bold bg-red-100 text-[#c92127] px-2.5 py-0.5 rounded-full border border-red-200">
+                  {printerProducts.length} টি টপ মডেল
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-lg">
+                Brother ও Epson অফিসিয়াল ইঙ্কট্যাঙ্ক প্রিন্টার এবং Toshiba ডিজিটাল ফটোকপিয়ার কালেকশন
+              </p>
+            </div>
+
+            {/* Printers 8-Product Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {printerProducts.map((product) => (
+                <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom View All CTA */}
+          <div className="pt-6 flex flex-col items-center justify-center border-t border-slate-100">
             <button
               onClick={() => {
                 if (onNavigate) {
@@ -117,11 +185,11 @@ export default function ProductGrid({ products = [], loading = false, onNavigate
               <span>সব প্রোডাক্ট ব্রাউজ করুন (View All Products)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-            <p className="text-slate-400 text-[11px] font-medium mt-2.5">
+            <p className="text-slate-400 text-[11px] font-medium mt-2.5 text-center">
               ১০০% আসল প্রোডাক্ট • ১ বছর অফিসিয়াল সার্ভিস সাপোর্ট • সারা দেশে দ্রুত ডেলিভারি
             </p>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

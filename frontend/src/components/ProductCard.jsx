@@ -19,6 +19,33 @@ export function isComparableProduct(product) {
 }
 
 /**
+ * Formats title to a clean fixed character length with ellipsis (...)
+ * Prevents awkward chopped multi-line text and messy layouts
+ */
+export function formatCardTitle(title = '', maxLength = 34) {
+  if (!title) return '';
+  let cleanTitle = String(title)
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '')
+    .replace(/&#8211;/g, '-')
+    .replace(/&#8212;/g, '-')
+    .replace(/^["'\s]+|["'\s]+$/g, '')
+    .trim();
+
+  if (cleanTitle.length <= maxLength) {
+    return cleanTitle;
+  }
+
+  let truncated = cleanTitle.slice(0, maxLength).trim();
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > 14) {
+    truncated = truncated.slice(0, lastSpace);
+  }
+  truncated = truncated.replace(/[,|\-–/]\s*$/, '').trim();
+  return truncated + '...';
+}
+
+/**
  * Flying bubble animation from clicked card to bottom nav Compare tab
  */
 export function triggerFlyToCompareAnimation(sourceEl, imageUrl) {
@@ -260,9 +287,12 @@ export default function ProductCard({ product, onNavigate }) {
       {/* Product Details */}
       <div className="pt-2 sm:pt-4 flex-1 flex flex-col justify-between items-center text-center space-y-1.5 sm:space-y-2.5">
         
-        {/* Title */}
-        <h3 className="text-[13px] sm:text-[15px] font-black text-slate-900 line-clamp-2 group-hover:text-[#c92127] transition-colors leading-snug min-h-[2.5rem] sm:min-h-[2.8rem]">
-          {product.title}
+        {/* Title: Clean 2-line title with no chopped letters */}
+        <h3 
+          className="text-[13px] sm:text-[15px] font-black text-slate-900 group-hover:text-[#c92127] transition-colors leading-snug line-clamp-2 min-h-[2.5rem] sm:min-h-[2.8rem] text-center px-1 break-words"
+          title={product.title}
+        >
+          {formatCardTitle(product.title, 34)}
         </h3>
 
         {/* Variations preview pills (Colors / Sizes) */}

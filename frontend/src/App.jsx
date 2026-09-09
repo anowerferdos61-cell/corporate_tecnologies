@@ -19,6 +19,7 @@ import Footer from './components/Footer';
 import CategoryPage from './components/CategoryPage';
 import ProductDetailPage from './components/ProductDetailPage';
 import ComparePage from './components/ComparePage';
+import BlogPage from './components/BlogPage';
 import AccountModal from './components/AccountModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import { getProducts } from './lib/supabaseClient';
@@ -74,6 +75,16 @@ function parseRoute(pathname = (typeof window !== 'undefined' ? window.location.
       categorySlug: null,
       subCategorySlug: null,
       path: '/compare'
+    };
+  }
+
+  // Blog page
+  if (cleanPath === '/blog') {
+    return {
+      type: 'blog',
+      categorySlug: null,
+      subCategorySlug: null,
+      path: '/blog'
     };
   }
 
@@ -215,6 +226,11 @@ function MainApp() {
         /* Dedicated Product Comparison Page (Side-by-side table for up to 3 products) */
         <ComparePage 
           allProducts={products}
+          onNavigate={navigateTo}
+        />
+      ) : currentRoute.type === 'blog' ? (
+        /* Dedicated Tech & Guides Blog Page */
+        <BlogPage 
           onNavigate={navigateTo}
         />
       ) : (
