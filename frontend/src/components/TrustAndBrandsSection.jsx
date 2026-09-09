@@ -4,7 +4,7 @@ import { Truck, Headphones, ShieldCheck } from 'lucide-react';
 export default function TrustAndBrandsSection({ onBrandClick }) {
   const brands = [
     { name: 'Canon', color: 'text-[#cc0000]', subtitle: 'Printers & Copiers' },
-    { name: 'Splashjet', color: 'text-[#c92127]', subtitle: 'Premium Digital Inks', badge: 'Official' },
+    { name: 'Splashjet', color: 'text-[#c92127]', subtitle: 'Premium Digital Inks' },
     { name: 'Epson', color: 'text-[#002f87]', subtitle: 'EcoTank & Photo' },
     { name: 'HP', color: 'text-[#0096d6]', subtitle: 'Laser & Office' },
     { name: 'Brother', color: 'text-[#00529b]', subtitle: 'Printers & Toners' },

@@ -8,7 +8,7 @@ import { useCart } from '../context/CartContext';
  * - Popular Category Fast Links
  * - Complete Dhaka & Chittagong branches, official hotlines, emails, and Facebook page
  */
-export default function Footer({ onNavigate }) {
+export default function Footer({ onNavigate, onOpenAdmin }) {
   const { setSelectedCategory, setSearchQuery, setPriceRange } = useCart();
 
   const handleCategoryClick = (categoryName, slug = null) => {
@@ -230,6 +230,17 @@ export default function Footer({ onNavigate }) {
         <p>© {new Date().getFullYear()} Corporate Technologies BD. All rights reserved.</p>
         <span className="hidden sm:inline">|</span>
         <p>100% Genuine Products Guarantee with Official Service Support across Bangladesh</p>
+        {onOpenAdmin && (
+          <>
+            <span className="hidden sm:inline">|</span>
+            <button
+              onClick={onOpenAdmin}
+              className="text-slate-400 hover:text-[#c92127] text-xs transition-colors cursor-pointer"
+            >
+              {/* Admin Dashboard */}
+            </button>
+          </>
+        )}
       </div>
 
     </footer>

@@ -16,7 +16,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 
-const PRODUCTS_PER_PAGE = 9; // 9 products per page as requested by user
+const PRODUCTS_PER_PAGE = 14; // 14 products per page as requested by user
 
 export default function CategoryPage({ 
   products = [], 
@@ -156,13 +156,35 @@ export default function CategoryPage({
     });
   }, [categoryProductsAll, searchQuery, isPriceFilterActive, sliderPrice]);
 
-  // Sort products
+  // Helper to compute discount percentage for sorting
+  const getDiscountPercentage = (p) => {
+    if (!p) return 0;
+    if (typeof p.discount_percentage === 'number' && p.discount_percentage > 0) {
+      return p.discount_percentage;
+    }
+    const reg = Number(p.regular_price) || 0;
+    const sale = Number(p.sale_price) || 0;
+    if (reg > 0 && sale > 0 && reg > sale) {
+      return Math.round(((reg - sale) / reg) * 100);
+    }
+    if (p.discount_label) {
+      const match = p.discount_label.match(/(\d+)%/);
+      if (match) return parseInt(match[1], 10);
+    }
+    return 0;
+  };
+
+  // Sort products (always prioritizes products with highest discount/offers on top by default)
   const sortedProducts = useMemo(() => {
     return [...filteredProducts].sort((a, b) => {
       const priceA = a.sale_price || a.regular_price || 0;
       const priceB = b.sale_price || b.regular_price || 0;
+      const discA = getDiscountPercentage(a);
+      const discB = getDiscountPercentage(b);
+
       if (sortBy === 'price_low') return priceA - priceB;
       if (sortBy === 'price_high') return priceB - priceA;
+      if (sortBy === 'discount') return discB - discA;
       if (sortBy === 'popularity') {
         const scoreA = (a.is_featured ? 50 : 0) + (a.variations?.length || 0) * 5 + (a.stock_quantity > 0 ? 20 : 0);
         const scoreB = (b.is_featured ? 50 : 0) + (b.variations?.length || 0) * 5 + (b.stock_quantity > 0 ? 20 : 0);
@@ -177,6 +199,11 @@ export default function CategoryPage({
         return (b.id || 0) - (a.id || 0);
       }
       if (sortBy === 'name_asc') return (a.title || '').localeCompare(b.title || '');
+
+      // Default sorting: "শপ এ সব সময় যেন যেগুলোতে বেশি অফার আছে ওগুলা ওপরে দেখাবে"
+      if (discB !== discA) {
+        return discB - discA; // Highest discount % first
+      }
       return (b.id || 0) - (a.id || 0);
     });
   }, [filteredProducts, sortBy]);
@@ -248,7 +275,7 @@ export default function CategoryPage({
   const endIdx = Math.min(currentPage * PRODUCTS_PER_PAGE, sortedProducts.length);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex-1 w-full">
+    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex-1 w-full pb-24 md:pb-8">
       
       {/* Breadcrumb matching corporatetechbd.com */}
       <nav className="flex items-center gap-1.5 text-xs text-slate-500 mb-6 flex-wrap">
@@ -288,13 +315,13 @@ export default function CategoryPage({
           className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer"
         >
           <SlidersHorizontal className="w-4 h-4 text-[#c92127]" />
-          <span>ক্যাটাগরি ও ফিল্টার অপশন ({activeParentCat})</span>
+          <span>Categories & Filters ({activeParentCat})</span>
         </button>
         <button
           onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
           className="text-xs text-[#c92127] font-bold cursor-pointer hover:underline"
         >
-          {isMobileFilterOpen ? 'সংক্ষেপ করুন ▲' : 'ফিল্টার খুলুন ▼'}
+          {isMobileFilterOpen ? 'Collapse Filters ▲' : 'Expand Filters ▼'}
         </button>
       </div>
 
@@ -496,7 +523,7 @@ export default function CategoryPage({
                   className="w-full sm:w-auto bg-white border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-lg pl-2.5 sm:pl-3 pr-7 sm:pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-[#c92127]/20 focus:border-[#c92127] cursor-pointer appearance-none shadow-xs font-semibold truncate"
                   aria-label="Filter by Category"
                 >
-                  <option value="all">সকল প্রোডাক্ট</option>
+                  <option value="all">All Products</option>
                   {mainParentCategories.map(cat => (
                     <option key={cat.slug || cat.name} value={cat.name}>
                       {cat.name}
@@ -514,7 +541,8 @@ export default function CategoryPage({
                   className="w-full sm:w-auto bg-white border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-lg pl-2.5 sm:pl-3 pr-7 sm:pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-[#c92127]/20 focus:border-[#c92127] cursor-pointer appearance-none shadow-xs font-medium truncate"
                   aria-label="Sort products"
                 >
-                  <option value="default">Default sorting</option>
+                  <option value="default">Default: সর্বোচ্চ অফার আগে</option>
+                  <option value="discount">অফার: সর্বোচ্চ ছাড় আগে</option>
                   <option value="popularity">Sort by popularity</option>
                   <option value="rating">Sort by rating</option>
                   <option value="latest">Sort by latest</option>
@@ -529,12 +557,12 @@ export default function CategoryPage({
           {/* Active Search Banner */}
           {searchQuery.trim() && (
             <div className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-2xl text-xs text-slate-700">
-              <span>সার্চ: <strong>"{searchQuery}"</strong></span>
+              <span>Search: <strong>"{searchQuery}"</strong></span>
               <button 
                 onClick={() => setSearchQuery('')}
                 className="bg-white text-[#c92127] border border-red-200 px-3 py-1 rounded-full font-bold hover:bg-red-50 transition-colors cursor-pointer"
               >
-                রিসেট ✕
+                Reset ✕
               </button>
             </div>
           )}
@@ -543,16 +571,16 @@ export default function CategoryPage({
           {sortedProducts.length === 0 ? (
             <div className="bg-slate-50 rounded-2xl p-12 text-center border border-slate-200 space-y-3">
               <h3 className="text-base font-bold text-slate-800">
-                এই ক্যাটাগরিতে কোনো প্রোডাক্ট পাওয়া যায়নি!
+                No products found in this category!
               </h3>
               <p className="text-xs text-slate-500">
-                অন্য কোনো ক্যাটাগরি বেছে নিন অথবা সার্চ ফিল্টার রিসেট করুন।
+                Please select another category or reset search filters.
               </p>
               <button
                 onClick={() => { setSearchQuery(''); setIsPriceFilterActive(false); }}
                 className="bg-[#c92127] text-white text-xs font-bold px-5 py-2 rounded-full shadow-sm hover:bg-[#b91c1c] transition-colors cursor-pointer"
               >
-                সব প্রোডাক্ট দেখুন
+                View All Products
               </button>
             </div>
           ) : (

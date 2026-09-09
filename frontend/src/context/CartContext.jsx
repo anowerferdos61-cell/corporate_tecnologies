@@ -28,7 +28,8 @@ export const CartProvider = ({ children }) => {
   // UI state
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [selectedProductForModal, setSelectedProductForModal] = useState(null);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [accountActiveTab, setAccountActiveTab] = useState('account');
   const [toastMessage, setToastMessage] = useState(null);
   
   // Delivery Area: 'inside_dhaka' | 'outside_dhaka'
@@ -142,8 +143,10 @@ export const CartProvider = ({ children }) => {
         setIsCartOpen,
         isCheckoutOpen,
         setIsCheckoutOpen,
-        selectedProductForModal,
-        setSelectedProductForModal,
+        isAccountOpen,
+        setIsAccountOpen,
+        accountActiveTab,
+        setAccountActiveTab,
         deliveryArea,
         setDeliveryArea,
         deliveryFee,

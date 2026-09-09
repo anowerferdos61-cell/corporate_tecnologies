@@ -229,7 +229,7 @@ export default function InkFinder({
         <div className="p-4 px-5 sm:px-6 bg-[#c92127] text-white flex items-center justify-between shadow-sm shrink-0">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-white" />
-            <h2 className="text-sm sm:text-base font-bold">ইন্টেলিজেন্ট ইঙ্ক ম্যাচিং টুল (Ink Finder)</h2>
+            <h2 className="text-sm sm:text-base font-bold">Intelligent Ink Matching Tool (Ink Finder)</h2>
           </div>
           <button
             onClick={onClose}
@@ -243,12 +243,12 @@ export default function InkFinder({
         {/* Form Body - Scrollable */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
           <p className="text-xs text-slate-500 leading-relaxed">
-            আপনার প্রিন্টারের সঠিক মডেল নির্বাচন করুন। আমাদের অ্যালগরিদম আপনার ডিভাইসের জন্য ১০০% উপযুক্ত ও নিরাপদ Splashjet সোয়াপ-ইন ইঙ্ক ফিল্টার করে দেখাবে।
+            Select your exact printer model. Our algorithm will match 100% compatible and safe Splashjet inks for your device.
           </p>
 
           {/* Step 1: Brand Selection */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-800 block">১. প্রিন্টার ব্র্যান্ড সিলেক্ট করুন:</label>
+            <label className="text-xs font-bold text-slate-800 block">1. Select Printer Brand:</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {PRINTER_BRANDS.map((b) => (
                 <button
@@ -271,7 +271,7 @@ export default function InkFinder({
 
           {/* Step 2: Model Series Selection */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-800 block">২. প্রিন্টার সিরিজ বা মডেল নির্বাচন করুন:</label>
+            <label className="text-xs font-bold text-slate-800 block">2. Select Series or Model:</label>
             <div className="space-y-2">
               {currentBrandData.series.map((series) => {
                 const isSelected = selectedSeriesId === series.id;
@@ -307,14 +307,14 @@ export default function InkFinder({
             <div className="flex items-center justify-between flex-wrap gap-2">
               <span className="text-xs text-amber-400 font-bold flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>সুপারিশকৃত Splashjet ইঙ্ক:</span>
+                <span>Recommended Splashjet Inks:</span>
               </span>
               <span className="text-xs font-black bg-[#c92127] text-white px-2.5 py-0.5 rounded-full shadow-2xs">
                 {currentSeries.recommendedInk}
               </span>
             </div>
             <p className="text-[11px] text-slate-300">
-              নোজল ক্লগিং প্রিভেনশন ও আসল কালার ডেপথ নিশ্চিত করতে <strong>{currentSeries.name}</strong>-এর জন্য অনুমোদিত।
+              Approved for <strong>{currentSeries.name}</strong> to ensure nozzle anti-clogging and vivid color depth.
             </p>
           </div>
 
@@ -323,13 +323,13 @@ export default function InkFinder({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 <PackageCheck className="w-4 h-4 text-emerald-600" />
-                <span>উপযুক্ত প্রোডাক্টসমূহ ({matchedProducts.length}টি পাওয়া গেছে):</span>
+                <span>Compatible Inks & Products ({matchedProducts.length} Found):</span>
               </span>
             </div>
 
             {matchedProducts.length === 0 ? (
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
-                এই মুহূর্তে ক্যাটালগে এই মডেলের পণ্যটি লোড হচ্ছে। নিচে বাটনে ক্লিক করে সব প্রোডাক্ট দেখতে পারেন।
+                Currently loading matching products. Click below to view all compatible items.
               </div>
             ) : (
               <div className="space-y-2 max-h-48 sm:max-h-56 overflow-y-auto pr-1">
@@ -374,12 +374,12 @@ export default function InkFinder({
                         {isInCart ? (
                           <>
                             <Check className="w-3 h-3 stroke-[2.5]" />
-                            <span>যুক্ত</span>
+                            <span>Added</span>
                           </>
                         ) : (
                           <>
                             <ShoppingCart className="w-3 h-3" />
-                            <span>কার্টে নিন</span>
+                            <span>Add to Cart</span>
                           </>
                         )}
                       </button>
@@ -397,7 +397,7 @@ export default function InkFinder({
             onClick={handleApplyMatch}
             className="w-full bg-[#c92127] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-xs sm:text-sm py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
           >
-            <span>উপযুক্ত ইঙ্ক ও প্রোডাক্ট দেখুন ({matchedProducts.length}টি পাওয়া গেছে)</span>
+            <span>View Compatible Inks & Products ({matchedProducts.length} Found)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

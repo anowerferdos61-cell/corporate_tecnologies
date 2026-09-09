@@ -5,12 +5,12 @@ import HeroBanner from './components/HeroBanner';
 import ShopByCategories from './components/ShopByCategories';
 import CategoryFilter from './components/CategoryFilter';
 import ProductGrid from './components/ProductGrid';
-import ProductModal from './components/ProductModal';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import InkFinder from './components/InkFinder';
 import AdminDashboard from './components/AdminDashboard';
 import SplashjetPromoBanner from './components/SplashjetPromoBanner';
+import InkScrollSection from './components/InkScrollSection';
 import TrustAndBrandsSection from './components/TrustAndBrandsSection';
 import SeoAuthoritySection from './components/SeoAuthoritySection';
 import HomeInfoSections from './components/HomeInfoSections';
@@ -18,6 +18,9 @@ import ContactWidget from './components/ContactWidget';
 import Footer from './components/Footer';
 import CategoryPage from './components/CategoryPage';
 import ProductDetailPage from './components/ProductDetailPage';
+import ComparePage from './components/ComparePage';
+import AccountModal from './components/AccountModal';
+import MobileBottomNav from './components/MobileBottomNav';
 import { getProducts } from './lib/supabaseClient';
 import { CheckCircle2, Info, ChevronUp, Settings } from 'lucide-react';
 
@@ -64,6 +67,16 @@ function parseRoute(pathname = (typeof window !== 'undefined' ? window.location.
     };
   }
 
+  // Compare page
+  if (cleanPath === '/compare') {
+    return {
+      type: 'compare',
+      categorySlug: null,
+      subCategorySlug: null,
+      path: '/compare'
+    };
+  }
+
   return {
     type: 'home',
     categorySlug: null,
@@ -81,7 +94,14 @@ function MainApp() {
   const [currentRoute, setCurrentRoute] = useState(() => parseRoute());
   
   const productsSectionRef = useRef(null);
-  const { toastMessage, setSelectedCategory, setSearchQuery } = useCart();
+  const { 
+    toastMessage, 
+    setSelectedCategory, 
+    setSearchQuery,
+    isAccountOpen,
+    setIsAccountOpen,
+    accountActiveTab
+  } = useCart();
 
   // Listen for browser Back/Forward navigation
   useEffect(() => {
@@ -158,7 +178,7 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-800">
+    <div className="min-h-screen flex flex-col bg-white text-slate-800 pb-16 md:pb-0">
       {/* 1. Navigation Bar with Red Announcement Bar & Logo */}
       <Navbar 
         allProducts={products}
@@ -191,6 +211,12 @@ function MainApp() {
           subCategorySlug={currentRoute.subCategorySlug}
           onNavigate={navigateTo}
         />
+      ) : currentRoute.type === 'compare' ? (
+        /* Dedicated Product Comparison Page (Side-by-side table for up to 3 products) */
+        <ComparePage 
+          allProducts={products}
+          onNavigate={navigateTo}
+        />
       ) : (
         /* Home Page Sections */
         <>
@@ -209,43 +235,30 @@ function MainApp() {
           {/* Main Product Catalog Section ("Popular This Week") */}
           <div id="products-section" ref={productsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-8 py-8 flex-1 w-full border-t border-slate-100">
             
-            {/* Section Heading matching Screenshot 1 */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-3">
+            {/* Section Heading */}
+            <div className="flex items-end justify-between mb-6 pb-2 border-b border-slate-100">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                   Popular This Week
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  Splashjet প্রিমিয়াম ডিজিটাল ইঙ্ক ও অফিসিয়াল প্রিন্টিং সল্যুশন
+                  ফটোকপিয়ার, প্রিন্টার ও Splashjet আসল ডিজিটাল ইঙ্কের সেরা কালেকশন
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setIsAdminOpen(true)}
-                  className="text-xs font-bold text-slate-700 hover:text-[#c92127] flex items-center gap-1.5 bg-slate-100 hover:bg-red-50 border border-slate-200 px-3 py-1.5 rounded-full transition-all cursor-pointer"
-                  title="Open Admin Dashboard"
-                >
-                  <Settings className="w-3.5 h-3.5 text-[#c92127]" />
-                  <span>অ্যাডমিন ড্যাশবোর্ড (প্রোডাক্ট এডিট)</span>
-                </button>
-
-                <button
-                  onClick={() => setIsInkFinderOpen(true)}
-                  className="text-xs font-bold text-[#c92127] hover:underline flex items-center gap-1 cursor-pointer hidden md:flex"
-                >
-                  ইঙ্ক ফাইন্ডার সাহায্য দরকার?
-                </button>
-              </div>
+              <a
+                href="/shop/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateTo('/shop/', 'Shop');
+                }}
+                className="text-xs sm:text-sm font-extrabold text-[#c92127] hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <span>সব প্রোডাক্ট দেখুন →</span>
+              </a>
             </div>
 
-            {/* Category Pills & Sorting Bar */}
-            <CategoryFilter 
-              categories={categoriesList} 
-              productCounts={productCounts} 
-            />
-
-            {/* Product Grid & Filters Sidebar with full page navigation */}
+            {/* Direct Product Grid (Mixture of Inks, Photocopiers, Printers) */}
             <ProductGrid 
               products={products} 
               loading={loading}
@@ -256,6 +269,12 @@ function MainApp() {
           {/* Official Splashjet 70% Savings & QR Verification Banner */}
           <SplashjetPromoBanner 
             onExploreInks={() => navigateTo('/product-category/splashjet-ink/', 'Splashjet Ink')}
+          />
+
+          {/* Dedicated 1-Row Infinite Continuous Scrolling Ink Showcase */}
+          <InkScrollSection 
+            allProducts={products}
+            onNavigate={navigateTo}
           />
 
           {/* Trust Features & Shop by Brands Section */}
@@ -280,9 +299,14 @@ function MainApp() {
       )}
 
       {/* Interactive Modals & Drawers */}
-      <ProductModal />
       <CartDrawer onNavigate={navigateTo} />
       <CheckoutModal />
+      <AccountModal 
+        isOpen={isAccountOpen} 
+        onClose={() => setIsAccountOpen(false)} 
+        onNavigate={navigateTo}
+        initialTab={accountActiveTab}
+      />
       <InkFinder 
         isOpen={isInkFinderOpen} 
         onClose={() => setIsInkFinderOpen(false)} 
@@ -301,19 +325,15 @@ function MainApp() {
       {/* Floating Contact Widget */}
       <ContactWidget />
 
-      {/* Red Square Back to Top Button */}
-      {showBackToTop && (
-        <button
-          onClick={scrollToTop}
-          aria-label="Back to Top"
-          className="fixed bottom-24 right-7 z-40 w-10 h-10 bg-[#c92127] hover:bg-[#b91c1c] text-white rounded-lg flex items-center justify-center shadow-lg transition-all transform hover:scale-105 cursor-pointer animate-fadeIn"
-        >
-          <ChevronUp className="w-6 h-6 stroke-[3]" />
-        </button>
-      )}
+      {/* Star Tech Style Mobile Down Navbar ("অর্ডার ট্র্যাক, কম্পায়ের, অফার/হ্যাপি hour, Splashjet Ink") */}
+      <MobileBottomNav 
+        currentRoute={currentRoute}
+        onNavigate={navigateTo}
+        allProducts={products}
+      />
 
       {/* Footer */}
-      <Footer onNavigate={navigateTo} />
+      <Footer onNavigate={navigateTo} onOpenAdmin={() => setIsAdminOpen(true)} />
     </div>
   );
 }

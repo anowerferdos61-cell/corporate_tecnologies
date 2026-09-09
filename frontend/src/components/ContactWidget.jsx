@@ -50,7 +50,7 @@ export default function ContactWidget() {
   };
 
   return (
-    <div ref={widgetRef} className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+    <div ref={widgetRef} className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 flex flex-col items-end">
       
       {/* Contact Popup Box matching corporatetechbd.com */}
       {isOpen && (
@@ -254,22 +254,22 @@ export default function ContactWidget() {
         </div>
       )}
 
-      {/* 3. Floating Red Trigger Button (matching corporatetechbd.com screenshots) */}
+      {/* 3. Floating Red Trigger Button (sleek and compact) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Contact Corporate Technologies"
-        className="w-14 h-14 rounded-full bg-[#c92127] hover:bg-[#b91c1c] text-white flex items-center justify-center shadow-2xl transition-all transform hover:scale-105 active:scale-95 cursor-pointer ring-4 ring-red-100/80"
+        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#c92127] hover:bg-[#b91c1c] text-white flex items-center justify-center shadow-xl transition-all transform hover:scale-105 active:scale-95 cursor-pointer ring-3 ring-red-100/90"
         title="যোগাযোগ করুন"
       >
         {isOpen ? (
-          <X className="w-6 h-6 stroke-[2.5]" />
+          <X className="w-5 h-5 stroke-[2.5]" />
         ) : (
           <div className="relative">
             {/* Chat Bubble Icon with 3 Dots matching screenshot */}
-            <svg className="w-7 h-7 fill-white" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5 fill-white" viewBox="0 0 24 24">
               <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-12 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
             </svg>
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-white animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full ring-1.5 ring-white animate-pulse" />
           </div>
         )}
       </button>

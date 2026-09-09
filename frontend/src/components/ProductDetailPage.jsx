@@ -1,47 +1,47 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  ArrowLeft, 
-  ShoppingCart, 
-  Heart, 
-  Star, 
-  CheckCircle2, 
-  Check, 
-  Truck, 
-  ShieldCheck, 
-  RefreshCw, 
-  Phone, 
-  Share2, 
-  Minus, 
-  Plus, 
-  Zap, 
-  Home, 
-  ChevronRight, 
-  Sparkles, 
-  Layers 
+import {
+  ArrowLeft,
+  ShoppingCart,
+  Heart,
+  Star,
+  CheckCircle2,
+  Check,
+  Truck,
+  ShieldCheck,
+  Phone,
+  Share2,
+  Minus,
+  Plus,
+  Zap,
+  Home,
+  ChevronRight,
+  Sparkles,
+  Layers,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import ProductCard from './ProductCard';
+import ProductCard, { isComparableProduct, triggerFlyToCompareAnimation } from './ProductCard';
 
-export default function ProductDetailPage({ 
-  productSlug, 
-  allProducts = [], 
-  onNavigate 
+export default function ProductDetailPage({
+  productSlug,
+  allProducts = [],
+  onNavigate
 }) {
-  const { 
-    cartItems, 
-    addToCart, 
-    toggleWishlist, 
-    wishlist, 
-    setIsCartOpen, 
-    showToast 
+  const {
+    cartItems,
+    addToCart,
+    toggleWishlist,
+    wishlist,
+    setIsCartOpen,
+    showToast
   } = useCart();
 
   // Find product by slug or id
   const product = useMemo(() => {
     if (!productSlug) return null;
     const cleanSlug = String(productSlug).replace(/^\/|\/$/g, '').toLowerCase();
-    return allProducts.find(p => 
-      (p.slug && p.slug.toLowerCase() === cleanSlug) || 
+    return allProducts.find(p =>
+      (p.slug && p.slug.toLowerCase() === cleanSlug) ||
       String(p.id) === cleanSlug
     ) || null;
   }, [productSlug, allProducts]);
@@ -70,16 +70,16 @@ export default function ProductDetailPage({
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16 text-center">
         <div className="bg-slate-50 border border-slate-200 rounded-3xl p-12 max-w-lg mx-auto space-y-4 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">প্রোডাক্ট পাওয়া যায়নি!</h2>
+          <h2 className="text-xl font-bold text-slate-900">Product Not Found!</h2>
           <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-            আপনি যে প্রোডাক্টটি খুঁজছেন তা হয়তো সরানো হয়েছে অথবা লিংকটি পরিবর্তিত হয়েছে।
+            The product you are looking for may have been removed or the link has changed.
           </p>
           <button
             onClick={() => onNavigate ? onNavigate('/shop/') : (window.location.href = '/shop/')}
             className="inline-flex items-center gap-2 bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-full transition-all shadow-md cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>সকল প্রোডাক্ট দেখুন (Shop)</span>
+            <span>View All Products (Shop)</span>
           </button>
         </div>
       </div>
@@ -99,8 +99,8 @@ export default function ProductDetailPage({
   const activeSalePrice = selectedVariation ? Number(selectedVariation.sale_price) : (Number(product.sale_price) || Number(product.regular_price) || 0);
   const activeRegPrice = selectedVariation ? Number(selectedVariation.regular_price) : (Number(product.regular_price) || activeSalePrice);
   const discountAmount = activeRegPrice > activeSalePrice ? activeRegPrice - activeSalePrice : 0;
-  const discountPercent = activeRegPrice > activeSalePrice && activeRegPrice > 0 
-    ? Math.round(((activeRegPrice - activeSalePrice) / activeRegPrice) * 100) 
+  const discountPercent = activeRegPrice > activeSalePrice && activeRegPrice > 0
+    ? Math.round(((activeRegPrice - activeSalePrice) / activeRegPrice) * 100)
     : 0;
 
   const isSoldOut = product.stock_quantity === 0;
@@ -114,6 +114,70 @@ export default function ProductDetailPage({
   }, [allProducts, product]);
 
   const [isJustAdded, setIsJustAdded] = useState(false);
+
+  // Compare Support (for Inks, Printers & Photocopiers)
+  const canCompare = isComparableProduct(product);
+
+  const [isCompared, setIsCompared] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ct_compare_list');
+      if (saved && product) {
+        const list = JSON.parse(saved);
+        return Array.isArray(list) && list.some(item => item.id === product.id);
+      }
+    } catch { }
+    return false;
+  });
+
+  const [isJustCompared, setIsJustCompared] = useState(false);
+
+  useEffect(() => {
+    const handleCompareSync = (e) => {
+      if (e?.detail && Array.isArray(e.detail) && product) {
+        setIsCompared(e.detail.some(item => item.id === product.id));
+      }
+    };
+    window.addEventListener('ct_compare_updated', handleCompareSync);
+    return () => window.removeEventListener('ct_compare_updated', handleCompareSync);
+  }, [product]);
+
+  const handleToggleCompare = (e) => {
+    if (e) e.stopPropagation();
+    if (!product) return;
+
+    setIsJustCompared(true);
+    setTimeout(() => setIsJustCompared(false), 1800);
+
+    try {
+      let list = [];
+      const saved = localStorage.getItem('ct_compare_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) list = parsed;
+      }
+
+      let updated;
+      const exists = list.some(item => item.id === product.id);
+      if (exists) {
+        updated = list.filter(item => item.id !== product.id);
+        setIsCompared(false);
+      } else {
+        if (list.length >= 3) {
+          updated = [...list.slice(0, 2), product];
+        } else {
+          updated = [...list, product];
+        }
+        setIsCompared(true);
+        triggerFlyToCompareAnimation(e.currentTarget, selectedImage || product.image_url);
+      }
+
+      localStorage.setItem('ct_compare_list', JSON.stringify(updated));
+      localStorage.setItem('ct_compare_cleared', updated.length === 0 ? 'true' : 'false');
+      window.dispatchEvent(new CustomEvent('ct_compare_updated', { detail: updated }));
+    } catch (err) {
+      console.error('Error updating compare:', err);
+    }
+  };
 
   // Check if current product is already in cart
   const cartItem = cartItems?.find(item => item.product.id === product?.id);
@@ -148,12 +212,12 @@ export default function ProductDetailPage({
   };
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen pb-36 md:pb-12">
       {/* 1. Breadcrumbs Bar */}
       <div className="bg-slate-50 border-b border-slate-100 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           <nav className="flex items-center gap-1.5 text-xs text-slate-500 flex-wrap">
-            <button 
+            <button
               onClick={() => onNavigate ? onNavigate('/') : (window.location.href = '/')}
               className="hover:text-[#c92127] flex items-center gap-1 cursor-pointer transition-colors"
             >
@@ -161,7 +225,7 @@ export default function ProductDetailPage({
               <span>Home</span>
             </button>
             <span>/</span>
-            <button 
+            <button
               onClick={() => onNavigate ? onNavigate('/shop/') : (window.location.href = '/shop/')}
               className="hover:text-[#c92127] cursor-pointer transition-colors"
             >
@@ -191,24 +255,24 @@ export default function ProductDetailPage({
 
       {/* 2. Main Product Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
-        
+
         {/* Back Button for mobile & desktop */}
         <button
           onClick={() => window.history.length > 1 ? window.history.back() : (onNavigate ? onNavigate('/shop/') : null)}
           className="mb-6 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-[#c92127] transition-colors cursor-pointer group"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          <span>আগের পেজে ফিরে যান</span>
+          <span>Back to Previous Page</span>
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
+
           {/* LEFT COLUMN: Gallery Showcase (5 cols on desktop) */}
           <div className="lg:col-span-6 space-y-4">
-            
+
             {/* Main Featured Image Card */}
             <div className="relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-8 flex items-center justify-center min-h-[300px] sm:min-h-[420px] shadow-sm overflow-hidden group">
-              
+
               {/* Badges on Image */}
               <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
                 {product.is_featured && (
@@ -240,9 +304,8 @@ export default function ProductDetailPage({
                 </button>
                 <button
                   onClick={() => toggleWishlist(product.id)}
-                  className={`w-9 h-9 rounded-full bg-white/90 backdrop-blur-xs border border-slate-200 flex items-center justify-center shadow-sm transition-all cursor-pointer ${
-                    isWishlisted ? 'text-[#c92127]' : 'text-slate-600 hover:text-[#c92127]'
-                  }`}
+                  className={`w-9 h-9 rounded-full bg-white/90 backdrop-blur-xs border border-slate-200 flex items-center justify-center shadow-sm transition-all cursor-pointer ${isWishlisted ? 'text-[#c92127]' : 'text-slate-600 hover:text-[#c92127]'
+                    }`}
                   title="Add to wishlist"
                 >
                   <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -267,11 +330,10 @@ export default function ProductDetailPage({
                     <button
                       key={idx}
                       onClick={() => setSelectedImage(img)}
-                      className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-white p-1.5 border transition-all cursor-pointer overflow-hidden ${
-                        isCurrent
+                      className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-white p-1.5 border transition-all cursor-pointer overflow-hidden ${isCurrent
                           ? 'border-[#c92127] ring-2 ring-[#c92127]/20 shadow-sm'
                           : 'border-slate-200 hover:border-slate-400 opacity-80 hover:opacity-100'
-                      }`}
+                        }`}
                     >
                       <img
                         src={img}
@@ -289,7 +351,7 @@ export default function ProductDetailPage({
             <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 flex items-center gap-3 text-emerald-800">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
               <div className="text-xs sm:text-[13px] font-semibold">
-                <span>১০০% অফিসিয়াল অথেনটিক পণ্য ও ১ বছর অফিসিয়াল ওয়ারেন্টি গ্যারান্টি</span>
+                <span>100% Official Authentic Product & 1 Year Official Warranty</span>
               </div>
             </div>
 
@@ -297,7 +359,7 @@ export default function ProductDetailPage({
 
           {/* RIGHT COLUMN: Product Details, Variations & Actions (6 cols on desktop) */}
           <div className="lg:col-span-6 space-y-6">
-            
+
             {/* Badges & Meta */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -309,7 +371,7 @@ export default function ProductDetailPage({
                 </span>
                 {product.brand && (
                   <span className="text-[11px] font-bold text-slate-700 bg-slate-50 px-3 py-1 rounded-full border border-slate-200">
-                    ব্র্যান্ড: {product.brand}
+                    Brand: {product.brand}
                   </span>
                 )}
               </div>
@@ -334,7 +396,7 @@ export default function ProductDetailPage({
                 </span>
                 <span className="text-slate-300">|</span>
                 <span className="text-xs font-bold text-emerald-600">
-                  স্টকে আছে (Ready in Stock)
+                  In Stock (Ready to Ship)
                 </span>
               </div>
             </div>
@@ -352,12 +414,12 @@ export default function ProductDetailPage({
                 )}
                 {discountAmount > 0 && (
                   <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-                    ৳{discountAmount.toLocaleString()} সাশ্রয় (-{discountPercent}%)
+                    Save ৳{discountAmount.toLocaleString()} (-{discountPercent}%)
                   </span>
                 )}
               </div>
               <p className="text-[11px] sm:text-xs text-slate-500">
-                ভ্যাট ও ট্যাক্স অন্তর্ভুক্ত। সারাদেশে ক্যাশ অন ডেলিভারি প্রযোজ্য।
+                VAT & Tax included. Cash on Delivery available nationwide.
               </p>
             </div>
 
@@ -367,7 +429,7 @@ export default function ProductDetailPage({
                 <div className="flex items-center justify-between">
                   <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <Layers className="w-4 h-4 text-[#c92127]" />
-                    <span>ভ্যারিয়েন্ট / কালার অপশন বেছে নিন:</span>
+                    <span>Select Variant / Color Option:</span>
                   </label>
                   {selectedVariation && (
                     <span className="text-xs font-bold text-[#c92127]">
@@ -386,11 +448,10 @@ export default function ProductDetailPage({
                           setSelectedVariation(v);
                           if (v.image_url) setSelectedImage(v.image_url);
                         }}
-                        className={`text-xs sm:text-sm px-4 py-2.5 rounded-xl border transition-all cursor-pointer font-semibold flex items-center gap-2 ${
-                          isSelected
+                        className={`text-xs sm:text-sm px-4 py-2.5 rounded-xl border transition-all cursor-pointer font-semibold flex items-center gap-2 ${isSelected
                             ? 'bg-[#c92127] text-white border-[#c92127] shadow-md transform scale-[1.02]'
                             : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
-                        }`}
+                          }`}
                       >
                         <span>{v.name}</span>
                         <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-[#c92127]'}`}>
@@ -418,7 +479,7 @@ export default function ProductDetailPage({
             {/* Quantity Selector & Action Buttons */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm font-bold text-slate-800">পরিমাণ:</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-800">Quantity:</span>
                 <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-xs">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -445,23 +506,22 @@ export default function ProductDetailPage({
                 <button
                   onClick={handleAddToCart}
                   disabled={isSoldOut}
-                  className={`w-full font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer ${
-                    isSoldOut
+                  className={`w-full font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer ${isSoldOut
                       ? 'bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed'
                       : isInCart
                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-600 shadow-md shadow-emerald-600/20'
                         : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-900 hover:border-[#c92127] hover:text-[#c92127]'
-                  } ${isJustAdded ? 'scale-[1.02] ring-2 ring-emerald-300' : ''}`}
+                    } ${isJustAdded ? 'scale-[1.02] ring-2 ring-emerald-300' : ''}`}
                 >
                   {isInCart ? (
                     <>
                       <Check className="w-4 h-4 text-white stroke-[2.5]" />
-                      <span>{isJustAdded ? 'কার্টে যোগ হয়েছে!' : 'কার্টে যুক্ত আছে'} ({cartQuantity}টি)</span>
+                      <span>{isJustAdded ? 'Added to Cart!' : 'In Cart'} ({cartQuantity})</span>
                     </>
                   ) : (
                     <>
                       <ShoppingCart className="w-4 h-4" />
-                      <span>কার্টে যোগ করুন</span>
+                      <span>Add to Cart</span>
                     </>
                   )}
                 </button>
@@ -472,24 +532,64 @@ export default function ProductDetailPage({
                   className="w-full bg-[#c92127] hover:bg-[#b91c1c] text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/25 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <Zap className="w-4 h-4 fill-current" />
-                  <span>সরাসরি অর্ডার করুন (Buy Now)</span>
+                  <span>Buy Now</span>
                 </button>
               </div>
+
+              {/* Dedicated Compare Option on Product Details Page (Only for Inks, Printers & Photocopiers) */}
+              {canCompare && (
+                <div className="pt-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleToggleCompare}
+                      className={`flex-1 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs border ${isCompared
+                          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                          : 'bg-blue-50/80 hover:bg-blue-100 text-blue-800 border-blue-200'
+                        } ${isJustCompared ? 'scale-[1.02] ring-2 ring-blue-400 bg-blue-600 text-white' : ''}`}
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      <span>
+                        {isJustCompared
+                          ? 'যোগ হয়েছে!'
+                          : isCompared
+                            ? 'তুলনায় যুক্ত আছে'
+                            : 'অন্য পণ্যের সাথে তুলনা করুন (Compare)'}
+                      </span>
+                    </button>
+
+                    {isCompared && (
+                      <button
+                        onClick={() => {
+                          if (onNavigate) onNavigate('/compare/', 'Product Compare');
+                          else {
+                            window.history.pushState({}, '', '/compare/');
+                            window.dispatchEvent(new PopStateEvent('popstate'));
+                          }
+                        }}
+                        className="py-3 px-4 rounded-2xl text-xs sm:text-sm font-black text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer flex items-center gap-1 flex-shrink-0"
+                      >
+                        <span>তুলনা দেখুন</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Key Delivery & Hotline Info Box */}
             <div className="border border-slate-200/90 rounded-2xl p-4 bg-slate-50/50 space-y-3">
               <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-700">
                 <Truck className="w-4 h-4 text-[#c92127] flex-shrink-0" />
-                <span>ঢাকা সিটিতে <strong>২৪ ঘণ্টা</strong> ও সারাদেশে <strong>৪৮ ঘণ্টায়</strong> ক্যাশ অন ডেলিভারি</span>
+                <span>24-Hour Delivery in Dhaka & 48-Hour Nationwide Cash on Delivery</span>
               </div>
               <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-700">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>১ বছর অফিসিয়াল সার্ভিস সাপোর্ট ও ১০০% জেনুইন পার্টস ওয়ারেন্টি</span>
+                <span>1 Year Official Service Support & 100% Genuine Parts Warranty</span>
               </div>
               <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-700">
                 <Phone className="w-4 h-4 text-slate-800 flex-shrink-0" />
-                <span>ফোনে অর্ডার করতে কল করুন: <a href="tel:01777277740" className="font-bold text-[#c92127] hover:underline">01777-277740</a> / <a href="tel:01777177730" className="font-bold text-[#c92127] hover:underline">01777-177730</a></span>
+                <span>Call to Order: <a href="tel:01777277740" className="font-bold text-[#c92127] hover:underline">01777-277740</a> / <a href="tel:01777177730" className="font-bold text-[#c92127] hover:underline">01777-177730</a></span>
               </div>
             </div>
 
@@ -499,28 +599,26 @@ export default function ProductDetailPage({
 
         {/* 3. Detailed Tabs Section (Description & Specifications) */}
         <div className="mt-14 border-t border-slate-200 pt-8">
-          
+
           {/* Tabs header */}
           <div className="flex items-center gap-4 border-b border-slate-200 pb-3">
             <button
               onClick={() => setActiveTab('description')}
-              className={`text-sm sm:text-base font-bold pb-2 border-b-2 transition-all cursor-pointer ${
-                activeTab === 'description'
+              className={`text-sm sm:text-base font-bold pb-2 border-b-2 transition-all cursor-pointer ${activeTab === 'description'
                   ? 'border-[#c92127] text-[#c92127]'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
-              সম্পূর্ণ বিবরণ (Description)
+              Description
             </button>
             <button
               onClick={() => setActiveTab('specifications')}
-              className={`text-sm sm:text-base font-bold pb-2 border-b-2 transition-all cursor-pointer ${
-                activeTab === 'specifications'
+              className={`text-sm sm:text-base font-bold pb-2 border-b-2 transition-all cursor-pointer ${activeTab === 'specifications'
                   ? 'border-[#c92127] text-[#c92127]'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
+                }`}
             >
-              স্পেসিফিকেশন (Specifications)
+              Specifications
             </button>
           </div>
 
@@ -533,7 +631,7 @@ export default function ProductDetailPage({
                     <p key={idx}>{para.trim()}</p>
                   ))
                 ) : (
-                  <p>এই প্রোডাক্ট সম্পর্কে বিস্তারিত জানতে আমাদের হটলাইনে সরাসরি যোগাযোগ করুন।</p>
+                  <p>For detailed inquiries regarding this product, please contact our hotline directly.</p>
                 )}
               </div>
             ) : (
@@ -541,21 +639,21 @@ export default function ProductDetailPage({
                 <table className="w-full text-xs sm:text-sm divide-y divide-slate-200">
                   <tbody className="divide-y divide-slate-100">
                     <tr className="bg-slate-50">
-                      <td className="px-4 py-3 font-semibold text-slate-600 w-1/3">ব্র্যান্ড</td>
+                      <td className="px-4 py-3 font-semibold text-slate-600 w-1/3">Brand</td>
                       <td className="px-4 py-3 font-bold text-slate-900">{product.brand || 'Splashjet'}</td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 font-semibold text-slate-600">ক্যাটাগরি</td>
+                      <td className="px-4 py-3 font-semibold text-slate-600">Category</td>
                       <td className="px-4 py-3 font-bold text-slate-900">{product.category}</td>
                     </tr>
                     {product.sub_category && (
                       <tr className="bg-slate-50">
-                        <td className="px-4 py-3 font-semibold text-slate-600">সাব-ক্যাটাগরি</td>
+                        <td className="px-4 py-3 font-semibold text-slate-600">Sub-Category</td>
                         <td className="px-4 py-3 font-bold text-slate-900">{product.sub_category}</td>
                       </tr>
                     )}
                     <tr>
-                      <td className="px-4 py-3 font-semibold text-slate-600">মডেল / SKU</td>
+                      <td className="px-4 py-3 font-semibold text-slate-600">Model / SKU</td>
                       <td className="px-4 py-3 font-bold text-slate-900">{product.sku || `CT-${product.id}`}</td>
                     </tr>
                     {product.specifications && Object.entries(product.specifications).map(([key, val], idx) => (
@@ -578,10 +676,10 @@ export default function ProductDetailPage({
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                  সম্পর্কিত অন্যান্য প্রোডাক্ট (Related Products)
+                  Related Products
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  একই ক্যাটাগরির জনপ্রিয় ও অথেনটিক সল্যুশন
+                  Popular & authentic products in the same category
                 </p>
               </div>
 
@@ -589,7 +687,7 @@ export default function ProductDetailPage({
                 onClick={() => onNavigate ? onNavigate('/shop/') : (window.location.href = '/shop/')}
                 className="text-xs font-bold text-[#c92127] hover:underline cursor-pointer hidden sm:block"
               >
-                সব প্রোডাক্ট দেখুন →
+                View All Products →
               </button>
             </div>
 
@@ -603,8 +701,8 @@ export default function ProductDetailPage({
 
       </div>
 
-      {/* 5. Mobile Sticky Bottom Action Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3">
+      {/* 5. Mobile Sticky Bottom Action Bar (stacked right above mobile bottom nav) */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 shadow-lg flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <img
             src={selectedImage || product.image_url}
@@ -616,12 +714,26 @@ export default function ProductDetailPage({
               ৳{activeSalePrice.toLocaleString()}
             </span>
             <span className="text-[10px] text-slate-500 truncate block">
-              {selectedVariation ? selectedVariation.name : 'স্টকে আছে'}
+              {selectedVariation ? selectedVariation.name : 'In Stock'}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Mobile compare button on product details page */}
+          {canCompare && (
+            <button
+              onClick={handleToggleCompare}
+              className={`p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${isCompared
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                }`}
+              title={isCompared ? 'তুলনায় যুক্ত আছে' : 'কম্পেয়ার করুন'}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             onClick={handleAddToCart}
             className="bg-slate-100 hover:bg-slate-200 text-slate-800 p-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
@@ -634,7 +746,7 @@ export default function ProductDetailPage({
             className="bg-[#c92127] hover:bg-[#b91c1c] text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-colors shadow-md flex items-center gap-1.5 cursor-pointer"
           >
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>অর্ডার করুন</span>
+            <span>Order Now</span>
           </button>
         </div>
       </div>
