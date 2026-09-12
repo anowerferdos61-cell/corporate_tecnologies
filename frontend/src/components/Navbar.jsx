@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, 
   ShoppingCart, 
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import CorporateLogo from './CorporateLogo';
+import PromoAnnouncementBar from './PromoAnnouncementBar';
 
 export const PRODUCT_CATEGORIES = [
   {
@@ -119,8 +121,7 @@ export default function Navbar({
   onNavigate, 
   currentRoute, 
   onSelectCategory, 
-  onOpenInkFinder, 
-  onOpenAdmin 
+  onOpenInkFinder
 }) {
   const {
     cartCount,
@@ -132,6 +133,9 @@ export default function Navbar({
     setSearchQuery,
     setSelectedCategory
   } = useCart();
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -225,33 +229,36 @@ export default function Navbar({
     if (e) e.preventDefault();
     setIsSearchFocused(false);
     setIsSearchModalOpen(false);
-    setSelectedCategory('All');
-    const el = document.getElementById('products-section');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (searchQuery.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      navigate('/shop');
+    }
+  };
+
+  const handleSuggestionClick = (product) => {
+    setIsSearchFocused(false);
+    setIsSearchModalOpen(false);
+    const targetSlug = product.slug || product.id;
+    navigate(`/product/${targetSlug}`);
   };
 
   const handleCategoryClick = (cat) => {
     setIsMobileMenuOpen(false);
     setActiveDropdown(null);
-    const targetUrl = `/product-category/${cat.slug}/`;
-    if (onNavigate) {
-      onNavigate(targetUrl, cat.name);
-    } else {
-      window.history.pushState({}, '', targetUrl);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+    if (cat.name) {
+      setSelectedCategory(cat.name);
     }
+    navigate(`/product-category/${cat.slug}`);
   };
 
   const handleSubCategoryClick = (subSlug, subName) => {
     setIsMobileMenuOpen(false);
     setActiveDropdown(null);
-    const targetUrl = `/product-category/${subSlug}/`;
-    if (onNavigate) {
-      onNavigate(targetUrl, subName);
-    } else {
-      window.history.pushState({}, '', targetUrl);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+    if (subName) {
+      setSelectedCategory(subName);
     }
+    navigate(`/product-category/${subSlug}`);
   };
 
   const toggleMobileCat = (catId) => {
@@ -263,6 +270,9 @@ export default function Navbar({
 
   return (
     <>
+      {/* 0. Top Promo / Coupon Announcement Bar */}
+      <PromoAnnouncementBar />
+
       {/* MAIN HEADER (Logo, Centered Search, Blog, Cart) */}
       <div className="bg-[#c92127] border-b border-[#a8191e] px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-30 lg:static transition-colors shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 sm:gap-6">
@@ -273,12 +283,9 @@ export default function Navbar({
               href="/" 
               onClick={(e) => {
                 e.preventDefault();
-                if (onNavigate) onNavigate('/', 'Home');
-                else {
-                  setSelectedCategory('All');
-                  setSearchQuery('');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+                setSelectedCategory('All');
+                setSearchQuery('');
+                navigate('/');
               }}
               className="flex items-center group cursor-pointer"
             >
@@ -368,23 +375,26 @@ export default function Navbar({
           <div className="flex items-center gap-2 sm:gap-3 text-white flex-shrink-0">
             
             {/* Blog Button (Desktop only; on mobile it is inside the Menu drawer) */}
-            <a
-              href="/blog/"
-              onClick={(e) => {
-                e.preventDefault();
-                if (onNavigate) {
-                  onNavigate('/blog/', 'Blog');
-                } else {
-                  window.history.pushState({}, '', '/blog/');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }
-              }}
+            <button
+              onClick={() => navigate('/blog')}
               className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
               title="Tech Blog & Guides"
             >
               <BookOpen className="w-4 h-4 text-white" />
               <span>Blog</span>
-            </a>
+            </button>
+
+            {/* Account / Login Button (Desktop) */}
+            <button
+              onClick={() => {
+                navigate('/my-account');
+              }}
+              className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
+              title={userProfile ? 'আমার অ্যাকাউন্ট ড্যাশবোর্ড' : 'লগইন বা রেজিস্টার'}
+            >
+              <User className="w-4 h-4 text-white" />
+              <span>{userProfile ? (userProfile.name?.split(' ')[0] || 'Profile') : 'লগইন'}</span>
+            </button>
 
             {/* Mobile Search Trigger */}
             <button
@@ -589,25 +599,23 @@ export default function Navbar({
                   <button
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      setAccountActiveTab('account');
-                      setIsAccountOpen(true);
+                      navigate('/my-account');
                     }}
                     className="text-[11px] font-bold text-[#c92127] bg-white border border-red-200 px-3 py-1.5 rounded-xl hover:bg-red-50 transition-colors cursor-pointer shadow-2xs"
                   >
-                    প্রোফাইল
+                    ড্যাশবোর্ড
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    setAccountActiveTab('account');
-                    setIsAccountOpen(true);
+                    navigate('/my-account');
                   }}
                   className="w-full bg-[#c92127] hover:bg-[#b91c1c] text-white py-2.5 px-3.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                 >
                   <User className="w-4 h-4" />
-                  <span>আমার অ্যাকাউন্ট (Login / Register)</span>
+                  <span>আমার অ্যাকাউন্ট (Dashboard)</span>
                 </button>
               )}
             </div>
@@ -662,8 +670,7 @@ export default function Navbar({
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    setAccountActiveTab('track');
-                    setIsAccountOpen(true);
+                    navigate('/my-account?tab=track');
                   }}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer"
                 >
@@ -730,8 +737,7 @@ export default function Navbar({
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    if (onNavigate) onNavigate('/blog/', 'Blog');
-                    else window.location.href = '/blog/';
+                    navigate('/blog');
                   }}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer"
                 >

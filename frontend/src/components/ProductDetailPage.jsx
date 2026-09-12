@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ShoppingCart,
@@ -21,12 +22,25 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import ProductCard, { isComparableProduct, triggerFlyToCompareAnimation } from './ProductCard';
+import FlashSaleUrgencyBox from './FlashSaleUrgencyBox';
 
 export default function ProductDetailPage({
-  productSlug,
+  productSlug: propProductSlug,
   allProducts = [],
   onNavigate
 }) {
+  const { productSlug: paramProductSlug } = useParams();
+  const navigate = useNavigate();
+  const productSlug = propProductSlug || paramProductSlug;
+
+  const handleNav = (url, extra) => {
+    if (onNavigate) {
+      onNavigate(url, extra);
+    } else {
+      navigate(url);
+    }
+  };
+
   const {
     cartItems,
     addToCart,
@@ -66,28 +80,9 @@ export default function ProductDetailPage({
     }
   }, [product]);
 
-  if (!product) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16 text-center">
-        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-12 max-w-lg mx-auto space-y-4 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900">Product Not Found!</h2>
-          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-            The product you are looking for may have been removed or the link has changed.
-          </p>
-          <button
-            onClick={() => onNavigate ? onNavigate('/shop/') : (window.location.href = '/shop/')}
-            className="inline-flex items-center gap-2 bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-full transition-all shadow-md cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>View All Products (Shop)</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // Gallery Images
   const gallery = useMemo(() => {
+    if (!product) return [];
     const images = Array.isArray(product.gallery_images) && product.gallery_images.length > 0
       ? product.gallery_images
       : [product.image_url];
@@ -96,18 +91,19 @@ export default function ProductDetailPage({
   }, [product]);
 
   // Pricing calculations based on variant or base product
-  const activeSalePrice = selectedVariation ? Number(selectedVariation.sale_price) : (Number(product.sale_price) || Number(product.regular_price) || 0);
-  const activeRegPrice = selectedVariation ? Number(selectedVariation.regular_price) : (Number(product.regular_price) || activeSalePrice);
+  const activeSalePrice = selectedVariation ? Number(selectedVariation.sale_price) : (Number(product?.sale_price) || Number(product?.regular_price) || 0);
+  const activeRegPrice = selectedVariation ? Number(selectedVariation.regular_price) : (Number(product?.regular_price) || activeSalePrice);
   const discountAmount = activeRegPrice > activeSalePrice ? activeRegPrice - activeSalePrice : 0;
   const discountPercent = activeRegPrice > activeSalePrice && activeRegPrice > 0
     ? Math.round(((activeRegPrice - activeSalePrice) / activeRegPrice) * 100)
     : 0;
 
-  const isSoldOut = product.stock_quantity === 0;
-  const isWishlisted = wishlist.includes(product.id);
+  const isSoldOut = product?.stock_quantity === 0;
+  const isWishlisted = product ? wishlist.includes(product.id) : false;
 
   // Related products from the same category
   const relatedProducts = useMemo(() => {
+    if (!product) return [];
     return allProducts
       .filter(p => p.id !== product.id && (p.category === product.category || (product.raw_categories && p.raw_categories && p.raw_categories[0] === product.raw_categories[0])))
       .slice(0, 4);
@@ -116,7 +112,7 @@ export default function ProductDetailPage({
   const [isJustAdded, setIsJustAdded] = useState(false);
 
   // Compare Support (for Inks, Printers & Photocopiers)
-  const canCompare = isComparableProduct(product);
+  const canCompare = product ? isComparableProduct(product) : false;
 
   const [isCompared, setIsCompared] = useState(() => {
     try {
@@ -140,6 +136,26 @@ export default function ProductDetailPage({
     window.addEventListener('ct_compare_updated', handleCompareSync);
     return () => window.removeEventListener('ct_compare_updated', handleCompareSync);
   }, [product]);
+
+  if (!product) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16 text-center">
+        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-12 max-w-lg mx-auto space-y-4 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900">Product Not Found!</h2>
+          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+            The product you are looking for may have been removed or the link has changed.
+          </p>
+          <button
+            onClick={() => onNavigate ? onNavigate('/shop/') : (window.location.href = '/shop/')}
+            className="inline-flex items-center gap-2 bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-full transition-all shadow-md cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>View All Products (Shop)</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleCompare = (e) => {
     if (e) e.stopPropagation();
@@ -180,7 +196,7 @@ export default function ProductDetailPage({
   };
 
   // Check if current product is already in cart
-  const cartItem = cartItems?.find(item => item.product.id === product?.id);
+  const cartItem = cartItems?.find(item => (item.product?.id || item.id) === product?.id);
   const isInCart = Boolean(cartItem);
   const cartQuantity = cartItem?.quantity || 0;
 
@@ -400,6 +416,9 @@ export default function ProductDetailPage({
                 </span>
               </div>
             </div>
+
+            {/* Live Flash Sale Urgency & Stock Status Box */}
+            <FlashSaleUrgencyBox product={product} />
 
             {/* Pricing Section */}
             <div className="bg-slate-50/90 rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/80 space-y-2">

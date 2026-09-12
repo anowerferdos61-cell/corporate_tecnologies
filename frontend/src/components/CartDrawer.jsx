@@ -7,7 +7,8 @@ import {
   ShoppingBag, 
   ArrowRight, 
   Truck, 
-  ShieldCheck
+  ShieldCheck,
+  Ticket
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
@@ -254,6 +255,12 @@ export default function CartDrawer({ onNavigate }) {
                   <span>সর্বমোট প্রদেয়:</span>
                   <span className="text-base text-[#c92127]">৳{grandTotal.toLocaleString()}</span>
                 </div>
+              </div>
+
+              {/* Coupon Notice */}
+              <div className="flex items-center gap-2 p-2.5 bg-red-50/70 border border-dashed border-red-200 rounded-xl text-[11px] text-[#c92127] font-semibold">
+                <Ticket className="w-4 h-4 shrink-0 text-[#c92127]" />
+                <span className="truncate">পরের ধাপে স্পেশাল কুপন কোড ব্যবহার করে ছাড় পাবেন!</span>
               </div>
 
               <button

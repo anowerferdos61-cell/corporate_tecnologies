@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import { useCart } from '../context/CartContext';
 import { 
@@ -20,10 +21,17 @@ const PRODUCTS_PER_PAGE = 14; // 14 products per page as requested by user
 
 export default function CategoryPage({ 
   products = [], 
-  categorySlug,
-  subCategorySlug = null,
+  categorySlug: propCatSlug,
+  subCategorySlug: propSubCatSlug,
   onNavigate 
 }) {
+  const { categorySlug: paramCat, subCategorySlug: paramSub } = useParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const categorySlug = propCatSlug || paramCat;
+  const subCategorySlug = propSubCatSlug || paramSub;
+
   const { 
     addToCart, 
     searchQuery: cartSearchQuery, 
@@ -73,6 +81,15 @@ export default function CategoryPage({
       setCurrentPage(1);
     }
   }, [cartSearchQuery]);
+
+  // Sync search query from URL (?search=...)
+  useEffect(() => {
+    const urlQuery = searchParams.get('search');
+    if (urlQuery !== null && urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
 
   // Update page title
   useEffect(() => {
@@ -259,7 +276,7 @@ export default function CategoryPage({
     if (onNavigate) {
       onNavigate(url, cat.name, sub ? sub.name : null);
     } else {
-      window.history.pushState({}, '', url);
+      navigate(url);
     }
   };
 

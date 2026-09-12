@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, Check, SlidersHorizontal } from 'lucide-react';
 import { trackProductView } from '../lib/analyticsTracker';
 
@@ -131,6 +132,7 @@ export function triggerFlyToCompareAnimation(sourceEl, imageUrl) {
  * - Clicking the card navigates directly to product details
  */
 export default function ProductCard({ product, onNavigate }) {
+  const navigate = useNavigate();
   const canCompare = isComparableProduct(product);
 
   const [isCompared, setIsCompared] = useState(() => {
@@ -138,7 +140,7 @@ export default function ProductCard({ product, onNavigate }) {
       const saved = localStorage.getItem('ct_compare_list');
       if (saved) {
         const list = JSON.parse(saved);
-        return Array.isArray(list) && list.some(item => item.id === product.id);
+        return Array.isArray(list) && list.some(item => item.id === product?.id);
       }
     } catch {}
     return false;
@@ -146,16 +148,18 @@ export default function ProductCard({ product, onNavigate }) {
 
   const [isJustCompared, setIsJustCompared] = useState(false);
 
-  // Sync isCompared state across multiple cards or when cleared from bottom nav / compare page
+  // Sync state when compare list changes elsewhere
   useEffect(() => {
-    const handleSync = (e) => {
-      if (e?.detail && Array.isArray(e.detail)) {
+    const handleCompareSync = (e) => {
+      if (e?.detail && Array.isArray(e.detail) && product) {
         setIsCompared(e.detail.some(item => item.id === product.id));
       }
     };
-    window.addEventListener('ct_compare_updated', handleSync);
-    return () => window.removeEventListener('ct_compare_updated', handleSync);
-  }, [product.id]);
+    window.addEventListener('ct_compare_updated', handleCompareSync);
+    return () => window.removeEventListener('ct_compare_updated', handleCompareSync);
+  }, [product?.id]);
+
+  if (!product) return null;
 
   const isSoldOut = product.stock_quantity === 0;
 
@@ -173,8 +177,7 @@ export default function ProductCard({ product, onNavigate }) {
     if (onNavigate) {
       onNavigate(targetUrl, product);
     } else {
-      window.history.pushState({}, '', targetUrl);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      navigate(targetUrl);
     }
   };
 
