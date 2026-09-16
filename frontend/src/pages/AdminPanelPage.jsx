@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   isAdminAuthenticated,
   getAdminSession,
@@ -25,13 +26,17 @@ import AdminLoginView from '../components/admin/AdminLoginView';
 import OverviewTab from '../components/admin/tabs/OverviewTab';
 import OrdersTab from '../components/admin/tabs/OrdersTab';
 import ProductsTab from '../components/admin/tabs/ProductsTab';
+import CategoriesTab from '../components/admin/tabs/CategoriesTab';
 import CustomersTab from '../components/admin/tabs/CustomersTab';
 import SettingsTab from '../components/admin/tabs/SettingsTab';
 import CouponsTab from '../components/admin/tabs/CouponsTab';
 import AnalyticsTab from '../components/admin/tabs/AnalyticsTab';
+import BannersTab from '../components/admin/tabs/BannersTab';
 import OrderDetailsDrawer from '../components/admin/modals/OrderDetailsDrawer';
-import ProductFormModal from '../components/admin/modals/ProductFormModal';
+import ProductEditorView from '../components/admin/ProductEditorView';
 import OrderInvoiceModal from '../components/OrderInvoiceModal';
+
+const VALID_TABS = ['overview', 'orders', 'products', 'customers', 'analytics', 'banners', 'settings'];
 
 export default function AdminPanelPage({ products = [], onProductsUpdate = () => {} }) {
   // Authentication State
@@ -41,15 +46,57 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
   const adminRole = adminSession?.role || 'super_admin';
   const isSuperAdmin = adminRole === 'super_admin';
 
-  // Active Tab & Search
-  const [activeTab, setActiveTab] = useState('overview');
+  // Hybrid URL Sync: URL Query Params (?tab=orders)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const initialTab = VALID_TABS.includes(urlTab) ? urlTab : 'overview';
+  
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [globalSearch, setGlobalSearch] = useState('');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('corp_tech_admin_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Keep state in sync with URL changes (e.g. Browser Back / Forward buttons)
+  useEffect(() => {
+    if (urlTab && VALID_TABS.includes(urlTab) && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    } else if (!urlTab && activeTab !== 'overview') {
+      setActiveTab('overview');
+    }
+  }, [urlTab]);
+
+  // Tab change handler that pushes to URL
+  const handleTabChange = (newTab) => {
+    if (!VALID_TABS.includes(newTab)) return;
+    setActiveTab(newTab);
+    if (newTab === 'overview') {
+      searchParams.delete('tab');
+      setSearchParams(searchParams, { replace: false });
+    } else {
+      setSearchParams({ tab: newTab }, { replace: false });
+    }
+  };
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('corp_tech_admin_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Auto-protect restricted tabs for staff
   useEffect(() => {
     if (!isSuperAdmin && (activeTab === 'settings' || activeTab === 'coupons')) {
-      setActiveTab('orders');
+      handleTabChange('orders');
     }
   }, [activeTab, isSuperAdmin]);
 
@@ -191,12 +238,16 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
   async function handleSaveProduct(productPayload, existingId = null) {
     if (existingId) {
       const updated = await updateProductOnSupabase(existingId, productPayload);
-      onProductsUpdate((prev) => prev.map((p) => (p.id === existingId ? { ...p, ...updated } : p)));
-      alert('Product updated successfully!');
+      onProductsUpdate((prev) =>
+        prev.map((p) =>
+          String(p.id) === String(existingId) || (productPayload.slug && p.slug === productPayload.slug)
+            ? { ...p, ...updated }
+            : p
+        )
+      );
     } else {
       const created = await createProductOnSupabase(productPayload);
       onProductsUpdate((prev) => [created, ...prev]);
-      alert('New product added successfully!');
     }
   }
 
@@ -241,7 +292,7 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
       {/* 1. Left Sidebar (Desktop persistent, mobile slide-over drawer) */}
       <AdminSidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         pendingOrdersCount={pendingOrdersCount}
         totalOrdersCount={orders.length}
         totalProductsCount={products.length}
@@ -251,6 +302,8 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
         onLogout={handleLogout}
         isMobileOpen={isMobileNavOpen}
         onCloseMobile={() => setIsMobileNavOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
       />
 
       {/* 2. Right Workspace */}
@@ -265,7 +318,11 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
             loadCustomers();
           }}
           adminUsername={adminSession?.name || adminSession?.username || 'Admin'}
+          adminRole={adminRole}
           onOpenMobileSidebar={() => setIsMobileNavOpen(true)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={toggleSidebarCollapse}
+          onOpenAddProduct={() => setIsAddingProduct(true)}
         />
 
         {/* Dynamic Tab Workspace */}
@@ -274,8 +331,8 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
             <OverviewTab
               orders={orders}
               products={products}
-              onViewAllOrders={() => setActiveTab('orders')}
-              onViewProductCatalog={() => setActiveTab('products')}
+              onViewAllOrders={() => handleTabChange('orders')}
+              onViewProductCatalog={() => handleTabChange('products')}
               onSelectOrder={setSelectedOrder}
             />
           )}
@@ -305,6 +362,10 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
             />
           )}
 
+          {activeTab === 'categories' && (
+            <CategoriesTab />
+          )}
+
           {activeTab === 'customers' && (
             <CustomersTab
               customers={customers}
@@ -321,8 +382,8 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
             />
           )}
 
-          {activeTab === 'coupons' && isSuperAdmin && (
-            <CouponsTab />
+          {activeTab === 'banners' && (
+            <BannersTab />
           )}
 
           {activeTab === 'settings' && isSuperAdmin && (
@@ -353,16 +414,19 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
         />
       )}
 
-      {/* 4. Add / Edit Product Modal */}
+      {/* 4. Full Page Dedicated Add / Edit Product View */}
       {(isAddingProduct || editingProduct) && (
-        <ProductFormModal
-          product={editingProduct}
-          onClose={() => {
-            setIsAddingProduct(false);
-            setEditingProduct(null);
-          }}
-          onSaveProduct={handleSaveProduct}
-        />
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f8fafc]">
+          <ProductEditorView
+            product={editingProduct}
+            allProducts={products}
+            onClose={() => {
+              setIsAddingProduct(false);
+              setEditingProduct(null);
+            }}
+            onSaveProduct={handleSaveProduct}
+          />
+        </div>
       )}
 
       {/* 5. Official Invoice & Packing Slip Modal */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { SettingsProvider } from './context/SettingsContext';
 import Root from './layouts/Root';
 import ScrollToTop from './components/ScrollToTop';
 import HomePage from './pages/HomePage';
@@ -10,6 +11,7 @@ import ComparePage from './components/ComparePage';
 import BlogPage from './components/BlogPage';
 import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import AdminPanelPage from './pages/AdminPanelPage';
+import CheckoutPage from './pages/CheckoutPage';
 import { getProducts } from './lib/supabaseClient';
 
 export default function App() {
@@ -33,9 +35,10 @@ export default function App() {
   }, []);
 
   return (
-    <CartProvider>
-      <BrowserRouter>
-        <ScrollToTop />
+    <SettingsProvider>
+      <CartProvider>
+        <BrowserRouter>
+          <ScrollToTop />
         <Routes>
           {/* Secret Standalone Admin Panel - Completely hidden from all public menus and pages */}
           <Route 
@@ -113,7 +116,17 @@ export default function App() {
               element={<BlogPage />} 
             />
 
-            {/* 7. Dedicated Customer Account & Order Dashboard */}
+            {/* 7. Dedicated Checkout Page & Cart Redirect */}
+            <Route 
+              path="checkout" 
+              element={<CheckoutPage />} 
+            />
+            <Route 
+              path="cart" 
+              element={<Navigate to="/checkout" replace />} 
+            />
+
+            {/* 8. Dedicated Customer Account & Order Dashboard */}
             <Route 
               path="my-account" 
               element={<CustomerDashboardPage products={products} />} 
@@ -136,5 +149,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </CartProvider>
+  </SettingsProvider>
   );
 }

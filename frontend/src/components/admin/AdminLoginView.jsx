@@ -3,7 +3,7 @@ import { ShieldCheck, Users, KeyRound, Lock, Loader2, AlertCircle } from 'lucide
 import { loginAdmin } from '../../lib/adminAuth';
 
 export default function AdminLoginView({ onLoginSuccess }) {
-  const [loginUsername, setLoginUsername] = useState('admin');
+  const [loginUsername, setLoginUsername] = useState('');
   const [loginPin, setLoginPin] = useState('');
   const [loginRememberMe, setLoginRememberMe] = useState(true);
   const [loginError, setLoginError] = useState('');
@@ -55,16 +55,17 @@ export default function AdminLoginView({ onLoginSuccess }) {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Admin Username
+              Username
             </label>
             <div className="relative">
               <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
+                autoComplete="username"
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="Enter your username"
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#c92127] focus:ring-1 focus:ring-[#c92127]"
               />
             </div>
@@ -72,23 +73,20 @@ export default function AdminLoginView({ onLoginSuccess }) {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Security PIN / Password
+              Password / PIN
             </label>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={loginPin}
                 onChange={(e) => setLoginPin(e.target.value)}
-                placeholder="••••••"
+                placeholder="Enter your password or PIN"
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#c92127] focus:ring-1 focus:ring-[#c92127]"
               />
             </div>
-            <p className="text-[11px] text-slate-400 mt-1.5 flex items-center justify-between">
-              <span>Super Admin: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono">admin</code></span>
-              <span>Staff Dispatcher: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono">staff</code></span>
-            </p>
           </div>
 
           <div className="flex items-center justify-between text-xs pt-1">

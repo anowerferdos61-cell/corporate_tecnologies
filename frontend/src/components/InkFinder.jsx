@@ -334,7 +334,7 @@ export default function InkFinder({
             ) : (
               <div className="space-y-2 max-h-48 sm:max-h-56 overflow-y-auto pr-1">
                 {matchedProducts.slice(0, 4).map((p) => {
-                  const cartItem = cartItems?.find(item => item.product.id === p.id);
+                  const cartItem = cartItems?.find(item => (item?.product?.id || item?.id) === p.id);
                   const isInCart = Boolean(cartItem);
 
                   return (

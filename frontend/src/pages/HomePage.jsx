@@ -5,6 +5,7 @@ import HeroBanner from '../components/HeroBanner';
 import ShopByCategories from '../components/ShopByCategories';
 import ProductGrid from '../components/ProductGrid';
 import SplashjetPromoBanner from '../components/SplashjetPromoBanner';
+import SplashjetStickyShowcase from '../components/SplashjetStickyShowcase';
 import InkScrollSection from '../components/InkScrollSection';
 import TrustAndBrandsSection from '../components/TrustAndBrandsSection';
 import SeoAuthoritySection from '../components/SeoAuthoritySection';
@@ -62,7 +63,7 @@ export default function HomePage({ products = [], loading = false }) {
               Popular This Week
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              ফটোকপিয়ার, প্রিন্টার ও Splashjet আসল ডিজিটাল ইঙ্কের সেরা কালেকশন
+              Explore our best-selling Inks, Photocopiers and Printers
             </p>
           </div>
 
@@ -70,7 +71,7 @@ export default function HomePage({ products = [], loading = false }) {
             onClick={() => navigateTo('/shop', 'All')}
             className="text-xs sm:text-sm font-extrabold text-[#c92127] hover:underline cursor-pointer flex items-center gap-1"
           >
-            <span>সব প্রোডাক্ট দেখুন →</span>
+            <span>Explore All Products →</span>
           </button>
         </div>
 
@@ -90,6 +91,11 @@ export default function HomePage({ products = [], loading = false }) {
       {/* 5. Dedicated 1-Row Infinite Continuous Scrolling Ink Showcase */}
       <InkScrollSection 
         allProducts={products}
+        onNavigate={navigateTo}
+      />
+
+      {/* 5.5 Laptop/Desktop Full Card Sticky Scroll Animation Showcase (Hidden on Mobile) */}
+      <SplashjetStickyShowcase 
         onNavigate={navigateTo}
       />
 

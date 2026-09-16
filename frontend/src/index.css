@@ -2,11 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --brand-primary: #c92127;
+  --brand-primary-hover: #a8171c;
+  --brand-primary-rgb: 201, 33, 39;
+  --brand-accent: #0ea5e9;
+  --font-primary: 'Inter', 'Hind Siliguri', sans-serif;
+}
+
 @layer base {
   body {
     @apply bg-[#f4f7fb] text-slate-800 antialiased font-sans;
+    font-family: var(--font-primary);
   }
 }
+
+/* Dynamic Brand Utility Classes */
+.bg-brand-dyn {
+  background-color: var(--brand-primary, #c92127) !important;
+}
+.bg-brand-dyn-hover:hover {
+  background-color: var(--brand-primary-hover, #a8171c) !important;
+}
+.text-brand-dyn {
+  color: var(--brand-primary, #c92127) !important;
+}
+.border-brand-dyn {
+  border-color: var(--brand-primary, #c92127) !important;
+}
+.btn-primary-dyn {
+  background-color: var(--brand-primary, #c92127);
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-primary-dyn:hover {
+  background-color: var(--brand-primary-hover, #a8171c);
+}
+
+/* No Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {

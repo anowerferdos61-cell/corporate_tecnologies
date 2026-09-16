@@ -3,13 +3,12 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import Navbar from '../components/Navbar';
 import CartDrawer from '../components/CartDrawer';
-import CheckoutModal from '../components/CheckoutModal';
 import AccountModal from '../components/AccountModal';
 import InkFinder from '../components/InkFinder';
 import ContactWidget from '../components/ContactWidget';
 import MobileBottomNav from '../components/MobileBottomNav';
 import Footer from '../components/Footer';
-import { ChevronUp, CheckCircle2, Info } from 'lucide-react';
+import { ChevronUp, CheckCircle2, Info, X } from 'lucide-react';
 
 export default function Root({ products = [], setProducts = () => {}, loading = false }) {
   const navigate = useNavigate();
@@ -75,7 +74,6 @@ export default function Root({ products = [], setProducts = () => {}, loading = 
 
       {/* 3. Global Interactive Modals & Drawers */}
       <CartDrawer onNavigate={navigateTo} />
-      <CheckoutModal />
       <AccountModal 
         isOpen={isAccountOpen} 
         onClose={() => setIsAccountOpen(false)} 
@@ -101,22 +99,31 @@ export default function Root({ products = [], setProducts = () => {}, loading = 
       {/* 7. Global Persistent Footer */}
       <Footer onNavigate={navigateTo} />
 
-      {/* 8. Floating Back to Top Button */}
+      {/* 8. Floating Back to Top Button (Positioned above ContactWidget to prevent overlap) */}
       {showBackToTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-20 md:bottom-6 right-5 z-40 bg-[#c92127] text-white p-3 rounded-full shadow-lg hover:bg-[#b91c1c] active:scale-95 transition-all cursor-pointer flex items-center justify-center border-2 border-white/20"
+          className="fixed bottom-34 md:bottom-22 right-4 md:right-6 z-30 bg-[#c92127] text-white w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-xl hover:bg-[#b91c1c] active:scale-95 transition-all cursor-pointer flex items-center justify-center border-2 border-white/20"
           aria-label="Back to top"
+          title="উপরে ফিরে যান"
         >
-          <ChevronUp className="w-5 h-5" />
+          <ChevronUp className="w-5 h-5 stroke-[2.5]" />
         </button>
       )}
 
       {/* 9. Global Floating Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-sm text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm font-semibold animate-bounce border border-white/10">
-          <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
-          <span>{toastMessage}</span>
+        <div className={`fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-sm text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm font-semibold animate-bounce border ${
+          (typeof toastMessage === 'object' && toastMessage?.type === 'error') ? 'border-red-500/50' : 'border-white/10'
+        }`}>
+          {typeof toastMessage === 'object' && toastMessage?.type === 'error' ? (
+            <X className="w-5 h-5 text-red-400 flex-shrink-0" />
+          ) : typeof toastMessage === 'object' && toastMessage?.type === 'info' ? (
+            <Info className="w-5 h-5 text-sky-400 flex-shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+          )}
+          <span>{typeof toastMessage === 'object' ? (toastMessage.message || '') : String(toastMessage)}</span>
         </div>
       )}
     </div>

@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Search, 
-  ShoppingCart, 
+import {
+  Search,
+  ShoppingCart,
   SlidersHorizontal,
-  Menu, 
-  X, 
+  Menu,
+  X,
   Phone,
   ChevronDown,
   ChevronRight,
@@ -19,16 +19,19 @@ import {
   Flame,
   FileText,
   PhoneCall,
+  MessageCircle,
   User,
   Home,
   Truck,
   BookOpen
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import CorporateLogo from './CorporateLogo';
 import PromoAnnouncementBar from './PromoAnnouncementBar';
+import { getAvailableCategories, getCachedCategoriesTree } from '../lib/categoryService';
 
-export const PRODUCT_CATEGORIES = [
+const PRODUCT_CATEGORIES = [
   {
     id: 'photocopier',
     name: 'Photocopiers',
@@ -60,12 +63,14 @@ export const PRODUCT_CATEGORIES = [
     slug: 'splashjet-ink',
     icon: Sparkles,
     subcategories: [
+      { name: 'Large Format Printer Ink', slug: 'splashjet-ink/large-format-printer-ink' },
+      { name: 'Desktop Printer Ink', slug: 'splashjet-ink/desktop-printer-ink' },
+      { name: 'Digital Textile Printing Ink', slug: 'splashjet-ink/digital-textile-printing-ink' },
+      { name: 'Industrial Inkjet Ink', slug: 'splashjet-ink/industrial-inkjet-ink' },
       { name: 'Splashjet For Epson Printers', slug: 'splashjet-ink/splashjet-for-epson' },
       { name: 'Splashjet For Canon Printers', slug: 'splashjet-ink/splashjet-for-canon' },
       { name: 'Splashjet For HP Printers', slug: 'splashjet-ink/splashjet-for-hp' },
-      { name: 'Splashjet For Brother Printers', slug: 'splashjet-ink/splashjet-for-brother' },
-      { name: 'Sublimation Textile Inks', slug: 'splashjet-ink/splashjet-for-sublimation' },
-      { name: 'DTF Premium Textile Inks', slug: 'splashjet-ink/splashjet-for-dtf' }
+      { name: 'Splashjet For Brother Printers', slug: 'splashjet-ink/splashjet-for-brother' }
     ]
   },
   {
@@ -116,11 +121,11 @@ export const PRODUCT_CATEGORIES = [
   }
 ];
 
-export default function Navbar({ 
-  allProducts = [], 
-  onNavigate, 
-  currentRoute, 
-  onSelectCategory, 
+export default function Navbar({
+  allProducts = [],
+  onNavigate,
+  currentRoute,
+  onSelectCategory,
   onOpenInkFinder
 }) {
   const {
@@ -134,15 +139,166 @@ export default function Navbar({
     setSelectedCategory
   } = useCart();
 
+  const { branding, headerSettings } = useSettings();
+
   const navigate = useNavigate();
   const location = useLocation();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedMobileCats, setExpandedMobileCats] = useState({});
   const [activeDropdown, setActiveDropdown] = useState(null);
   const searchRef = useRef(null);
+  const mobileSearchRef = useRef(null);
+  const mobileInputRef = useRef(null);
+
+  // Auto-focus mobile search input when mobile search bar is opened
+  useEffect(() => {
+    if (isSearchModalOpen) {
+      setIsMobileSearchFocused(true);
+      const timer = setTimeout(() => {
+        mobileInputRef.current?.focus();
+      }, 60);
+      return () => clearTimeout(timer);
+    } else {
+      setIsMobileSearchFocused(false);
+    }
+  }, [isSearchModalOpen]);
+
+  // Auto-close mobile search on scroll so it returns to the header button, and clear search input
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleWindowScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (Math.abs(currentScrollY - lastScrollY) > 20) {
+        if (isSearchModalOpen) {
+          setIsSearchModalOpen(false);
+          setIsMobileSearchFocused(false);
+          setSearchQuery('');
+        }
+        if (isSearchFocused) {
+          setIsSearchFocused(false);
+        }
+        lastScrollY = currentScrollY;
+      }
+    };
+
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleWindowScroll);
+  }, [isSearchModalOpen, isSearchFocused, setSearchQuery]);
+
+  // Dynamic Category Live Revision Listener
+  const [categoryRevision, setCategoryRevision] = useState(0);
+  useEffect(() => {
+    const handleCategoryUpdate = () => {
+      setCategoryRevision(prev => prev + 1);
+    };
+    window.addEventListener('ct_categories_updated', handleCategoryUpdate);
+    window.addEventListener('storage', handleCategoryUpdate);
+    return () => {
+      window.removeEventListener('ct_categories_updated', handleCategoryUpdate);
+      window.removeEventListener('storage', handleCategoryUpdate);
+    };
+  }, []);
+
+  // Hidden categories excluded by admin ("বাদ দেওয়া")
+  const hiddenCategories = useMemo(() => {
+    return new Set(
+      (headerSettings?.navigation?.hidden_categories || []).map(c => c.toLowerCase().trim())
+    );
+  }, [headerSettings?.navigation?.hidden_categories]);
+
+  // Combine default categories with custom categories from admin / products, then filter out hidden ones
+  const allNavCategories = useMemo(() => {
+    const canonicalMap = {
+      'photocopy machines': 'photocopiers',
+      'photocopy machine': 'photocopiers',
+      'photocopier': 'photocopiers',
+      'photocopiers': 'photocopiers',
+      'machinery': 'heat press & machinery',
+      'heat press & machinery': 'heat press & machinery',
+      'heat press machine': 'heat press & machinery',
+      'accessories & parts': 'parts & accessories',
+      'parts & accessories': 'parts & accessories',
+      'accessories': 'parts & accessories',
+      'toner & inks': 'toner & inks',
+      'toner & ink': 'toner & inks',
+      'printers': 'printers',
+      'printer': 'printers',
+      'splashjet inks': 'splashjet inks',
+      'splashjet ink': 'splashjet inks',
+      'pos & barcode': 'pos & barcode'
+    };
+
+    // Load full cached category tree if available
+    const treeCats = getCachedCategoriesTree() || [];
+    let baseCats = [];
+
+    if (treeCats.length > 0) {
+      baseCats = treeCats
+        .filter(c => !c.hidden)
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          icon: Layers,
+          subcategories: (c.subcategories || []).filter(sub => !sub.hidden)
+        }));
+    } else {
+      baseCats = [...PRODUCT_CATEGORIES];
+    }
+
+    // Merge admin custom categories from headerSettings
+    const adminCustomCats = headerSettings?.navigation?.custom_categories || [];
+    const existingIds = new Set(baseCats.map(c => c.id.toLowerCase()));
+    adminCustomCats.forEach(ac => {
+      if (!existingIds.has(ac.id?.toLowerCase())) {
+        baseCats.push({
+          id: ac.id,
+          name: ac.name,
+          slug: ac.slug || ac.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          icon: Layers,
+          subcategories: ac.subcategories || []
+        });
+        existingIds.add(ac.id?.toLowerCase());
+      }
+    });
+
+    const existingCanonical = new Set(
+      baseCats.map(c => canonicalMap[c.name.toLowerCase()] || c.name.toLowerCase())
+    );
+    const customNames = getAvailableCategories(allProducts);
+
+    const extra = customNames
+      .filter(name => {
+        const lower = name.toLowerCase().trim();
+        const canon = canonicalMap[lower] || lower;
+        return !existingCanonical.has(canon);
+      })
+      .map(name => {
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        return {
+          id: slug || `cat-${name}`,
+          name,
+          slug,
+          icon: Layers,
+          subcategories: []
+        };
+      });
+
+    const combined = [...baseCats, ...extra];
+
+    // Filter out categories that the admin has "বাদ দেওয়া" (hidden/excluded) or unwanted (e.g. HUMAN)
+    return combined.filter(cat => {
+      const lowerName = (cat.name || '').toLowerCase().trim();
+      const lowerId = (cat.id || '').toLowerCase().trim();
+      if (lowerName === 'human' || lowerId === 'human') return false;
+      return !hiddenCategories.has(lowerName) && !hiddenCategories.has(lowerId);
+    });
+  }, [allProducts, categoryRevision, headerSettings?.navigation?.hidden_categories, headerSettings?.navigation?.custom_categories, hiddenCategories]);
 
   // User Profile state for desktop navbar account button
   const [userProfile, setUserProfile] = useState(() => {
@@ -159,7 +315,7 @@ export default function Navbar({
       try {
         const saved = localStorage.getItem('ct_user_profile');
         setUserProfile(saved ? JSON.parse(saved) : null);
-      } catch {}
+      } catch { }
     };
     window.addEventListener('ct_user_updated', handleProfileSync);
     return () => window.removeEventListener('ct_user_updated', handleProfileSync);
@@ -173,7 +329,7 @@ export default function Navbar({
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed.length;
       }
-    } catch {}
+    } catch { }
     return 0;
   });
 
@@ -188,29 +344,36 @@ export default function Navbar({
   }, []);
 
   // Live filtered search suggestions
-  const searchSuggestions = searchQuery.trim() === '' 
-    ? [] 
+  const searchSuggestions = searchQuery.trim() === ''
+    ? []
     : allProducts
-        .filter(p => {
-          const q = searchQuery.toLowerCase().trim();
-          const matchTitle = (p.title || '').toLowerCase().includes(q);
-          const matchBrand = (p.brand || '').toLowerCase().includes(q);
-          const matchCat = (p.category || '').toLowerCase().includes(q);
-          const matchSub = (p.sub_category || '').toLowerCase().includes(q);
-          const matchSku = (p.sku || '').toLowerCase().includes(q);
-          return matchTitle || matchBrand || matchCat || matchSub || matchSku;
-        })
-        .slice(0, 8);
+      .filter(p => {
+        const q = searchQuery.toLowerCase().trim();
+        const matchTitle = (p.title || '').toLowerCase().includes(q);
+        const matchBrand = (p.brand || '').toLowerCase().includes(q);
+        const matchCat = (p.category || '').toLowerCase().includes(q);
+        const matchSub = (p.sub_category || '').toLowerCase().includes(q);
+        const matchSku = (p.sku || '').toLowerCase().includes(q);
+        return matchTitle || matchBrand || matchCat || matchSub || matchSku;
+      })
+      .slice(0, 8);
 
-  // Close search suggestions on click outside
+  // Close search suggestions on click outside (support both desktop mousedown and mobile touchstart)
   useEffect(() => {
     function handleClickOutside(e) {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setIsSearchFocused(false);
       }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target)) {
+        setIsMobileSearchFocused(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   // Lock body scroll when mobile drawer is open
@@ -228,7 +391,9 @@ export default function Navbar({
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
     setIsSearchFocused(false);
+    setIsMobileSearchFocused(false);
     setIsSearchModalOpen(false);
+    setSelectedCategory('All');
     if (searchQuery.trim()) {
       navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
     } else {
@@ -238,6 +403,7 @@ export default function Navbar({
 
   const handleSuggestionClick = (product) => {
     setIsSearchFocused(false);
+    setIsMobileSearchFocused(false);
     setIsSearchModalOpen(false);
     const targetSlug = product.slug || product.id;
     navigate(`/product/${targetSlug}`);
@@ -274,13 +440,19 @@ export default function Navbar({
       <PromoAnnouncementBar />
 
       {/* MAIN HEADER (Logo, Centered Search, Blog, Cart) */}
-      <div className="bg-[#c92127] border-b border-[#a8191e] px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-30 lg:static transition-colors shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 sm:gap-6">
-          
+      <div
+        style={{
+          backgroundColor: 'var(--brand-primary, #c92127)',
+          borderColor: 'var(--brand-primary-hover, #a8191e)'
+        }}
+        className="border-b px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-50 lg:relative lg:z-50 transition-colors shadow-xs"
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 lg:gap-4">
+
           {/* Left: Brand Logo */}
           <div className="flex items-center flex-shrink-0">
-            <a 
-              href="/" 
+            <a
+              href="/"
               onClick={(e) => {
                 e.preventDefault();
                 setSelectedCategory('All');
@@ -294,11 +466,11 @@ export default function Navbar({
           </div>
 
           {/* Center: Desktop Search Bar with Live Suggestions */}
-          <div ref={searchRef} className="relative flex-1 max-w-lg xl:max-w-2xl mx-2 sm:mx-6 lg:mx-8 hidden md:block">
+          <div ref={searchRef} className="relative flex-1 min-w-[160px] max-w-lg xl:max-w-xl mx-1 sm:mx-2 lg:mx-4 hidden md:block">
             <form onSubmit={handleSearchSubmit} className="relative w-full">
               <input
                 type="text"
-                placeholder="Search products, models, or ink codes..."
+                placeholder={headerSettings?.search?.placeholder || "Search products, models, or ink codes..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
@@ -314,8 +486,8 @@ export default function Navbar({
                   ✕
                 </button>
               )}
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#c92127] text-white p-2 rounded-full transition-all shadow-xs cursor-pointer"
                 aria-label="Search"
               >
@@ -324,82 +496,142 @@ export default function Navbar({
             </form>
 
             {/* Live Search Suggestion Dropdown */}
-            {isSearchFocused && searchSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
-                <div className="p-2.5 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
-                  <span>Product Suggestions</span>
-                  <span className="text-[#c92127] cursor-pointer text-xs font-semibold" onClick={() => setIsSearchFocused(false)}>Close</span>
-                </div>
-                <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-                  {searchSuggestions.map((product) => (
-                    <div
-                      key={product.id}
-                      onClick={() => handleSuggestionClick(product)}
-                      className="p-3 hover:bg-red-50/60 cursor-pointer flex items-center gap-3 transition-colors group"
-                    >
-                      <img 
-                        src={product.image_url} 
-                        alt={product.title} 
-                        className="w-10 h-10 object-contain rounded-lg bg-white border border-slate-200 p-1 flex-shrink-0"
-                        onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-900 truncate">
-                          {product.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-                            {product.category}
-                          </span>
-                          <span className="text-xs font-extrabold text-[#c92127]">
-                            ৳{product.sale_price || product.regular_price}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="p-2 bg-slate-50 text-center border-t border-slate-100">
+            {isSearchFocused && searchQuery.trim() !== '' && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white text-slate-800 rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-fadeIn">
+                <div className="p-2.5 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center border-b border-slate-100">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#c92127]"></span>
+                    <span>Product Suggestions ({searchSuggestions.length})</span>
+                  </span>
                   <button
-                    onClick={handleSearchSubmit}
-                    className="text-xs font-bold text-[#c92127] hover:underline cursor-pointer"
+                    type="button"
+                    className="text-[#c92127] cursor-pointer text-xs font-semibold hover:underline"
+                    onClick={() => setIsSearchFocused(false)}
                   >
-                    View All Results →
+                    Close
                   </button>
                 </div>
+                {searchSuggestions.length > 0 ? (
+                  <>
+                    <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                      {searchSuggestions.map((product) => (
+                        <div
+                          key={product.id}
+                          onClick={() => handleSuggestionClick(product)}
+                          className="p-3 hover:bg-red-50/60 cursor-pointer flex items-center gap-3 transition-colors group"
+                        >
+                          <img
+                            src={product.image_url}
+                            alt={product.title}
+                            className="w-10 h-10 object-contain rounded-lg bg-white border border-slate-200 p-1 flex-shrink-0"
+                            onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate group-hover:text-[#c92127] transition-colors">
+                              {product.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                                {product.category}
+                              </span>
+                              <span className="text-xs font-extrabold text-[#c92127]">
+                                ৳{product.sale_price || product.regular_price}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-2.5 bg-slate-50 text-center border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={handleSearchSubmit}
+                        className="text-xs font-bold text-[#c92127] hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                      >
+                        <span>View All Results ({searchSuggestions.length}+)</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-5 text-center text-slate-500">
+                    <p className="text-xs font-bold text-slate-700">কোন প্রোডাক্ট পাওয়া যায়নি</p>
+                    <p className="text-[11px] text-slate-400 mt-1">"{searchQuery}" এর বদলে অন্য মডেল বা কি-ওয়ার্ড দিয়ে চেষ্টা করুন</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Right Action Icons (Blog, Cart & Mobile Menu) */}
-          <div className="flex items-center gap-2 sm:gap-3 text-white flex-shrink-0">
-            
-            {/* Blog Button (Desktop only; on mobile it is inside the Menu drawer) */}
-            <button
-              onClick={() => navigate('/blog')}
-              className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
-              title="Tech Blog & Guides"
-            >
-              <BookOpen className="w-4 h-4 text-white" />
-              <span>Blog</span>
-            </button>
+          {/* Right Action Icons (Call, WhatsApp, Blog, Cart & Mobile Menu) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 text-white flex-shrink-0 whitespace-nowrap">
 
-            {/* Account / Login Button (Desktop) */}
+            {/* Direct Call Button (if enabled by admin) */}
+            {headerSettings?.action_buttons?.show_call_btn && (
+              <a
+                href={`tel:${headerSettings?.action_buttons?.call_phone || '01777277740'}`}
+                className="hidden lg:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-white bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-[11px] sm:text-xs font-black cursor-pointer border border-white/25 hover:border-white/50 shadow-xs whitespace-nowrap flex-shrink-0"
+                title="সরাসরি ফোন কল দিন"
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-emerald-300 flex-shrink-0" />
+                <span className="hidden xl:inline">{headerSettings?.action_buttons?.call_btn_text || 'Call Now'}</span>
+                <span className="xl:hidden">Call</span>
+              </a>
+            )}
+
+            {/* Direct WhatsApp Chat Button (if enabled by admin) */}
+            {headerSettings?.action_buttons?.show_whatsapp_btn && (
+              <a
+                href={`https://wa.me/${(headerSettings?.action_buttons?.whatsapp_number || '8801777277740').replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-white bg-emerald-600/80 hover:bg-emerald-600 active:scale-95 transition-all text-[11px] sm:text-xs font-black cursor-pointer border border-emerald-400/40 shadow-xs whitespace-nowrap flex-shrink-0"
+                title="WhatsApp এ সরাসরি কথা বলুন"
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-white flex-shrink-0" />
+                <span className="hidden xl:inline">{headerSettings?.action_buttons?.whatsapp_btn_text || 'WhatsApp'}</span>
+                <span className="xl:hidden">Chat</span>
+              </a>
+            )}
+
+            {/* Blog Button (Desktop only; if enabled by admin) */}
+            {(headerSettings?.action_buttons?.show_blog_btn ?? true) && (
+              <button
+                onClick={() => navigate('/blog')}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
+                title="Tech Blog & Guides"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-white" />
+                <span>Blog</span>
+              </button>
+            )}
+
+            {/* Splashjet Inks Direct Route Button */}
             <button
               onClick={() => {
-                navigate('/my-account');
+                if (onNavigate) onNavigate('/product-category/splashjet-inks/', 'Splashjet Inks');
+                else navigate('/product-category/splashjet-inks');
+                setSelectedCategory('Splashjet Inks');
               }}
-              className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
-              title={userProfile ? 'আমার অ্যাকাউন্ট ড্যাশবোর্ড' : 'লগইন বা রেজিস্টার'}
+              className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-white bg-white/15 hover:bg-white/25 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/30 hover:border-white/50 shadow-xs whitespace-nowrap"
+              title="Splashjet Inks কালেকশন দেখুন"
             >
-              <User className="w-4 h-4 text-white" />
-              <span>{userProfile ? (userProfile.name?.split(' ')[0] || 'Profile') : 'লগইন'}</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+              <span>Splashjet Ink</span>
             </button>
 
             {/* Mobile Search Trigger */}
             <button
-              onClick={() => setIsSearchModalOpen(!isSearchModalOpen)}
-              className="md:hidden p-2 rounded-full text-white hover:bg-white/15 transition-colors"
+              onClick={() => {
+                if (isSearchModalOpen) {
+                  setIsSearchModalOpen(false);
+                  setIsMobileSearchFocused(false);
+                  setSearchQuery('');
+                } else {
+                  setIsSearchModalOpen(true);
+                }
+              }}
+              className="md:hidden p-2 rounded-full text-white hover:bg-white/15 transition-colors cursor-pointer"
               aria-label="Search"
             >
               <Search className="w-5 h-5" />
@@ -414,115 +646,205 @@ export default function Navbar({
             >
               <div className="relative">
                 <ShoppingCart className="w-5 h-5 text-white transition-colors" />
-                <span 
+                <span
                   id="navbar-cart-badge"
                   className="absolute -top-1.5 -right-2 bg-white text-[#c92127] text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs"
                 >
                   {cartCount}
                 </span>
               </div>
-              <span className="hidden sm:inline text-xs font-bold text-white">
-                ৳{subtotal.toLocaleString()}
-              </span>
+              {(headerSettings?.action_buttons?.show_cart_subtotal ?? true) && (
+                <span className="hidden sm:inline text-xs font-bold text-white">
+                  ৳{subtotal.toLocaleString()}
+                </span>
+              )}
             </button>
 
-            {/* Mobile / Tablet Only Menu Button (Hidden on laptop/desktop as it is moved down next to All Products) */}
+            {/* Menu Drawer Button (Mobile/Tablet Only) */}
             <button
               id="navbar-menu-button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 sm:px-3 sm:py-2 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all flex items-center gap-1.5 group cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
+              className="lg:hidden flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-full text-white hover:bg-white/15 active:scale-95 transition-all group cursor-pointer border border-white/20 hover:border-white/40 shadow-xs"
               aria-label="Open Menu"
               title="প্রধান মেন্যু ও অপশনসমূহ"
             >
-              <Menu className="w-5 h-5 text-white" />
+              <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               <span className="hidden sm:inline text-xs font-black text-white">Menu</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Search Input Expandable */}
+        {/* Mobile Search Input Expandable with Live Suggestions */}
         {isSearchModalOpen && (
-          <div className="mt-2.5 md:hidden">
-            <form onSubmit={handleSearchSubmit} className="relative">
+          <div ref={mobileSearchRef} className="mt-2.5 md:hidden relative">
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
               <input
+                ref={mobileInputRef}
                 type="text"
-                placeholder="Search products or inks..."
+                placeholder={headerSettings?.search?.placeholder || "Search products, models, or ink codes..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white text-slate-900 placeholder-slate-400 pl-4 pr-16 py-2 rounded-full border border-red-300 text-xs focus:ring-2 focus:ring-white outline-none shadow-sm"
+                onFocus={() => setIsMobileSearchFocused(true)}
+                className="w-full bg-white text-slate-900 placeholder-slate-400 pl-4 pr-16 py-2.5 rounded-full border border-red-300 text-xs focus:ring-2 focus:ring-white outline-none shadow-sm font-medium"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 w-5 h-5 flex items-center justify-center rounded-full hover:bg-slate-200 text-xs cursor-pointer"
+                  className="absolute right-10 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 w-5 h-5 flex items-center justify-center rounded-full hover:bg-slate-200 text-xs cursor-pointer"
+                  title="Clear search"
                 >
                   ✕
                 </button>
               )}
-              <button 
-                type="submit" 
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#c92127] text-white p-1.5 rounded-full hover:bg-[#b91c1c] transition-colors"
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#c92127] text-white p-2 rounded-full hover:bg-[#b91c1c] transition-colors cursor-pointer"
+                aria-label="Search"
               >
                 <Search className="w-3.5 h-3.5" />
               </button>
             </form>
+
+            {/* Mobile Live Search Suggestion Dropdown */}
+            {isMobileSearchFocused && searchQuery.trim() !== '' && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white text-slate-800 rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 max-h-[60vh] flex flex-col animate-fadeIn">
+                <div className="p-2.5 bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center border-b border-slate-100">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#c92127]"></span>
+                    <span>প্রোডাক্ট সাজেশন ({searchSuggestions.length})</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="text-[#c92127] cursor-pointer text-xs font-bold hover:underline px-1 py-0.5"
+                    onClick={() => {
+                      setIsMobileSearchFocused(false);
+                      setIsSearchModalOpen(false);
+                      setSearchQuery('');
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+
+                {searchSuggestions.length > 0 ? (
+                  <>
+                    <div className="divide-y divide-slate-100 overflow-y-auto flex-1">
+                      {searchSuggestions.map((product) => (
+                        <div
+                          key={product.id}
+                          onClick={() => handleSuggestionClick(product)}
+                          className="p-3 hover:bg-red-50/60 active:bg-red-50 cursor-pointer flex items-center gap-3 transition-colors"
+                        >
+                          <img
+                            src={product.image_url}
+                            alt={product.title}
+                            className="w-11 h-11 object-contain rounded-lg bg-white border border-slate-200 p-1 flex-shrink-0"
+                            onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-900 line-clamp-1">
+                              {product.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium truncate max-w-[120px]">
+                                {product.category}
+                              </span>
+                              <span className="text-xs font-black text-[#c92127]">
+                                ৳{product.sale_price || product.regular_price}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-2.5 bg-slate-50 text-center border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={handleSearchSubmit}
+                        className="text-xs font-bold text-[#c92127] hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                      >
+                        <span>সব রেজাল্ট দেখুন ({searchSuggestions.length}+)</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-5 text-center text-slate-500">
+                    <p className="text-xs font-bold text-slate-700">কোন প্রোডাক্ট পাওয়া যায়নি</p>
+                    <p className="text-[11px] text-slate-400 mt-1">"{searchQuery}" এর বদলে অন্য মডেল বা কি-ওয়ার্ড দিয়ে খুঁজুন</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* 3. STICKY CATEGORY NAVIGATION BAR (Laptop / Desktop only: Bold Red Header with Products for Eye-catching Scroll) */}
-      <nav className="hidden lg:block sticky top-0 z-40 bg-[#c92127] border-b border-[#a8191e] text-xs font-black shadow-md shadow-red-950/15 transition-all">
+      {/* 3. STICKY CATEGORY NAVIGATION BAR (Laptop / Desktop only: Dynamic Header with Products for Eye-catching Scroll) */}
+      <nav
+        style={{
+          backgroundColor: 'var(--brand-primary, #c92127)',
+          borderColor: 'var(--brand-primary-hover, #a8191e)'
+        }}
+        className={`hidden lg:block ${(headerSettings?.navigation?.sticky_nav ?? true) ? 'sticky top-0 z-40' : 'relative z-30'} border-b text-xs font-black shadow-md shadow-black/10 transition-all`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            
             <div className="flex items-center space-x-1 xl:space-x-2">
-              {PRODUCT_CATEGORIES.map((cat) => (
-                <div 
-                  key={cat.id} 
-                  className="relative group py-2"
-                  onMouseEnter={() => setActiveDropdown(cat.id)}
-                  onMouseLeave={() => setActiveDropdown(null)}
-                >
-                  <button
-                    onClick={() => handleCategoryClick(cat)}
-                    className={`px-2.5 xl:px-3 py-1.5 rounded-lg text-white font-extrabold hover:bg-white/15 active:bg-white/20 transition-all flex items-center gap-1.5 cursor-pointer text-[13px] tracking-tight ${
-                      activeDropdown === cat.id ? 'bg-white/20' : ''
-                    }`}
+              {allNavCategories.map((cat, index) => {
+                const isLastTwo = index >= allNavCategories.length - 2;
+                return (
+                  <div
+                    key={cat.id}
+                    className="relative group py-2"
+                    onMouseEnter={() => setActiveDropdown(cat.id)}
+                    onMouseLeave={() => setActiveDropdown(null)}
                   >
-                    <span className="text-white font-extrabold">{cat.name}</span>
-                    <ChevronDown className="w-3.5 h-3.5 text-white/90 group-hover:text-white transition-transform group-hover:rotate-180 stroke-[2.5]" />
-                  </button>
+                    <button
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`px-2.5 xl:px-3 py-1.5 rounded-lg text-white font-extrabold hover:bg-white/15 active:bg-white/20 transition-all cursor-pointer text-[12.5px] xl:text-[13px] tracking-tight whitespace-nowrap flex items-center gap-1 ${
+                        activeDropdown === cat.id ? 'bg-white/20' : ''
+                      }`}
+                    >
+                      <span className="text-white font-extrabold">{cat.name}</span>
+                      {cat.subcategories && cat.subcategories.length > 0 && (
+                        <ChevronDown className={`w-3.5 h-3.5 text-white/80 transition-transform duration-200 ${
+                          activeDropdown === cat.id ? 'rotate-180 text-white' : ''
+                        }`} />
+                      )}
+                    </button>
 
-                  {/* Dropdown Menu for Subcategories */}
-                  {activeDropdown === cat.id && cat.subcategories && cat.subcategories.length > 0 && (
-                    <div className="absolute top-full left-0 mt-0.5 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl py-2 z-50 animate-fadeIn">
-                      <div className="px-3.5 py-1.5 border-b border-slate-100 text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#c92127]"></span>
-                        <span>{cat.name} Collection</span>
+                    {/* Dropdown Menu for Subcategories */}
+                    {activeDropdown === cat.id && cat.subcategories && cat.subcategories.length > 0 && (
+                      <div className={`absolute top-full ${isLastTwo ? 'right-0' : 'left-0'} mt-0.5 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl py-2 z-50 animate-fadeIn whitespace-normal text-left`}>
+                        <div className="px-3.5 py-1.5 border-b border-slate-100 text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#c92127]"></span>
+                          <span>{cat.name} Collection</span>
+                        </div>
+                        {cat.subcategories.map((sub, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSubCategoryClick(sub.slug, sub.name)}
+                            className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-[#c92127] transition-colors flex items-center justify-between group/sub cursor-pointer"
+                          >
+                            <span className="truncate group-hover/sub:text-[#c92127]">{sub.name}</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/sub:text-[#c92127] group-hover/sub:translate-x-0.5 transition-transform stroke-[2]" />
+                          </button>
+                        ))}
+                        <div className="p-2 border-t border-slate-100 bg-slate-50/80 mt-1">
+                          <button
+                            onClick={() => handleCategoryClick(cat)}
+                            className="w-full text-center text-xs font-black text-[#c92127] hover:underline cursor-pointer py-1"
+                          >
+                            View All {cat.name} →
+                          </button>
+                        </div>
                       </div>
-                      {cat.subcategories.map((sub, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSubCategoryClick(sub.slug, sub.name)}
-                          className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-[#c92127] transition-colors flex items-center justify-between group/sub cursor-pointer"
-                        >
-                          <span className="truncate group-hover/sub:text-[#c92127]">{sub.name}</span>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/sub:text-[#c92127] group-hover/sub:translate-x-0.5 transition-transform stroke-[2]" />
-                        </button>
-                      ))}
-                      <div className="p-2 border-t border-slate-100 bg-slate-50/80 mt-1">
-                        <button
-                          onClick={() => handleCategoryClick(cat)}
-                          className="w-full text-center text-xs font-black text-[#c92127] hover:underline cursor-pointer py-1"
-                        >
-                          View All {cat.name} →
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Shop / All Products & Desktop Menu Button */}
@@ -532,6 +854,7 @@ export default function Navbar({
                 onClick={(e) => {
                   e.preventDefault();
                   if (onNavigate) onNavigate('/shop/', 'Shop');
+                  else navigate('/shop');
                 }}
                 className="px-3.5 py-1.5 rounded-full bg-white text-[#c92127] hover:bg-red-50 hover:shadow-sm font-black flex items-center gap-1 cursor-pointer text-[12px] tracking-wide transition-all shadow-xs"
               >
@@ -550,7 +873,6 @@ export default function Navbar({
                 <span>Menu</span>
               </button>
             </div>
-
           </div>
         </div>
       </nav>
@@ -558,16 +880,16 @@ export default function Navbar({
       {/* 4. SLIDE-OUT MENU DRAWER (Opens from 3-dash button on the right) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          
+
           {/* Backdrop Overlay */}
-          <div 
+          <div
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
             onClick={() => setIsMobileMenuOpen(false)}
           />
 
           {/* Drawer Panel */}
           <aside className="relative w-[88%] sm:w-[380px] max-w-sm bg-white h-full shadow-2xl z-10 flex flex-col animate-slideLeft overflow-hidden text-slate-800">
-            
+
             {/* Drawer Header */}
             <div className="p-3.5 sm:p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center">
@@ -622,7 +944,7 @@ export default function Navbar({
 
             {/* Scrollable Links Area */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-100 py-1">
-              
+
               {/* Primary Nav Links: Home, Compare, Track Order, Shop */}
               <div className="p-2 space-y-1">
                 {/* 1. Home */}
@@ -749,18 +1071,20 @@ export default function Navbar({
                 </button>
               </div>
 
+
+
               {/* Product Categories Accordion */}
               <div className="px-1 py-1">
                 <div className="px-3 py-2 text-[11px] font-black uppercase text-slate-400 tracking-wider">
                   Product Categories
                 </div>
 
-                {PRODUCT_CATEGORIES.map((cat) => {
+                {allNavCategories.map((cat) => {
                   const isExpanded = !!expandedMobileCats[cat.id];
-                  const CatIcon = cat.icon;
+                  const CatIcon = cat.icon || Layers;
                   return (
                     <div key={cat.id} className="border-b border-slate-100 last:border-0">
-                      
+
                       {/* Category Header Row with '+' Button */}
                       <div className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 transition-colors">
                         <button
@@ -800,7 +1124,7 @@ export default function Navbar({
                               <span className="truncate">{sub.name}</span>
                             </button>
                           ))}
-                          
+
                           <button
                             onClick={() => handleCategoryClick(cat)}
                             className="w-full text-left pt-1.5 pb-1 px-2 text-xs font-black text-[#c92127] hover:underline cursor-pointer"
@@ -844,7 +1168,8 @@ export default function Navbar({
       )}
 
       {/* Animation Styles */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes slideLeft {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }

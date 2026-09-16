@@ -155,24 +155,6 @@ export default function ComparePage({ allProducts = [], onNavigate }) {
   return (
     <div className="min-h-screen bg-slate-50 py-6 sm:py-10 pb-24 sm:pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-2 text-xs text-slate-500 mb-6" aria-label="Breadcrumb">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              if (onNavigate) onNavigate('/', 'Home');
-            }}
-            className="hover:text-[#c92127] flex items-center gap-1 transition-colors"
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>হোম</span>
-          </a>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-          <span className="font-bold text-slate-900">প্রোডাক্ট কম্পেয়ার (Compare)</span>
-        </nav>
-
         {/* Page Header */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

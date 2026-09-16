@@ -4,9 +4,11 @@ import ProductCard from './ProductCard';
 import { useCart } from '../context/CartContext';
 import { 
   CATEGORIES_TREE, 
+  SPLASHJET_INK_CATEGORIES,
   productMatchesCategory, 
   findCategoryBySlug 
 } from '../data/categoriesData';
+import { getAvailableCategories } from '../lib/categoryService';
 import { 
   Search, 
   ChevronDown, 
@@ -14,7 +16,10 @@ import {
   RotateCcw, 
   SlidersHorizontal,
   Home,
-  ChevronLeft
+  ChevronLeft,
+  ArrowRight,
+  Sparkles,
+  Check
 } from 'lucide-react';
 
 const PRODUCTS_PER_PAGE = 14; // 14 products per page as requested by user
@@ -104,18 +109,9 @@ export default function CategoryPage({
     return products.filter(p => productMatchesCategory(p, activeParentCat, activeSubCat));
   }, [products, activeParentCat, activeSubCat]);
 
-  // 8 Main Parent Categories for dropdown
+  // Main Parent Categories for dropdown & sidebar filters (including dynamic admin categories)
   const mainParentCategories = useMemo(() => {
-    const prominent = [
-      'Printers',
-      'Photocopy Machine',
-      'Splashjet Ink',
-      'Machinery',
-      'Office Equipment',
-      'Toner & Inks',
-      'Accessories & Parts',
-      'Ready Business Setup'
-    ];
+    const prominent = getAvailableCategories(products);
     return prominent.map(name => {
       const found = CATEGORIES_TREE.find(c => c.name.toLowerCase() === name.toLowerCase());
       const count = products.filter(p => productMatchesCategory(p, name, null)).length;
@@ -288,59 +284,102 @@ export default function CategoryPage({
     }));
   };
 
+  const isSplashjetHub = 
+    (categorySlug === 'splashjet-ink' || categorySlug === 'splashjet-inks' || activeParentCat.toLowerCase().includes('splashjet')) &&
+    !subCategorySlug && 
+    !activeSubCat;
+
   const startIdx = sortedProducts.length === 0 ? 0 : (currentPage - 1) * PRODUCTS_PER_PAGE + 1;
   const endIdx = Math.min(currentPage * PRODUCTS_PER_PAGE, sortedProducts.length);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex-1 w-full pb-24 md:pb-8">
-      
-      {/* Breadcrumb matching corporatetechbd.com */}
-      <nav className="flex items-center gap-1.5 text-xs text-slate-500 mb-6 flex-wrap">
-        <button 
-          onClick={() => onNavigate ? onNavigate('/', null) : (window.location.href = '/')}
-          className="hover:text-[#c92127] flex items-center gap-1 cursor-pointer transition-colors"
-        >
-          <Home className="w-3.5 h-3.5" />
-          <span>Home</span>
-        </button>
-        <span>/</span>
-        <button 
-          onClick={() => onNavigate ? onNavigate('/shop/', null) : (window.location.href = '/shop/')}
-          className="hover:text-[#c92127] cursor-pointer transition-colors"
-        >
-          Shop
-        </button>
-        <span>/</span>
-        <button
-          onClick={() => handleSelectCategory(CATEGORIES_TREE.find(c => c.name === activeParentCat) || { name: activeParentCat, slug: '' })}
-          className={`cursor-pointer transition-colors ${!activeSubCat ? 'text-slate-900 font-bold' : 'hover:text-[#c92127]'}`}
-        >
-          {activeParentCat}
-        </button>
-        {activeSubCat && (
-          <>
-            <span>/</span>
-            <span className="text-slate-900 font-bold">{activeSubCat}</span>
-          </>
-        )}
-      </nav>
 
-      {/* Mobile Filter Toggle Button */}
-      <div className="lg:hidden flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200/90 shadow-xs mb-4">
-        <button
-          onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-          className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer"
-        >
-          <SlidersHorizontal className="w-4 h-4 text-[#c92127]" />
-          <span>Categories & Filters ({activeParentCat})</span>
-        </button>
-        <button
-          onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-          className="text-xs text-[#c92127] font-bold cursor-pointer hover:underline"
-        >
-          {isMobileFilterOpen ? 'Collapse Filters ▲' : 'Expand Filters ▼'}
-        </button>
-      </div>
+      {/* 1. SPLASHJET HUB VIEW: SHOW ONLY THE 4 CATEGORY CARDS */}
+      {isSplashjetHub ? (
+        <div className="py-4 sm:py-8">
+          {/* 4 CARDS GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {SPLASHJET_INK_CATEGORIES.map((card) => (
+              <div
+                key={card.id}
+                onClick={() => {
+                  const parentCat = CATEGORIES_TREE.find(c => c.slug === 'splashjet-ink') || { name: 'Splashjet Ink', slug: 'splashjet-ink' };
+                  handleSelectCategory(parentCat, { name: card.title, slug: card.slug });
+                }}
+                className="relative rounded-2xl sm:rounded-3xl border border-slate-200/90 transition-all duration-300 p-5 sm:p-6 flex flex-col justify-between cursor-pointer group select-none bg-white hover:border-red-300 hover:shadow-xl hover:-translate-y-1"
+              >
+                {/* Top Image Container */}
+                <div className="bg-[#f8fafc] rounded-xl p-3 sm:p-4 flex items-center justify-center h-44 mb-4 border border-slate-100 overflow-hidden relative">
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    className="max-h-36 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => {
+                      e.target.src = '/splashjet_images/about-splashjet.jpg';
+                    }}
+                  />
+                </div>
+
+                {/* Title & Description */}
+                <div className="flex-1 flex flex-col">
+                  <h3 className="text-base font-extrabold mb-1.5 transition-colors leading-snug text-slate-900 group-hover:text-[#c92127]">
+                    {card.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-4 line-clamp-3">
+                    {card.description}
+                  </p>
+                </div>
+
+                {/* View Products Link */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs sm:text-sm font-bold text-[#c92127] group-hover:text-red-700 inline-flex items-center gap-1 group-hover:gap-1.5 transition-all">
+                    <span>View Products</span>
+                    <span className="text-sm font-bold">›</span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* 2. REGULAR SHOP / SUBCATEGORY VIEW */
+        <div>
+          {/* Back to Splashjet Hub button when in Splashjet subcategory */}
+          {activeParentCat.toLowerCase().includes('splashjet') && activeSubCat && (
+            <div className="mb-6 flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+              <button
+                onClick={() => {
+                  const parentCat = CATEGORIES_TREE.find(c => c.slug === 'splashjet-ink') || { name: 'Splashjet Ink', slug: 'splashjet-ink' };
+                  handleSelectCategory(parentCat, null);
+                }}
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#c92127] hover:underline cursor-pointer bg-white px-3.5 py-1.5 rounded-full border border-slate-200 shadow-2xs"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>All Splashjet Categories</span>
+              </button>
+              <span className="text-xs font-black text-slate-800 bg-white px-3 py-1 rounded-full border border-slate-200">
+                {activeSubCat}
+              </span>
+            </div>
+          )}
+
+          {/* Mobile Filter Toggle Button */}
+          <div className="lg:hidden flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200/90 shadow-xs mb-4">
+            <button
+              onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+              className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-[#c92127]" />
+              <span>Categories & Filters ({activeParentCat})</span>
+            </button>
+            <button
+              onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+              className="text-xs text-[#c92127] font-bold cursor-pointer hover:underline"
+            >
+              {isMobileFilterOpen ? 'Collapse Filters ▲' : 'Expand Filters ▼'}
+            </button>
+          </div>
 
       {/* Main 2-Column Layout matching corporatetechbd.com Screenshot 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -558,8 +597,8 @@ export default function CategoryPage({
                   className="w-full sm:w-auto bg-white border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-lg pl-2.5 sm:pl-3 pr-7 sm:pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-[#c92127]/20 focus:border-[#c92127] cursor-pointer appearance-none shadow-xs font-medium truncate"
                   aria-label="Sort products"
                 >
-                  <option value="default">Default: সর্বোচ্চ অফার আগে</option>
-                  <option value="discount">অফার: সর্বোচ্চ ছাড় আগে</option>
+                  <option value="default">Default: Best Offers First</option>
+                  <option value="discount">Discount: High to Low</option>
                   <option value="popularity">Sort by popularity</option>
                   <option value="rating">Sort by rating</option>
                   <option value="latest">Sort by latest</option>
@@ -675,5 +714,7 @@ export default function CategoryPage({
 
       </div>
     </div>
+    )}
+  </div>
   );
 }

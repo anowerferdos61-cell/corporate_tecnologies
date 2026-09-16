@@ -98,14 +98,19 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
   // 4. Daily Sales Timeline Data (For Bar Graph)
   const dailyTimelineData = useMemo(() => {
     const daysMap = {};
-    // Pre-populate days in range (up to 31 days)
     const cur = new Date(startDate);
     const maxDays = 31;
     let count = 0;
+
     while (cur <= endDate && count < maxDays) {
-      const key = cur.toISOString().slice(0, 10);
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth() + 1).padStart(2, '0');
+      const d = String(cur.getDate()).padStart(2, '0');
+      const key = `${y}-${m}-${d}`;
+
       daysMap[key] = {
         dateStr: key,
+        dayNum: d,
         displayLabel: cur.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         revenue: 0,
         orders: 0
@@ -116,10 +121,20 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
 
     filteredOrders.forEach((o) => {
       if (!o.created_at || o.order_status === 'cancelled') return;
-      const d = o.created_at.slice(0, 10);
-      if (daysMap[d]) {
-        daysMap[d].revenue += Number(o.grand_total) || 0;
-        daysMap[d].orders += 1;
+      let orderKey = '';
+      try {
+        const od = new Date(o.created_at);
+        const y = od.getFullYear();
+        const m = String(od.getMonth() + 1).padStart(2, '0');
+        const d = String(od.getDate()).padStart(2, '0');
+        orderKey = `${y}-${m}-${d}`;
+      } catch {
+        orderKey = String(o.created_at).slice(0, 10);
+      }
+
+      if (daysMap[orderKey]) {
+        daysMap[orderKey].revenue += Number(o.grand_total) || 0;
+        daysMap[orderKey].orders += 1;
       }
     });
 
@@ -429,56 +444,115 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
         </div>
       </div>
 
-      {/* 3. Daily Sales Timeline Graph */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-[#c92127]" />
+      {/* 3. Daily Sales Timeline Graph (SprintPro Building Tower Style) */}
+      <div className="bg-white p-5 sm:p-7 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2.5 tracking-tight">
+              <span className="p-2 rounded-xl bg-red-50 text-[#c92127]">
+                <BarChart3 className="w-5 h-5" />
+              </span>
               <span>Daily Revenue Trend ({periodLabel})</span>
             </h3>
-            <p className="text-xs text-slate-400">
-              Daily revenue fluctuation and order volume during the selected timeframe
+            <p className="text-xs font-medium text-slate-400">
+              দৈনিক সেলস ও অর্ডারের পরিমাণ (টাকা ও ভলিউম)
             </p>
           </div>
-          <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
-            Peak: ৳{maxDailyRevenue.toLocaleString()}
-          </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100/90 rounded-2xl text-xs font-bold text-slate-700">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#c92127]"></span>
+              <span>সর্বোচ্চ দিন (Peak):</span>
+              <span className="font-mono text-black font-black">৳{maxDailyRevenue.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Bar Chart Visualization */}
-        <div className="pt-6 pb-2">
-          <div className="h-48 flex items-end gap-1 sm:gap-2 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
+        {/* Building Towers Visualization Canvas */}
+        <div className="relative pt-6 pb-2">
+          {/* Background Horizontal Grid Lines */}
+          <div className="absolute inset-x-0 top-6 bottom-9 flex flex-col justify-between pointer-events-none text-[10px] font-mono font-bold text-slate-300">
+            <div className="border-b border-dashed border-slate-200/80 flex items-center justify-between pb-1">
+              <span>৳{maxDailyRevenue.toLocaleString()}</span>
+            </div>
+            <div className="border-b border-dashed border-slate-200/80 flex items-center justify-between pb-1">
+              <span>৳{Math.round(maxDailyRevenue * 0.66).toLocaleString()}</span>
+            </div>
+            <div className="border-b border-dashed border-slate-200/80 flex items-center justify-between pb-1">
+              <span>৳{Math.round(maxDailyRevenue * 0.33).toLocaleString()}</span>
+            </div>
+            <div className="border-b border-slate-200 flex items-center justify-between pb-1">
+              <span>৳0</span>
+            </div>
+          </div>
+
+          {/* Towers Flexbox Container */}
+          <div className="relative h-60 sm:h-64 flex items-end gap-1 sm:gap-2 overflow-x-auto no-scrollbar z-10 px-1 pb-1">
             {dailyTimelineData.map((day, idx) => {
-              const heightPercent = Math.max(8, Math.round((day.revenue / maxDailyRevenue) * 100));
               const hasSales = day.revenue > 0;
+              const isPeak = hasSales && day.revenue === maxDailyRevenue;
+              // Minimum height 12% so building base is always distinct and visible
+              const heightPercent = hasSales
+                ? Math.max(16, Math.round((day.revenue / maxDailyRevenue) * 100))
+                : 8;
+
               return (
                 <div
                   key={idx}
-                  className="flex-1 min-w-[28px] max-w-[50px] flex flex-col items-center gap-1 group relative cursor-pointer"
+                  className="flex-1 min-w-[24px] sm:min-w-[32px] max-w-[48px] h-full flex flex-col justify-end items-center group relative cursor-pointer"
                 >
-                  {/* Tooltip on Hover */}
-                  <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none">
-                    <div className="bg-slate-900 text-white text-[10px] py-1.5 px-2.5 rounded-lg shadow-xl whitespace-nowrap font-mono">
-                      <p className="font-bold text-amber-300">৳{day.revenue.toLocaleString()}</p>
-                      <p className="text-slate-300">{day.orders} order(s) • {day.dateStr}</p>
+                  {/* Floating Peak / Highlight Badge */}
+                  {isPeak && (
+                    <div className="mb-2 z-20 animate-bounce">
+                      <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md shadow-md whitespace-nowrap font-mono">
+                        ৳{day.revenue >= 1000 ? `${Math.round(day.revenue / 1000)}k` : day.revenue}
+                      </span>
                     </div>
-                    <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1"></div>
+                  )}
+
+                  {/* Interactive Tooltip on Hover */}
+                  <div className="absolute bottom-full mb-3 hidden group-hover:flex flex-col items-center z-40 pointer-events-none transition-all">
+                    <div className="bg-slate-900 text-white text-[11px] p-2.5 rounded-2xl shadow-2xl whitespace-nowrap font-mono border border-slate-700">
+                      <p className="font-black text-amber-300 text-xs">৳{day.revenue.toLocaleString()}</p>
+                      <p className="text-slate-300 text-[10px] mt-0.5">{day.orders} order(s) • {day.displayLabel}</p>
+                    </div>
+                    <div className="w-2.5 h-2.5 bg-slate-900 rotate-45 -mt-1"></div>
                   </div>
 
-                  {/* Bar */}
-                  <div
-                    style={{ height: `${heightPercent}%` }}
-                    className={`w-full rounded-t-md transition-all ${
-                      hasSales
-                        ? 'bg-gradient-to-t from-slate-900 to-[#c92127] group-hover:from-black group-hover:to-[#b91c1c] shadow-2xs'
-                        : 'bg-slate-100 group-hover:bg-slate-200'
-                    }`}
-                  ></div>
+                  {/* Building Tower Track Container */}
+                  <div className={`w-full h-full flex flex-col justify-end p-0.5 sm:p-1 rounded-2xl transition-all duration-300 ${
+                    isPeak
+                      ? 'bg-red-50 ring-2 ring-[#c92127]/40 shadow-xs'
+                      : hasSales
+                      ? 'bg-slate-100 group-hover:bg-slate-200/90 shadow-2xs'
+                      : 'bg-slate-50/80 group-hover:bg-slate-100/90'
+                  }`}>
+                    {/* The Building Tower Column */}
+                    <div
+                      style={{ height: `${heightPercent}%` }}
+                      className={`w-full rounded-xl transition-all duration-500 relative flex flex-col justify-between overflow-hidden shadow-xs ${
+                        isPeak
+                          ? 'bg-gradient-to-t from-slate-950 via-[#c92127] to-red-500 ring-1 ring-red-400'
+                          : hasSales
+                          ? 'bg-gradient-to-t from-slate-950 via-zinc-800 to-[#c92127] group-hover:to-red-600'
+                          : 'bg-slate-200 group-hover:bg-slate-300'
+                      }`}
+                    >
+                      {/* Building Roof Cap / Header Strip */}
+                      {hasSales && (
+                        <div className="w-full h-1.5 bg-white/40 rounded-t-sm"></div>
+                      )}
+                    </div>
+                  </div>
 
-                  {/* Date Label */}
-                  <span className="text-[9px] text-slate-400 font-mono truncate w-full text-center group-hover:text-slate-900 group-hover:font-bold">
-                    {day.displayLabel.split(' ')[1] || day.displayLabel}
+                  {/* Date Label Below Building */}
+                  <span className={`text-[10px] font-mono mt-2 truncate w-full text-center transition-colors ${
+                    isPeak
+                      ? 'text-[#c92127] font-black'
+                      : hasSales
+                      ? 'text-slate-900 font-black'
+                      : 'text-slate-400 group-hover:text-slate-800 font-semibold'
+                  }`}>
+                    {day.dayNum || day.displayLabel.split(' ')[1] || day.displayLabel}
                   </span>
                 </div>
               );

@@ -129,7 +129,7 @@ export async function loginAdmin({ username, pinOrPassword, rememberMe = true })
     return sessionData;
   }
 
-  throw new Error('সঠিক ইউজারনেম বা পিন দিন (অ্যাডমিন: admin / 123456 | স্টাফ: staff / 123456)');
+  throw new Error('ভুল ইউজারনেম অথবা পাসওয়ার্ড/পিন দিয়েছেন। আবার চেষ্টা করুন।');
 }
 
 /**
@@ -173,13 +173,14 @@ export async function fetchStaffUsers() {
   try {
     const { data, error } = await supabase
       .from('admin_users')
-      .select('id, username, role, created_at')
+      .select('id, username, pin_or_password, role, created_at')
       .order('created_at', { ascending: true });
 
     if (!error && data && data.length > 0) {
       return data.map((u) => ({
         ...u,
-        name: u.username === 'admin' ? 'Super Admin' : u.username === 'staff' ? 'Order Dispatcher' : u.username
+        name: u.username === 'admin' ? 'Super Admin' : u.username === 'staff' ? 'Order Dispatcher' : u.username,
+        pin_or_password: u.pin_or_password || ''
       }));
     }
   } catch (e) {

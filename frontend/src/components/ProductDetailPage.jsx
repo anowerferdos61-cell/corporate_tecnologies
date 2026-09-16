@@ -65,6 +65,15 @@ export default function ProductDetailPage({
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description'); // 'description' | 'specifications'
 
+  const isCallForPrice = Boolean(
+    product && (
+      product.call_for_price === true || 
+      product.call_for_price === 'true' || 
+      product.call_for_price === 1 || 
+      (Number(product.sale_price || 0) === 0 && Number(product.regular_price || 0) === 0)
+    )
+  );
+
   // Initialize selected image and variation when product changes
   useEffect(() => {
     if (product) {
@@ -217,7 +226,11 @@ export default function ProductDetailPage({
 
   const handleBuyNow = (e) => {
     handleAddToCart(e);
-    setIsCartOpen(true);
+    if (onNavigate) {
+      onNavigate('/checkout');
+    } else {
+      navigate('/checkout');
+    }
   };
 
   const handleShare = () => {
@@ -227,48 +240,28 @@ export default function ProductDetailPage({
     }
   };
 
+  if (!product) {
+    return (
+      <div className="bg-white min-h-[70vh] flex flex-col items-center justify-center py-20 px-4 text-center">
+        <div className="w-16 h-16 bg-red-50 text-[#c92127] rounded-full flex items-center justify-center mb-4">
+          <ShoppingCart className="w-8 h-8 animate-pulse" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">পণ্যটি লোড হচ্ছে অথবা পাওয়া যায়নি</h2>
+        <p className="text-xs sm:text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">
+          অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করুন অথবা আমাদের শপ পেজে গিয়ে পছন্দের পণ্যটি বেছে নিন।
+        </p>
+        <button
+          onClick={() => onNavigate ? onNavigate('/shop') : navigate('/shop')}
+          className="bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-xl shadow-md transition-all cursor-pointer"
+        >
+          শপ পেজে যান
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white min-h-screen pb-36 md:pb-12">
-      {/* 1. Breadcrumbs Bar */}
-      <div className="bg-slate-50 border-b border-slate-100 py-3">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <nav className="flex items-center gap-1.5 text-xs text-slate-500 flex-wrap">
-            <button
-              onClick={() => onNavigate ? onNavigate('/') : (window.location.href = '/')}
-              className="hover:text-[#c92127] flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <Home className="w-3.5 h-3.5" />
-              <span>Home</span>
-            </button>
-            <span>/</span>
-            <button
-              onClick={() => onNavigate ? onNavigate('/shop/') : (window.location.href = '/shop/')}
-              className="hover:text-[#c92127] cursor-pointer transition-colors"
-            >
-              Shop
-            </button>
-            {product.category && (
-              <>
-                <span>/</span>
-                <button
-                  onClick={() => {
-                    const slug = product.category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                    if (onNavigate) onNavigate(`/product-category/${slug}/`, product.category);
-                  }}
-                  className="hover:text-[#c92127] cursor-pointer transition-colors"
-                >
-                  {product.category}
-                </button>
-              </>
-            )}
-            <span>/</span>
-            <span className="text-slate-900 font-bold truncate max-w-[200px] sm:max-w-xs">
-              {product.title}
-            </span>
-          </nav>
-        </div>
-      </div>
-
       {/* 2. Main Product Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
 
@@ -422,24 +415,44 @@ export default function ProductDetailPage({
 
             {/* Pricing Section */}
             <div className="bg-slate-50/90 rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-200/80 space-y-2">
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#c92127] tracking-tight">
-                  ৳{activeSalePrice.toLocaleString()}
-                </span>
-                {activeRegPrice > activeSalePrice && (
-                  <span className="text-base sm:text-lg text-slate-400 line-through font-semibold">
-                    ৳{activeRegPrice.toLocaleString()}
-                  </span>
-                )}
-                {discountAmount > 0 && (
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-                    Save ৳{discountAmount.toLocaleString()} (-{discountPercent}%)
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] sm:text-xs text-slate-500">
-                VAT & Tax included. Cash on Delivery available nationwide.
-              </p>
+              {isCallForPrice ? (
+                <div className="space-y-1 py-1">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 rounded-xl bg-red-100 text-[#c92127]">
+                      <Phone className="w-5 h-5 fill-current" />
+                    </span>
+                    <div>
+                      <span className="text-xl sm:text-2xl lg:text-3xl font-black text-[#c92127]">
+                        মূল্যের জন্য কল করুন
+                      </span>
+                      <span className="block text-[11px] text-slate-500 font-semibold">
+                        Call for Price / মূল্যের জন্য সরাসরি আমাদের সাথে যোগাযোগ করুন
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#c92127] tracking-tight">
+                      ৳{activeSalePrice.toLocaleString()}
+                    </span>
+                    {activeRegPrice > activeSalePrice && (
+                      <span className="text-base sm:text-lg text-slate-400 line-through font-semibold">
+                        ৳{activeRegPrice.toLocaleString()}
+                      </span>
+                    )}
+                    {discountAmount > 0 && (
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
+                        Save ৳{discountAmount.toLocaleString()} (-{discountPercent}%)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-500">
+                    VAT & Tax included. Cash on Delivery available nationwide.
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Variations Selector (if available) */}
@@ -495,65 +508,111 @@ export default function ProductDetailPage({
               </div>
             )}
 
-            {/* Quantity Selector & Action Buttons */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center gap-3">
-                <span className="text-xs sm:text-sm font-bold text-slate-800">Quantity:</span>
-                <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-xs">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 sm:p-2.5 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                    aria-label="Decrease quantity"
+            {/* Key Features Bullets (if provided) */}
+            {Array.isArray(product.key_features) && product.key_features.length > 0 && (
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  মূল আকর্ষণ ও সুবিধাসমূহ (Key Highlights):
+                </h4>
+                <div className="space-y-1.5 text-xs text-slate-700">
+                  {product.key_features.map((feat, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity Selector & Action Buttons OR Call for Price Inquiry Buttons */}
+            {isCallForPrice ? (
+              <div className="space-y-3 pt-2">
+                <div className="p-3.5 bg-red-50/80 border border-red-200/80 rounded-2xl text-xs text-[#c92127] font-semibold flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-[#c92127] flex-shrink-0" />
+                  <span>এই প্রোডাক্টের বিশেষ ছাড় ও তাৎক্ষণিক স্টক জানতে আমাদের সরাসরি ফোন বা মেসেজ দিন।</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <a
+                    href="tel:01777177730"
+                    className="w-full bg-[#c92127] hover:bg-[#b91c1c] text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/25 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <Phone className="w-4 h-4 fill-current" />
+                    <span>সরাসরি কল করুন (01777-177730)</span>
+                  </a>
+
+                  <a
+                    href={`https://wa.me/8801777177730?text=${encodeURIComponent(`Hello Corporate Technologies, I would like to know the price and details for: ${product.title}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    <span>WhatsApp এ মেসেজ দিন</span>
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs sm:text-sm font-bold text-slate-800">Quantity:</span>
+                  <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-xs">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="p-2 sm:p-2.5 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="w-12 text-center text-xs sm:text-sm font-extrabold text-slate-900">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="p-2 sm:p-2.5 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={isSoldOut}
+                    className={`w-full font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer ${isSoldOut
+                        ? 'bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed'
+                        : isInCart
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-600 shadow-md shadow-emerald-600/20'
+                          : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-900 hover:border-[#c92127] hover:text-[#c92127]'
+                      } ${isJustAdded ? 'scale-[1.02] ring-2 ring-emerald-300' : ''}`}
+                  >
+                    {isInCart ? (
+                      <>
+                        <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                        <span>{isJustAdded ? 'Added to Cart!' : 'In Cart'} ({cartQuantity})</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>Add to Cart</span>
+                      </>
+                    )}
                   </button>
-                  <span className="w-12 text-center text-xs sm:text-sm font-extrabold text-slate-900">
-                    {quantity}
-                  </span>
+
                   <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="p-2 sm:p-2.5 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                    aria-label="Increase quantity"
+                    onClick={handleBuyNow}
+                    disabled={isSoldOut}
+                    className="w-full bg-[#c92127] hover:bg-[#b91c1c] text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/25 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Zap className="w-4 h-4 fill-current" />
+                    <span>Buy Now</span>
                   </button>
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={isSoldOut}
-                  className={`w-full font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer ${isSoldOut
-                      ? 'bg-slate-100 text-slate-400 border-2 border-slate-200 cursor-not-allowed'
-                      : isInCart
-                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-600 shadow-md shadow-emerald-600/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-900 hover:border-[#c92127] hover:text-[#c92127]'
-                    } ${isJustAdded ? 'scale-[1.02] ring-2 ring-emerald-300' : ''}`}
-                >
-                  {isInCart ? (
-                    <>
-                      <Check className="w-4 h-4 text-white stroke-[2.5]" />
-                      <span>{isJustAdded ? 'Added to Cart!' : 'In Cart'} ({cartQuantity})</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4" />
-                      <span>Add to Cart</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleBuyNow}
-                  disabled={isSoldOut}
-                  className="w-full bg-[#c92127] hover:bg-[#b91c1c] text-white font-extrabold py-3.5 px-6 rounded-2xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/25 cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  <Zap className="w-4 h-4 fill-current" />
-                  <span>Buy Now</span>
-                </button>
-              </div>
+            )}
 
               {/* Dedicated Compare Option on Product Details Page (Only for Inks, Printers & Photocopiers) */}
               {canCompare && (
@@ -594,7 +653,6 @@ export default function ProductDetailPage({
                   </div>
                 </div>
               )}
-            </div>
 
             {/* Key Delivery & Hotline Info Box */}
             <div className="border border-slate-200/90 rounded-2xl p-4 bg-slate-50/50 space-y-3">

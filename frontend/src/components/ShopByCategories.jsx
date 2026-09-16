@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Printer, 
   Copy, 
@@ -8,9 +8,11 @@ import {
   Cog, 
   Wrench, 
   LayoutGrid,
-  ChevronRight 
+  ChevronRight,
+  Layers
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { getCachedCategoriesTree } from '../lib/categoryService';
 
 // Specialized Ink Application Categories matching client reference
 const INK_APPLICATION_CATEGORIES = [
@@ -20,7 +22,7 @@ const INK_APPLICATION_CATEGORIES = [
     desc: 'Wide-format inks for banners, posters and photo albums with vivid, long-lasting colors.',
     image: '/splashjet_images/ink-cat-large-format.png',
     filterCategory: 'Splashjet Ink',
-    slug: 'splashjet-ink',
+    slug: 'splashjet-ink/large-format-printer-ink',
     titleClass: 'text-slate-900 group-hover:text-[#c92127]'
   },
   {
@@ -28,9 +30,9 @@ const INK_APPLICATION_CATEGORIES = [
     title: 'Desktop Printer Ink',
     desc: 'Reliable refill inks for Epson, Canon and HP desktop printers — sharp text and photos.',
     image: '/splashjet_images/ink-cat-desktop-printer.png',
-    filterCategory: 'Printers',
-    slug: 'printers/epson-printers',
-    titleClass: 'text-[#e11d48] group-hover:text-[#be123c]' // Distinct magenta/pink accent matching reference screenshot
+    filterCategory: 'Splashjet Ink',
+    slug: 'splashjet-ink/desktop-printer-ink',
+    titleClass: 'text-slate-900 group-hover:text-[#c92127]'
   },
   {
     id: 'digital-textile',
@@ -38,7 +40,7 @@ const INK_APPLICATION_CATEGORIES = [
     desc: 'Sublimation, DTF and DTG inks for apparel and fabric with a soft hand and wash-fastness.',
     image: '/splashjet_images/ink-cat-digital-textile.png',
     filterCategory: 'Splashjet Ink',
-    slug: 'splashjet-ink/splashjet-for-dtf',
+    slug: 'splashjet-ink/digital-textile-printing-ink',
     titleClass: 'text-slate-900 group-hover:text-[#c92127]'
   },
   {
@@ -46,8 +48,8 @@ const INK_APPLICATION_CATEGORIES = [
     title: 'Industrial Inkjet Ink',
     desc: 'Coding, marking and packaging inks built for high-speed industrial print heads.',
     image: '/splashjet_images/ink-cat-industrial-inkjet.png',
-    filterCategory: 'Office Equipment',
-    slug: 'office-equipment',
+    filterCategory: 'Splashjet Ink',
+    slug: 'splashjet-ink/industrial-inkjet-ink',
     titleClass: 'text-slate-900 group-hover:text-[#c92127]'
   }
 ];
@@ -55,7 +57,48 @@ const INK_APPLICATION_CATEGORIES = [
 export default function ShopByCategories({ onCategorySelect, onNavigate }) {
   const { setSelectedCategory, setSearchQuery } = useCart();
 
-  const categories = [
+  const [customCats, setCustomCats] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ct_custom_categories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const filtered = Array.isArray(parsed) ? parsed.filter(c => c && c.toLowerCase().trim() !== 'human') : [];
+        if (Array.isArray(parsed) && parsed.length !== filtered.length) {
+          localStorage.setItem('ct_custom_categories', JSON.stringify(filtered));
+        }
+        return filtered;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const saved = localStorage.getItem('ct_custom_categories');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const filtered = Array.isArray(parsed) ? parsed.filter(c => c && c.toLowerCase().trim() !== 'human') : [];
+          setCustomCats(filtered);
+        }
+      } catch {}
+    };
+    window.addEventListener('ct_categories_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('ct_categories_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
+  // Build dynamic categories list from tree or defaults
+  const treeCats = getCachedCategoriesTree() || [];
+  const hiddenTreeIds = new Set(treeCats.filter(c => c.hidden).map(c => c.id?.toLowerCase()));
+  const hiddenTreeNames = new Set(treeCats.filter(c => c.hidden).map(c => c.name?.toLowerCase().trim()));
+
+  const defaultCategories = [
     {
       id: 'photocopier',
       name: 'Photocopier',
@@ -163,7 +206,45 @@ export default function ShopByCategories({ onCategorySelect, onNavigate }) {
           <circle cx="32" cy="24" r="3" />
         </svg>
       )
-    },
+    }
+  ];
+
+  // Custom added categories from tree
+  const customTreeItems = treeCats
+    .filter(c => !c.hidden && !['photocopier', 'printer', 'original ink', 'splashjet ink', 'pos & barcode', 'machinery', 'accessories', 'photocopy machine', 'printers', 'toner & inks', 'office equipment'].includes(c.name?.toLowerCase().trim()) && c.name?.toLowerCase().trim() !== 'human')
+    .map(c => ({
+      id: c.id || c.slug,
+      name: c.name,
+      bengali: c.name,
+      slug: c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      filterCategory: c.name,
+      icon: c.image ? (
+        <img src={c.image} alt={c.name} className="w-10 h-10 object-contain rounded-lg" />
+      ) : (
+        <Layers className="w-10 h-10 text-slate-800" />
+      )
+    }));
+
+  const visibleDefaultCategories = defaultCategories.filter(
+    c => !hiddenTreeIds.has(c.id.toLowerCase()) && !hiddenTreeNames.has(c.name.toLowerCase())
+  );
+
+  const categories = [
+    ...visibleDefaultCategories,
+    ...customTreeItems,
+    ...customCats
+      .filter(name => name && name.toLowerCase().trim() !== 'human' && !['photocopier', 'printer', 'original ink', 'splashjet ink', 'pos & barcode', 'machinery', 'accessories', 'all', 'printers', 'photocopy machine', 'toner & inks', 'office equipment', 'human'].includes(name.toLowerCase().trim()) && !customTreeItems.some(ci => ci.name.toLowerCase() === name.toLowerCase()))
+      .map(name => {
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        return {
+          id: slug,
+          name: name,
+          bengali: name,
+          slug: slug,
+          filterCategory: name,
+          icon: <Layers className="w-10 h-10 text-slate-800" />
+        };
+      }),
     {
       id: 'show-more',
       name: 'Show More',
@@ -206,8 +287,8 @@ export default function ShopByCategories({ onCategorySelect, onNavigate }) {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-12">
-      {/* 1. Primary Category Icons Grid */}
+    <section className="max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-10">
+      {/* Primary Category Icons Grid */}
       <div>
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -232,49 +313,6 @@ export default function ShopByCategories({ onCategorySelect, onNavigate }) {
                 {item.name}
               </span>
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 2. Specialized Ink Application Cards Showcase (Matching Client Reference) */}
-      <div className="pt-2">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-          {INK_APPLICATION_CATEGORIES.map((card) => (
-            <div
-              key={card.id}
-              onClick={() => handleInkCategoryClick(card)}
-              className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-xl transition-all duration-300 p-5 sm:p-6 flex flex-col justify-between group cursor-pointer hover:-translate-y-1"
-            >
-              {/* Card Image */}
-              <div className="w-full h-44 sm:h-48 flex items-center justify-center overflow-hidden rounded-xl mb-4 bg-slate-50/50 p-2">
-                <img
-                  src={card.image}
-                  alt={card.title}
-                  className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* Title & Description */}
-              <div className="flex-1 flex flex-col justify-between space-y-2.5">
-                <div>
-                  <h3 className={`text-base sm:text-lg font-bold tracking-tight leading-snug transition-colors ${card.titleClass}`}>
-                    {card.title}
-                  </h3>
-                  <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed line-clamp-3 mt-2">
-                    {card.desc}
-                  </p>
-                </div>
-
-                {/* View Details Action Link */}
-                <div className="pt-3">
-                  <span className="inline-flex items-center gap-1 text-xs sm:text-sm font-extrabold text-[#e11d48] group-hover:text-[#be123c] group-hover:underline">
-                    <span>View Details</span>
-                    <ChevronRight className="w-3.5 h-3.5 stroke-[3] transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </div>
-              </div>
-            </div>
           ))}
         </div>
       </div>

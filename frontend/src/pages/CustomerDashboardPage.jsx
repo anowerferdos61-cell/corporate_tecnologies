@@ -310,15 +310,6 @@ export default function CustomerDashboardPage({ products = [] }) {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-36 md:pb-24 pt-4 text-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
-        
-        {/* Breadcrumb Navigation */}
-        <div className="py-2 border-b border-slate-200/80">
-          <nav className="flex items-center gap-2 text-xs text-slate-500">
-            <Link to="/" className="hover:text-[#c92127] transition-colors">হোম</Link>
-            <span>/</span>
-            <span className="text-slate-900 font-bold">কাস্টমার ড্যাশবোর্ড</span>
-          </nav>
-        </div>
 
         {!customer ? (
           /* ========================================================================= */

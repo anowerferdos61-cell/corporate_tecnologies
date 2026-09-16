@@ -9,7 +9,10 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => {
     try {
       const saved = localStorage.getItem('corporate_tech_cart');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(item => item && (item.product || item.id));
     } catch {
       return [];
     }
@@ -62,6 +65,11 @@ export const CartProvider = ({ children }) => {
 
   // Add to cart with smooth flight animation to cart icon
   const addToCart = (product, quantity = 1, eventOrElement = null) => {
+    if (product.call_for_price || (Number(product.sale_price || 0) === 0 && Number(product.regular_price || 0) === 0)) {
+      showToast('এই পণ্যটির মূল্যের জন্য সরাসরি আমাদের সাথে যোগাযোগ করুন (01777-177730)', 'info');
+      return;
+    }
+
     setCartItems(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
@@ -89,14 +97,14 @@ export const CartProvider = ({ children }) => {
     }
     setCartItems(prev =>
       prev.map(item =>
-        item.product.id === productId ? { ...item, quantity } : item
+        (item.product?.id || item.id) === productId ? { ...item, quantity } : item
       )
     );
   };
 
   // Remove from cart
   const removeFromCart = (productId) => {
-    setCartItems(prev => prev.filter(item => item.product.id !== productId));
+    setCartItems(prev => prev.filter(item => (item.product?.id || item.id) !== productId));
     showToast('কার্ট থেকে পণ্য সরানো হয়েছে', 'info');
   };
 
@@ -120,9 +128,13 @@ export const CartProvider = ({ children }) => {
   };
 
   // Calculations
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const cartCount = cartItems.reduce((acc, item) => acc + (Number(item?.quantity) || 0), 0);
   const subtotal = cartItems.reduce(
-    (acc, item) => acc + (item.product.sale_price || item.product.regular_price) * item.quantity,
+    (acc, item) => {
+      const p = item?.product || item || {};
+      const price = Number(p.sale_price) || Number(p.regular_price) || 0;
+      return acc + price * (Number(item?.quantity) || 0);
+    },
     0
   );
   const deliveryFee = cartItems.length === 0 ? 0 : deliveryArea === 'inside_dhaka' ? 60 : 120;
@@ -172,3 +184,4 @@ export const CartProvider = ({ children }) => {
 };
 
 export const useCart = () => useContext(CartContext);
+

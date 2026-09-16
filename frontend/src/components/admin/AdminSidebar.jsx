@@ -1,19 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  BarChart3,
+  LayoutDashboard,
   ShoppingBag,
-  Layers,
+  Package,
   Users,
+  BarChart3,
+  Ticket,
   Settings,
   ExternalLink,
-  ArrowUpRight,
   LogOut,
   X,
-  Ticket,
-  TrendingUp,
   Shield,
-  Lock
+  Lock,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
+  Sparkles,
+  FolderTree
 } from 'lucide-react';
 
 export default function AdminSidebar({
@@ -27,229 +32,196 @@ export default function AdminSidebar({
   adminUsername = 'Admin',
   onLogout,
   isMobileOpen = false,
-  onCloseMobile = () => {}
+  onCloseMobile = () => {},
+  isCollapsed = false,
+  onToggleCollapse = () => {}
 }) {
   const isSuperAdmin = adminRole === 'super_admin';
+
   const handleNavClick = (tab) => {
     setActiveTab(tab);
     onCloseMobile();
   };
 
+  const navItems = [
+    {
+      id: 'overview',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      badge: null
+    },
+    {
+      id: 'orders',
+      label: 'Orders',
+      icon: ShoppingBag,
+      badge: pendingOrdersCount > 0 ? (
+        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#c92127] text-white">
+          {pendingOrdersCount}
+        </span>
+      ) : (
+        <span className="text-[10px] text-slate-500 font-bold font-mono">{totalOrdersCount}</span>
+      ),
+      dot: pendingOrdersCount > 0
+    },
+    {
+      id: 'products',
+      label: 'Products',
+      icon: Package,
+      badge: (
+        <span className="text-[10px] text-slate-500 font-bold font-mono">{totalProductsCount}</span>
+      )
+    },
+    {
+      id: 'customers',
+      label: 'Customers',
+      icon: Users,
+      badge: (
+        <span className="text-[10px] text-slate-500 font-bold font-mono">{totalCustomersCount}</span>
+      )
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: BarChart3,
+      badge: (
+        <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md">
+          Pro
+        </span>
+      )
+    },
+    {
+      id: 'banners',
+      label: 'Hero Banners',
+      icon: Sparkles,
+      badge: (
+        <span className="text-[9px] font-bold bg-red-100 text-[#c92127] px-1.5 py-0.5 rounded-md">
+          Live
+        </span>
+      )
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      superAdminOnly: true
+    }
+  ];
+
   const sidebarContent = (
-    <div className="flex flex-col justify-between h-full p-5 select-none bg-white">
+    <div className={`flex flex-col justify-between h-full select-none bg-white transition-all duration-300 ${
+      isCollapsed ? 'p-3' : 'p-4 sm:p-5'
+    }`}>
+      {/* Top Section: Logo & Toggle */}
       <div className="space-y-6">
-        
-        {/* Top Brand Logo */}
-        <div className="px-2 py-2 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-1`}>
+          {!isCollapsed ? (
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
+                <span className="font-black text-lg text-white">C</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c92127] -ml-0.5 mt-2"></span>
+              </div>
+              <div>
+                <span className="text-base font-black tracking-tight text-slate-900 block leading-tight">
+                  Corporate <span className="text-[#c92127]">Tech</span>
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                  Admin Console
+                </span>
+              </div>
+            </Link>
+          ) : (
+            <Link to="/" className="w-10 h-10 rounded-2xl bg-black flex items-center justify-center text-white shadow-sm hover:scale-105 transition-transform" title="Corporate Tech Admin">
               <span className="font-black text-lg text-white">C</span>
               <span className="w-1.5 h-1.5 rounded-full bg-[#c92127] -ml-0.5 mt-2"></span>
-            </div>
-            <div>
-              <span className="text-base font-black tracking-tight text-slate-900 block leading-tight">
-                Corporate <span className="text-[#c92127]">Tech</span>
-              </span>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
-                Admin Hub
-              </span>
-            </div>
-          </Link>
+            </Link>
+          )}
 
-          {/* Close button on mobile */}
+          {/* Desktop Toggle Button */}
+          <button
+            onClick={onToggleCollapse}
+            className="hidden lg:flex p-1.5 rounded-xl border border-slate-200 text-slate-500 hover:text-black hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          </button>
+
+          {/* Mobile Close Button */}
           <button
             onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="lg:hidden p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="space-y-1.5 pt-2">
-          {/* 1. Dashboard / Overview */}
-          <button
-            onClick={() => handleNavClick('overview')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'overview'
-                ? 'bg-[#18181b] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <BarChart3 className={`w-4 h-4 ${activeTab === 'overview' ? 'text-[#c92127]' : 'text-slate-400'}`} />
-              <span>Dashboard</span>
-            </div>
-          </button>
+        {/* Navigation Items */}
+        <nav className="space-y-1.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const isRestricted = item.superAdminOnly && !isSuperAdmin;
 
-          {/* 2. Orders */}
-          <button
-            onClick={() => handleNavClick('orders')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'orders'
-                ? 'bg-[#18181b] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <ShoppingBag className={`w-4 h-4 ${activeTab === 'orders' ? 'text-[#c92127]' : 'text-slate-400'}`} />
-              <span>Orders</span>
-            </div>
-            {pendingOrdersCount > 0 ? (
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                activeTab === 'orders' ? 'bg-[#c92127] text-white' : 'bg-red-50 text-[#c92127] border border-red-100'
-              }`}>
-                {pendingOrdersCount}
-              </span>
-            ) : (
-              <span className="text-[10px] text-slate-400 font-mono">{totalOrdersCount}</span>
-            )}
-          </button>
+            if (isRestricted) {
+              return (
+                <div
+                  key={item.id}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-2.5'} rounded-xl text-xs font-bold text-slate-400 opacity-50 cursor-not-allowed`}
+                  title={`${item.label} (Super Admin Only)`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-4 h-4 text-slate-300" />
+                    {!isCollapsed && <span>{item.label}</span>}
+                  </div>
+                  {!isCollapsed && <Lock className="w-3.5 h-3.5 text-slate-400" />}
+                </div>
+              );
+            }
 
-          {/* 3. Products */}
-          <button
-            onClick={() => handleNavClick('products')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'products'
-                ? 'bg-[#18181b] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Layers className={`w-4 h-4 ${activeTab === 'products' ? 'text-[#c92127]' : 'text-slate-400'}`} />
-              <span>Products</span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono">{totalProductsCount}</span>
-          </button>
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`w-full flex items-center ${
+                  isCollapsed ? 'justify-center p-3.5' : 'justify-between px-3.5 py-3'
+                } rounded-xl text-xs font-black transition-all cursor-pointer relative group ${
+                  isActive
+                    ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
+                    : 'text-slate-900 hover:text-black hover:bg-slate-100/90'
+                }`}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-[#c92127]' : 'text-slate-700 group-hover:text-black'}`} />
+                  {!isCollapsed && (
+                    <span className="tracking-tight font-extrabold text-[13px]">{item.label}</span>
+                  )}
+                </div>
 
-          {/* 4. Customers */}
-          <button
-            onClick={() => handleNavClick('customers')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'customers'
-                ? 'bg-[#18181b] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Users className={`w-4 h-4 ${activeTab === 'customers' ? 'text-[#c92127]' : 'text-slate-400'}`} />
-              <span>Customers</span>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono">{totalCustomersCount}</span>
-          </button>
+                {!isCollapsed && item.badge}
 
-          {/* 5. Sales Reports & Analytics */}
-          <button
-            onClick={() => handleNavClick('analytics')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'analytics'
-                ? 'bg-[#18181b] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp className={`w-4 h-4 ${activeTab === 'analytics' ? 'text-[#c92127]' : 'text-slate-400'}`} />
-              <span>Analytics & Reports</span>
-            </div>
-            <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
-              New
-            </span>
-          </button>
-
-          {/* 6. Coupons (Super Admin Only) */}
-          {isSuperAdmin ? (
-            <button
-              onClick={() => handleNavClick('coupons')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'coupons'
-                  ? 'bg-[#18181b] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Ticket className={`w-4 h-4 ${activeTab === 'coupons' ? 'text-[#c92127]' : 'text-slate-400'}`} />
-                <span>Coupons</span>
-              </div>
-            </button>
-          ) : (
-            <div
-              className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-medium text-slate-400 opacity-60 cursor-not-allowed"
-              title="Super Admin permission required"
-            >
-              <div className="flex items-center gap-3">
-                <Ticket className="w-4 h-4 text-slate-300" />
-                <span>Coupons</span>
-              </div>
-              <Lock className="w-3 h-3 text-slate-400" />
-            </div>
-          )}
-
-          {/* 7. Settings (Super Admin Only) */}
-          {isSuperAdmin ? (
-            <button
-              onClick={() => handleNavClick('settings')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'settings'
-                  ? 'bg-[#18181b] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Settings className={`w-4 h-4 ${activeTab === 'settings' ? 'text-[#c92127]' : 'text-slate-400'}`} />
-                <span>Settings</span>
-              </div>
-            </button>
-          ) : (
-            <div
-              className="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-xs font-medium text-slate-400 opacity-60 cursor-not-allowed"
-              title="Super Admin permission required"
-            >
-              <div className="flex items-center gap-3">
-                <Settings className="w-4 h-4 text-slate-300" />
-                <span>Settings</span>
-              </div>
-              <Lock className="w-3 h-3 text-slate-400" />
-            </div>
-          )}
+                {/* Notification dot in collapsed mode */}
+                {isCollapsed && item.dot && (
+                  <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-[#c92127] ring-2 ring-white"></span>
+                )}
+              </button>
+            );
+          })}
         </nav>
       </div>
 
-      {/* User Profile & Bottom Actions */}
-      <div className="space-y-2 pt-4 border-t border-slate-100">
-        <div className="px-3 py-2 bg-slate-50 border border-slate-200/70 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
-              isSuperAdmin ? 'bg-black text-white' : 'bg-amber-100 text-amber-800'
-            }`}>
-              {adminUsername.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="truncate">
-              <p className="text-xs font-bold text-slate-800 truncate capitalize">{adminUsername}</p>
-              <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded-full inline-block ${
-                isSuperAdmin ? 'bg-red-50 text-[#c92127]' : 'bg-amber-50 text-amber-700'
-              }`}>
-                {isSuperAdmin ? 'Super Admin' : 'Staff Dispatcher'}
-              </span>
-            </div>
-          </div>
-          {isSuperAdmin ? (
-            <Shield className="w-3.5 h-3.5 text-[#c92127] shrink-0" />
-          ) : (
-            <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-          )}
-        </div>
-
+      {/* Bottom Actions: Visit Store & Logout */}
+      <div className="space-y-1.5 pt-3 border-t border-slate-100">
         <a
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+          className={`w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-2.5'} rounded-xl text-xs font-bold text-slate-800 hover:text-black hover:bg-slate-100 transition-colors`}
+          title="Visit Live Store"
         >
           <div className="flex items-center gap-2.5">
-            <ExternalLink className="w-4 h-4 text-slate-400" />
-            <span>Visit Store</span>
+            <ExternalLink className="w-4 h-4 text-slate-600" />
+            {!isCollapsed && <span>Visit Store</span>}
           </div>
-          <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
         </a>
 
         <button
@@ -257,10 +229,11 @@ export default function AdminSidebar({
             onCloseMobile();
             onLogout();
           }}
-          className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+          className={`w-full flex items-center ${isCollapsed ? 'justify-center p-3' : 'gap-2.5 px-3.5 py-2.5'} rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer`}
+          title="Logout"
         >
           <LogOut className="w-4 h-4" />
-          <span>Logout</span>
+          {!isCollapsed && <span>Logout</span>}
         </button>
       </div>
     </div>
@@ -268,21 +241,20 @@ export default function AdminSidebar({
 
   return (
     <>
-      {/* 1. Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200/80 sticky top-0 h-screen flex-col justify-between z-30 flex-shrink-0">
+      {/* 1. Desktop Persistent Sidebar with Toggle Width */}
+      <aside className={`hidden lg:flex bg-white border-r border-slate-200/80 sticky top-0 h-screen flex-col justify-between z-30 flex-shrink-0 transition-all duration-300 ${
+        isCollapsed ? 'w-20' : 'w-64'
+      }`}>
         {sidebarContent}
       </aside>
 
-      {/* 2. Mobile / Tablet Drawer & Backdrop */}
+      {/* 2. Mobile Drawer */}
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden animate-fadeIn">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
             onClick={onCloseMobile}
           />
-
-          {/* Drawer Panel */}
           <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-2xl z-50 flex flex-col animate-slideInLeft">
             {sidebarContent}
           </div>

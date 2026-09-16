@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Package,
@@ -9,10 +9,10 @@ import {
   Phone,
   MessageSquare,
   Download,
-  Upload,
-  FileSpreadsheet
+  Upload
 } from 'lucide-react';
-import { exportToCsv, parseCsv, downloadSampleOrderCsv } from '../../../lib/csvHelper';
+import { exportToCsv, parseCsv } from '../../../lib/csvHelper';
+import AdminPagination from '../AdminPagination';
 
 export default function OrdersTab({
   orders = [],
@@ -47,6 +47,23 @@ export default function OrdersTab({
     }
     return true;
   });
+
+  // Pagination State: 20 orders per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  // Reset to page 1 on filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [orderStatusFilter, orderSearchQuery, globalSearch]);
+
+  const totalFilteredOrders = filteredOrders.length;
+  const totalPages = Math.ceil(totalFilteredOrders / ITEMS_PER_PAGE) || 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedOrders = filteredOrders.slice(
+    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
+    safeCurrentPage * ITEMS_PER_PAGE
+  );
 
   // 1-Click WhatsApp Quick Action
   function openWhatsApp(order) {
@@ -180,15 +197,6 @@ export default function OrdersTab({
           />
 
           <button
-            onClick={downloadSampleOrderCsv}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Download formatted sample orders CSV template for Excel"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline">Sample CSV</span>
-          </button>
-
-          <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
             className="bg-white border border-slate-300 hover:border-slate-400 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
@@ -285,7 +293,7 @@ export default function OrdersTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredOrders.map((order) => (
+                {paginatedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
                     {/* Order Number */}
                     <td className="py-3.5 px-4">
@@ -426,6 +434,20 @@ export default function OrdersTab({
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Pagination Controls */}
+        {filteredOrders.length > 0 && (
+          <AdminPagination
+            currentPage={safeCurrentPage}
+            totalItems={totalFilteredOrders}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            itemName="orders"
+          />
         )}
       </div>
     </div>

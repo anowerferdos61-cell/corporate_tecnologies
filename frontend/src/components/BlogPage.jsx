@@ -52,22 +52,6 @@ export default function BlogPage({ onNavigate }) {
   return (
     <div className="min-w-0 bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              if (onNavigate) onNavigate('/');
-            }}
-            className="hover:text-[#c92127] cursor-pointer"
-          >
-            Home
-          </a>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-[#c92127] font-bold">Blog</span>
-        </div>
 
         {/* Header Hero */}
         <div className="bg-gradient-to-r from-[#c92127] to-[#a8191e] rounded-3xl p-6 sm:p-10 text-white shadow-lg relative overflow-hidden">

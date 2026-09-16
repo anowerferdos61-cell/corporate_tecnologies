@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Users, Loader2 } from 'lucide-react';
+import AdminPagination from '../AdminPagination';
 
 export default function CustomersTab({
   customers = [],
@@ -20,6 +21,23 @@ export default function CustomersTab({
     }
     return true;
   });
+
+  // Pagination State: 20 customers per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  // Reset to page 1 on search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [customerSearch, globalSearch]);
+
+  const totalFilteredCustomers = filteredCustomers.length;
+  const totalPages = Math.ceil(totalFilteredCustomers / ITEMS_PER_PAGE) || 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedCustomers = filteredCustomers.slice(
+    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
+    safeCurrentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -70,7 +88,7 @@ export default function CustomersTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredCustomers.map((cust) => {
+                {paginatedCustomers.map((cust) => {
                   const custOrders = orders.filter((o) => o.phone === cust.phone);
                   const totalSpend = custOrders.reduce((sum, o) => sum + (Number(o.grand_total) || 0), 0);
                   return (
@@ -99,6 +117,20 @@ export default function CustomersTab({
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Pagination Controls */}
+        {filteredCustomers.length > 0 && (
+          <AdminPagination
+            currentPage={safeCurrentPage}
+            totalItems={totalFilteredCustomers}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            itemName="customers"
+          />
         )}
       </div>
     </div>

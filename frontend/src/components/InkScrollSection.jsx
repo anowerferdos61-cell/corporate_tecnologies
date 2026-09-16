@@ -311,19 +311,15 @@ export default function InkScrollSection({ allProducts = [], onNavigate }) {
                 100% Printhead Safe
               </span>
             </h2>
-
-            <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1">
-              প্রিন্টহেডের দীর্ঘস্থায়িত্ব ও নিখুঁত কালার অ্যাকুরেসির আসল ডিজিটাল ইঙ্ক কালেকশন (ডানে-বামে টেনে ব্রাউজ করুন)
-            </p>
           </div>
 
-          {/* Action Link: Arrow buttons removed as requested, keeping View All button */}
+          {/* Action Link: View All button */}
           <div>
             <button
               onClick={() => onNavigate ? onNavigate('/product-category/splashjet-ink/', 'Splashjet Ink') : window.location.href = '/product-category/splashjet-ink/'}
               className="inline-flex items-center gap-1.5 bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs sm:text-sm font-extrabold px-5 py-2.5 rounded-full shadow-md transition-all cursor-pointer transform hover:-translate-y-0.5"
             >
-              <span>সব ইঙ্ক দেখুন</span>
+              <span>Explore All Inks</span>
               <ChevronRight className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
@@ -351,7 +347,7 @@ export default function InkScrollSection({ allProducts = [], onNavigate }) {
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
         >
           {loopList.map((product, idx) => {
-            const cartItem = cartItems?.find(item => item.product.id === product.id);
+            const cartItem = cartItems?.find(item => (item?.product?.id || item?.id) === product.id);
             const isInCart = Boolean(cartItem);
             const cartQuantity = cartItem?.quantity || 0;
             const isJustAdded = addedId === product.id;

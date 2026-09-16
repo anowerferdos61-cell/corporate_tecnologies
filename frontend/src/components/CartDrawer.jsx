@@ -34,7 +34,11 @@ export default function CartDrawer({ onNavigate }) {
 
   const handleProceedCheckout = () => {
     setIsCartOpen(false);
-    setIsCheckoutOpen(true);
+    if (onNavigate) {
+      onNavigate('/checkout');
+    } else {
+      window.location.href = '/checkout';
+    }
   };
 
   const handleViewProducts = () => {
@@ -42,21 +46,19 @@ export default function CartDrawer({ onNavigate }) {
     setSelectedCategory('All');
     setSearchQuery('');
     if (onNavigate) {
-      onNavigate('/shop/', 'All Products');
+      onNavigate('/shop', 'All Products');
     } else {
-      window.history.pushState({}, '', '/shop/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      window.location.href = '/shop';
     }
   };
 
   const handleProductClick = (product) => {
     setIsCartOpen(false);
-    const targetUrl = `/product/${product.slug || product.id}/`;
+    const targetUrl = `/product/${product.slug || product.id}`;
     if (onNavigate) {
       onNavigate(targetUrl, product);
     } else {
-      window.history.pushState({}, '', targetUrl);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      window.location.href = targetUrl;
     }
   };
 

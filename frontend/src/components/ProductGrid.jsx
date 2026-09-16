@@ -1,14 +1,15 @@
 import React, { useMemo } from 'react';
 import ProductCard from './ProductCard';
-import { ArrowRight, Droplet, Printer } from 'lucide-react';
+import { ArrowRight, Droplet, Printer, Flame } from 'lucide-react';
+import fallbackProductsData from '../data/fallbackProducts.json';
 
 /**
  * Filter 8 top-selling pure Splashjet & compatible refill inks
  */
 function getPopularInks(allProducts = [], count = 8) {
-  if (!allProducts || allProducts.length === 0) return [];
+  const sourceList = (allProducts && allProducts.length > 0) ? allProducts : fallbackProductsData;
 
-  const inks = allProducts.filter(p => {
+  const inks = sourceList.filter(p => {
     const cat = (p.category || '').toLowerCase();
     const title = (p.title || '').toLowerCase();
 
@@ -34,9 +35,9 @@ function getPopularInks(allProducts = [], count = 8) {
  * Filter 8 top-rated Printers & Photocopiers (Brother, Toshiba, Epson, POS)
  */
 function getPopularPrinters(allProducts = [], count = 8) {
-  if (!allProducts || allProducts.length === 0) return [];
+  const sourceList = (allProducts && allProducts.length > 0) ? allProducts : fallbackProductsData;
 
-  const printers = allProducts.filter(p => {
+  const printers = sourceList.filter(p => {
     const cat = (p.category || '').toLowerCase();
     const title = (p.title || '').toLowerCase();
 
@@ -85,12 +86,54 @@ function getPopularPrinters(allProducts = [], count = 8) {
   return selected.slice(0, count);
 }
 
+/**
+ * Filter 8 top Heat Press Machines & Machinery
+ */
+function getPopularHeatPress(allProducts = [], count = 8) {
+  const isHeatPress = (p) => {
+    if (!p) return false;
+    const cat = (p.category || '').toLowerCase();
+    const sub = (p.sub_category || '').toLowerCase();
+    const title = (p.title || '').toLowerCase();
+
+    return (
+      cat.includes('machinery') ||
+      cat.includes('heat press') ||
+      cat.includes('equipment') ||
+      sub.includes('machinery') ||
+      sub.includes('heat press') ||
+      title.includes('heat press') ||
+      title.includes('freesub') ||
+      title.includes('combo heat press') ||
+      title.includes('combo package') ||
+      title.includes('screen protector cutter') ||
+      title.includes('cutting machine')
+    );
+  };
+
+  let list = (allProducts || []).filter(isHeatPress);
+
+  if (list.length < 4) {
+    const fallbackList = fallbackProductsData.filter(isHeatPress);
+    const combined = [...list];
+    fallbackList.forEach(item => {
+      if (!combined.some(c => c.id === item.id || c.title.toLowerCase() === item.title.toLowerCase())) {
+        combined.push(item);
+      }
+    });
+    list = combined;
+  }
+
+  return list.slice(0, count);
+}
+
 export default function ProductGrid({ products = [], loading = false, onNavigate }) {
-  // Extract curated 8 inks and 8 printers
+  // Extract curated products for the 3 categories
   const inkProducts = useMemo(() => getPopularInks(products, 8), [products]);
   const printerProducts = useMemo(() => getPopularPrinters(products, 8), [products]);
+  const heatPressProducts = useMemo(() => getPopularHeatPress(products, 8), [products]);
 
-  const totalCount = inkProducts.length + printerProducts.length;
+  const totalCount = inkProducts.length + printerProducts.length + heatPressProducts.length;
 
   return (
     <div className="w-full">
@@ -107,67 +150,102 @@ export default function ProductGrid({ products = [], loading = false, onNavigate
         </div>
       ) : totalCount === 0 ? (
         <div className="bg-slate-50 rounded-3xl p-8 text-center border border-slate-200">
-          <p className="text-sm text-slate-600">কোনো প্রোডাক্ট পাওয়া যায়নি।</p>
+          <p className="text-sm text-slate-600">No products found in this collection.</p>
         </div>
       ) : (
         <div className="space-y-12">
-          {/* 1. INK CATEGORY SECTION */}
-          <div>
-            {/* Category Header Banner - Centered with Red Border */}
-            <div className="border-2 border-[#c92127] bg-gradient-to-r from-red-50/70 via-white to-red-50/70 rounded-2xl p-4 sm:p-5 mb-6 text-center shadow-xs flex flex-col items-center justify-center">
-              <div className="inline-flex items-center gap-1.5 bg-[#c92127] text-white px-3 py-1 rounded-full text-xs font-black shadow-xs mb-2">
-                <Droplet className="w-3.5 h-3.5 fill-current" />
-                <span className="uppercase tracking-wider">ক্যাটাগরি</span>
+          {/* 1. SPLASHJET INKS SECTION */}
+          {inkProducts.length > 0 && (
+            <div>
+              {/* Category Header Box with Thin Red Border */}
+              <div className="border border-[#c92127]/60 bg-gradient-to-r from-red-50/40 via-white to-red-50/40 rounded-2xl p-4 sm:p-5 mb-6 text-center shadow-2xs">
+                <div className="inline-flex items-center gap-1.5 bg-[#c92127] text-white px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider mb-2 shadow-2xs">
+                  <Droplet className="w-3 h-3 fill-current" />
+                  <span>Category</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    Splashjet Inks
+                  </h3>
+                  <span className="text-xs font-bold bg-red-100 text-[#c92127] px-2.5 py-0.5 rounded-full border border-red-200">
+                    {inkProducts.length} Premium Inks
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-lg mx-auto font-medium">
+                  100% Authentic OEM-grade refill inks for Epson, Canon, HP & Brother
+                </p>
               </div>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                  Splashjet Inks
-                </h3>
-                <span className="text-xs font-bold bg-red-100 text-[#c92127] px-2.5 py-0.5 rounded-full border border-red-200">
-                  {inkProducts.length} টি সেরা ইঙ্ক
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-1 max-w-lg">
-                Epson, Canon, HP ও ব্রাদারের জন্য ১০০% আসল প্রিমিয়াম রিফিল ইঙ্ক কালেকশন
-              </p>
-            </div>
 
-            {/* Inks 8-Product Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-              {inkProducts.map((product) => (
-                <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
-              ))}
-            </div>
-          </div>
-
-          {/* 2. PRINTERS & PHOTOCOPIERS SECTION */}
-          <div>
-            {/* Category Header Banner - Centered with Red Border */}
-            <div className="border-2 border-[#c92127] bg-gradient-to-r from-red-50/70 via-white to-red-50/70 rounded-2xl p-4 sm:p-5 mb-6 text-center shadow-xs flex flex-col items-center justify-center">
-              <div className="inline-flex items-center gap-1.5 bg-[#c92127] text-white px-3 py-1 rounded-full text-xs font-black shadow-xs mb-2">
-                <Printer className="w-3.5 h-3.5" />
-                <span className="uppercase tracking-wider">ক্যাটাগরি</span>
+              {/* Inks 8-Product Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                {inkProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
+                ))}
               </div>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                  Printers & Photocopiers
-                </h3>
-                <span className="text-xs font-bold bg-red-100 text-[#c92127] px-2.5 py-0.5 rounded-full border border-red-200">
-                  {printerProducts.length} টি টপ মডেল
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-1 max-w-lg">
-                Brother ও Epson অফিসিয়াল ইঙ্কট্যাঙ্ক প্রিন্টার এবং Toshiba ডিজিটাল ফটোকপিয়ার কালেকশন
-              </p>
             </div>
+          )}
 
-            {/* Printers 8-Product Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-              {printerProducts.map((product) => (
-                <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
-              ))}
+          {/* 2. PHOTOCOPIERS & PRINTERS SECTION */}
+          {printerProducts.length > 0 && (
+            <div>
+              {/* Category Header Box with Thin Red Border */}
+              <div className="border border-[#c92127]/60 bg-gradient-to-r from-red-50/40 via-white to-red-50/40 rounded-2xl p-4 sm:p-5 mb-6 text-center shadow-2xs">
+                <div className="inline-flex items-center gap-1.5 bg-[#c92127] text-white px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider mb-2 shadow-2xs">
+                  <Printer className="w-3 h-3" />
+                  <span>Category</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    Photocopy Machine & Printers
+                  </h3>
+                  <span className="text-xs font-bold bg-red-100 text-[#c92127] px-2.5 py-0.5 rounded-full border border-red-200">
+                    {printerProducts.length} Top Models
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-lg mx-auto font-medium">
+                  Official Brother, Epson, HP Printers and Toshiba Digital Multifunction Copiers
+                </p>
+              </div>
+
+              {/* Printers 8-Product Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                {printerProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 3. HEAT PRESS & MACHINERY SECTION */}
+          {heatPressProducts.length > 0 && (
+            <div>
+              {/* Category Header Box with Thin Red Border */}
+              <div className="border border-[#c92127]/60 bg-gradient-to-r from-red-50/40 via-white to-red-50/40 rounded-2xl p-4 sm:p-5 mb-6 text-center shadow-2xs">
+                <div className="inline-flex items-center gap-1.5 bg-[#c92127] text-white px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider mb-2 shadow-2xs">
+                  <Flame className="w-3 h-3 fill-current" />
+                  <span>Category</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    Heat Press & Machinery
+                  </h3>
+                  <span className="text-xs font-bold bg-red-100 text-[#c92127] px-2.5 py-0.5 rounded-full border border-red-200">
+                    {heatPressProducts.length} Top Equipment
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-lg mx-auto font-medium">
+                  Professional 5-in-1 Combo Heat Press, T-Shirt Flat Press & Sublimation Machinery Solutions
+                </p>
+              </div>
+
+              {/* Heat Press Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                {heatPressProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Bottom View All CTA */}
           <div className="pt-6 flex flex-col items-center justify-center border-t border-slate-100">
@@ -182,11 +260,11 @@ export default function ProductGrid({ products = [], loading = false, onNavigate
               }}
               className="inline-flex items-center gap-2.5 bg-[#c92127] hover:bg-[#b91c1c] text-white font-extrabold text-xs sm:text-sm px-8 py-3.5 rounded-full shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5 cursor-pointer"
             >
-              <span>সব প্রোডাক্ট ব্রাউজ করুন (View All Products)</span>
+              <span>Explore All Products</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-            <p className="text-slate-400 text-[11px] font-medium mt-2.5 text-center">
-              ১০০% আসল প্রোডাক্ট • ১ বছর অফিসিয়াল সার্ভিস সাপোর্ট • সারা দেশে দ্রুত ডেলিভারি
+            <p className="text-slate-400 text-xs font-medium mt-2.5 text-center">
+              100% Authentic Products • 1 Year Official Support • Nationwide Fast Delivery
             </p>
           </div>
         </div>

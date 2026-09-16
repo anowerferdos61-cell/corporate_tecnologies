@@ -58,6 +58,7 @@ function getLocalCoupons() {
 function saveLocalCoupons(coupons) {
   try {
     localStorage.setItem(LOCAL_COUPONS_KEY, JSON.stringify(coupons));
+    window.dispatchEvent(new CustomEvent('ct_coupons_updated', { detail: coupons }));
   } catch (err) {
     console.warn('Could not save coupons locally:', err);
   }
@@ -92,8 +93,16 @@ export async function fetchActiveCoupons() {
   return (list || []).filter(c => {
     if (!c.is_active) return false;
     if (c.expiry_date) {
-      const exp = new Date(c.expiry_date);
-      if (exp < now) return false;
+      let exp;
+      if (typeof c.expiry_date === 'string' && c.expiry_date.length === 10) {
+        exp = new Date(`${c.expiry_date}T23:59:59.999`);
+      } else {
+        exp = new Date(c.expiry_date);
+        if (exp.getUTCHours() === 0 && exp.getUTCMinutes() === 0 && exp.getUTCSeconds() === 0) {
+          exp.setUTCHours(23, 59, 59, 999);
+        }
+      }
+      if (exp.getTime() < now.getTime()) return false;
     }
     return true;
   });
@@ -219,7 +228,15 @@ export async function validateCoupon(code, subtotal = 0) {
 
   // Check Expiry Date
   if (coupon.expiry_date) {
-    const expiry = new Date(coupon.expiry_date);
+    let expiry;
+    if (typeof coupon.expiry_date === 'string' && coupon.expiry_date.length === 10) {
+      expiry = new Date(`${coupon.expiry_date}T23:59:59.999`);
+    } else {
+      expiry = new Date(coupon.expiry_date);
+      if (expiry.getUTCHours() === 0 && expiry.getUTCMinutes() === 0 && expiry.getUTCSeconds() === 0) {
+        expiry.setUTCHours(23, 59, 59, 999);
+      }
+    }
     if (new Date() > expiry) {
       return { valid: false, message: `"${cleanCode}" কুপনের মেয়াদের তারিখ উত্তীর্ণ হয়ে গেছে।` };
     }

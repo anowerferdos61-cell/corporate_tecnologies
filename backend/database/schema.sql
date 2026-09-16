@@ -214,4 +214,59 @@ CREATE POLICY "Allow public read coupons" ON coupons FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Allow public all coupons" ON coupons;
 CREATE POLICY "Allow public all coupons" ON coupons FOR ALL USING (true);
 
+-- ------------------------------------------------------------------------------
+-- 9. PRODUCTS TABLE (প্রোডাক্ট ক্যাটালগ ও ইনভেন্টরি)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    brand VARCHAR(100) DEFAULT 'Corporate Tech',
+    category VARCHAR(100) NOT NULL DEFAULT 'Printers',
+    sub_category VARCHAR(100) DEFAULT '',
+    regular_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    sale_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    stock_quantity INTEGER NOT NULL DEFAULT 20,
+    sku VARCHAR(100),
+    image_url TEXT,
+    gallery_images JSONB DEFAULT '[]'::jsonb,
+    short_description TEXT,
+    description TEXT,
+    specifications JSONB DEFAULT '{}'::jsonb,
+    key_features JSONB DEFAULT '[]'::jsonb,
+    is_featured BOOLEAN DEFAULT false,
+    rating NUMERIC(3, 2) DEFAULT 4.9,
+    reviews_count INTEGER DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
+CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand);
+
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read products" ON products;
+CREATE POLICY "Allow public read products" ON products FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public insert products" ON products;
+CREATE POLICY "Allow public insert products" ON products FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow public update products" ON products;
+CREATE POLICY "Allow public update products" ON products FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Allow public delete products" ON products;
+CREATE POLICY "Allow public delete products" ON products FOR DELETE USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 10. STORAGE BUCKET FOR PRODUCT & BANNER IMAGES
+-- ------------------------------------------------------------------------------
+-- Run in Supabase SQL Editor if product-images bucket doesn't exist:
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Storage RLS policies for product-images
+CREATE POLICY "Public Access product-images" ON storage.objects FOR SELECT USING (bucket_id = 'product-images');
+CREATE POLICY "Public Upload product-images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'product-images');
+CREATE POLICY "Public Update product-images" ON storage.objects FOR UPDATE USING (bucket_id = 'product-images');
+CREATE POLICY "Public Delete product-images" ON storage.objects FOR DELETE USING (bucket_id = 'product-images');
+
 

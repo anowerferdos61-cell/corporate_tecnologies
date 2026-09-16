@@ -96,7 +96,11 @@ export default function FlashSaleSection({ allProducts = [], onNavigate }) {
   const handleBuyNow = (e, product) => {
     e.stopPropagation();
     addToCart(product, 1);
-    setIsCheckoutOpen(true);
+    if (onNavigate) {
+      onNavigate('/checkout');
+    } else {
+      navigate('/checkout');
+    }
   };
 
   // Add to Cart with Flying Animation

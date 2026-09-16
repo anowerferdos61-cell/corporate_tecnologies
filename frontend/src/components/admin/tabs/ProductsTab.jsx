@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Plus,
@@ -7,10 +7,15 @@ import {
   Trash2,
   Download,
   Upload,
-  FileSpreadsheet
+  Phone,
+  FolderPlus,
+  FolderTree
 } from 'lucide-react';
 import { PRODUCT_CATEGORIES, CATEGORY_DEFAULT_IMAGES } from '../adminConstants';
-import { exportToCsv, parseCsv, downloadSampleProductCsv } from '../../../lib/csvHelper';
+import { getAvailableCategories, getCategoriesTree, saveCategory } from '../../../lib/categoryService';
+import { exportToCsv, parseCsv } from '../../../lib/csvHelper';
+import AdminPagination from '../AdminPagination';
+import CategoryFormModal from '../modals/CategoryFormModal';
 
 export default function ProductsTab({
   products = [],
@@ -26,7 +31,27 @@ export default function ProductsTab({
   const [productCategoryFilter, setProductCategoryFilter] = useState('All');
   const [productStockFilter, setProductStockFilter] = useState(initialStockFilter || 'all');
   const [isImporting, setIsImporting] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoriesTree, setCategoriesTree] = useState(() => getCategoriesTree(products));
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const handleCatUpdate = () => {
+      setCategoriesTree(getCategoriesTree(products));
+    };
+    window.addEventListener('ct_categories_updated', handleCatUpdate);
+    return () => window.removeEventListener('ct_categories_updated', handleCatUpdate);
+  }, [products]);
+
+  const handleSaveCategory = async (formData) => {
+    try {
+      const updatedTree = await saveCategory(formData, formData.parentId, formData.id);
+      setCategoriesTree(updatedTree);
+      setShowCategoryModal(false);
+    } catch (err) {
+      alert('Failed to save category: ' + err.message);
+    }
+  };
 
   const totalProductsCount = products.length;
   const inStockProducts = products.filter((p) => (p.stock_quantity ?? 25) > 5);
@@ -52,6 +77,23 @@ export default function ProductsTab({
     }
     return true;
   });
+
+  // Pagination State: 20 products per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  // Reset to page 1 on filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [productSearch, productCategoryFilter, productStockFilter, globalSearch]);
+
+  const totalFilteredCount = filteredProducts.length;
+  const totalPages = Math.ceil(totalFilteredCount / ITEMS_PER_PAGE) || 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedProducts = filteredProducts.slice(
+    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
+    safeCurrentPage * ITEMS_PER_PAGE
+  );
 
   // Export Products to CSV
   function handleExportCsv() {
@@ -156,15 +198,6 @@ export default function ProductsTab({
           />
 
           <button
-            onClick={downloadSampleProductCsv}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Download formatted sample CSV file for Excel"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-slate-500" />
-            <span>Sample Template</span>
-          </button>
-
-          <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
             className="bg-white border border-slate-300 hover:border-slate-400 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
@@ -181,6 +214,15 @@ export default function ProductsTab({
           >
             <Download className="w-3.5 h-3.5 text-[#c92127]" />
             <span>Export CSV</span>
+          </button>
+
+          <button
+            onClick={() => setShowCategoryModal(true)}
+            className="bg-white border border-slate-300 hover:border-slate-400 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            title="Create or manage product categories"
+          >
+            <FolderPlus className="w-3.5 h-3.5 text-[#c92127]" />
+            <span>+ New Category</span>
           </button>
 
           <button
@@ -263,7 +305,8 @@ export default function ProductsTab({
             onChange={(e) => setProductCategoryFilter(e.target.value)}
             className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-[#c92127]"
           >
-            {PRODUCT_CATEGORIES.map((cat) => (
+            <option value="All">All Categories ({totalProductsCount})</option>
+            {getAvailableCategories(products).map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
@@ -293,7 +336,7 @@ export default function ProductsTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredProducts.map((prod) => {
+                {paginatedProducts.map((prod) => {
                   const stock = prod.stock_quantity ?? 20;
                   return (
                     <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
@@ -326,13 +369,23 @@ export default function ProductsTab({
                       </td>
 
                       {/* Regular Price */}
-                      <td className="py-3.5 px-4 font-mono text-slate-400 line-through">
-                        ৳{Number(prod.regular_price || 0).toLocaleString()}
+                      <td className="py-3.5 px-4 font-mono text-slate-400">
+                        {prod.call_for_price ? (
+                          <span className="text-slate-300 text-[11px]">—</span>
+                        ) : (
+                          <span className="line-through">৳{Number(prod.regular_price || 0).toLocaleString()}</span>
+                        )}
                       </td>
 
                       {/* Sale Price */}
                       <td className="py-3.5 px-4 font-mono font-black text-slate-900">
-                        ৳{Number(prod.sale_price || prod.regular_price || 0).toLocaleString()}
+                        {prod.call_for_price ? (
+                          <span className="inline-flex items-center gap-1 bg-red-50 text-[#c92127] border border-red-200 font-bold px-2 py-0.5 rounded-md text-[10px]">
+                            <Phone className="w-2.5 h-2.5" /> Call for Price
+                          </span>
+                        ) : (
+                          <span>৳{Number(prod.sale_price || prod.regular_price || 0).toLocaleString()}</span>
+                        )}
                       </td>
 
                       {/* Discount Badge */}
@@ -387,7 +440,31 @@ export default function ProductsTab({
             </table>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        {filteredProducts.length > 0 && (
+          <AdminPagination
+            currentPage={safeCurrentPage}
+            totalItems={totalFilteredCount}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            itemName="products"
+          />
+        )}
       </div>
+
+      {/* Category Creation / Management Modal */}
+      <CategoryFormModal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        category={null}
+        parentId={null}
+        categoriesTree={categoriesTree}
+        onSave={handleSaveCategory}
+      />
     </div>
   );
 }

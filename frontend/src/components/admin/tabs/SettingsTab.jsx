@@ -12,11 +12,14 @@ import {
   X,
   Flame,
   Clock,
-  Zap
+  Zap,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { updateAdminPin, fetchStaffUsers, createStaffUser, deleteStaffUser } from '../../../lib/adminAuth';
 import { updateStoreSetting } from '../../../lib/adminOrderService';
 import { fetchFlashSaleSettings, updateFlashSaleSettings } from '../../../lib/flashSaleService';
+import CouponsTab from './CouponsTab';
 
 export default function SettingsTab({
   insideDhakaFee = 60,
@@ -53,6 +56,16 @@ export default function SettingsTab({
     role: 'staff'
   });
   const [staffActionMsg, setStaffActionMsg] = useState('');
+  const [visiblePins, setVisiblePins] = useState(new Set());
+
+  const togglePinVisibility = (key) => {
+    setVisiblePins((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // Flash Sale State (Super Admin Only)
   const [flashSettings, setFlashSettings] = useState({
@@ -518,6 +531,7 @@ export default function SettingsTab({
                   <tr>
                     <th className="py-2.5 px-4">User</th>
                     <th className="py-2.5 px-4">Role</th>
+                    <th className="py-2.5 px-4">Password / PIN</th>
                     <th className="py-2.5 px-4">Access Permissions</th>
                     <th className="py-2.5 px-4 text-right">Actions</th>
                   </tr>
@@ -525,8 +539,12 @@ export default function SettingsTab({
                 <tbody className="divide-y divide-slate-100">
                   {staffUsers.map((user) => {
                     const isSuper = user.role === 'super_admin' || user.username === 'admin';
+                    const userKey = user.id || user.username;
+                    const isPinVisible = visiblePins.has(userKey);
+                    const displayPin = user.pin_or_password || (user.username === 'admin' ? '******' : '123456');
+
                     return (
-                      <tr key={user.id || user.username} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={userKey} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
@@ -550,6 +568,27 @@ export default function SettingsTab({
                             {isSuper ? <Shield className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                             <span>{isSuper ? 'Super Admin' : 'Order Dispatcher'}</span>
                           </span>
+                        </td>
+
+                        {/* Password / PIN Column with Reveal Toggle */}
+                        <td className="py-3 px-4">
+                          <div className="inline-flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 rounded-lg">
+                            <span className="font-mono font-bold text-xs text-slate-800 select-all">
+                              {isPinVisible ? displayPin : '••••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePinVisibility(userKey)}
+                              className="p-0.5 text-slate-400 hover:text-black transition-colors cursor-pointer"
+                              title={isPinVisible ? "Hide Password" : "Show Password"}
+                            >
+                              {isPinVisible ? (
+                                <EyeOff className="w-3.5 h-3.5 text-slate-600" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5 text-slate-500" />
+                              )}
+                            </button>
+                          </div>
                         </td>
 
                         <td className="py-3 px-4 text-slate-600 text-[11px]">
@@ -583,6 +622,13 @@ export default function SettingsTab({
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* 6. Discount Coupons & Promo Codes Management */}
+        {isSuperAdmin && (
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs md:col-span-2">
+            <CouponsTab />
           </div>
         )}
       </div>

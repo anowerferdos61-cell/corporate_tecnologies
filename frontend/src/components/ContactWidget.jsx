@@ -50,7 +50,7 @@ export default function ContactWidget() {
   };
 
   return (
-    <div ref={widgetRef} className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 flex flex-col items-end">
+    <div ref={widgetRef} className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 ${isOpen ? 'z-50' : 'z-40'} flex flex-col items-end`}>
       
       {/* Contact Popup Box matching corporatetechbd.com */}
       {isOpen && (

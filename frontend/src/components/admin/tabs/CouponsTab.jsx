@@ -20,12 +20,25 @@ import {
   toggleCouponStatus,
   deleteCoupon
 } from '../../../lib/couponService';
+import AdminPagination from '../AdminPagination';
 
 export default function CouponsTab() {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+
+  // Pagination State: 20 coupons per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  const totalCouponsCount = coupons.length;
+  const totalPages = Math.ceil(totalCouponsCount / ITEMS_PER_PAGE) || 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paginatedCoupons = coupons.slice(
+    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
+    safeCurrentPage * ITEMS_PER_PAGE
+  );
 
   // Form State
   const [code, setCode] = useState('');
@@ -88,13 +101,20 @@ export default function CouponsTab() {
 
     setIsSubmitting(true);
     try {
+      // Save expiry as end-of-day UTC/local string so it does not expire on the same day
+      let formattedExpiry = null;
+      if (expiryDate) {
+        const d = new Date(expiryDate + 'T23:59:59');
+        formattedExpiry = !isNaN(d.getTime()) ? d.toISOString() : null;
+      }
+
       const newCoupon = await createCoupon({
         code: code.trim(),
         discountType,
         discountValue: Number(discountValue),
         minOrderAmount: Number(minOrderAmount) || 0,
         maxDiscountLimit: maxDiscountLimit ? Number(maxDiscountLimit) : null,
-        expiryDate: expiryDate ? new Date(expiryDate).toISOString() : null,
+        expiryDate: formattedExpiry,
         isActive
       });
 
@@ -196,7 +216,7 @@ export default function CouponsTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {coupons.map((coupon) => (
+                {paginatedCoupons.map((coupon) => (
                   <tr key={coupon.id} className="hover:bg-slate-50/80 transition-colors">
                     {/* Code & Copy */}
                     <td className="py-3.5 px-4">
@@ -288,6 +308,20 @@ export default function CouponsTab() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Pagination Controls */}
+        {coupons.length > 0 && (
+          <AdminPagination
+            currentPage={safeCurrentPage}
+            totalItems={totalCouponsCount}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            itemName="coupons"
+          />
         )}
       </div>
 
