@@ -42,6 +42,7 @@ export default function CategoryFormModal({
   const [hidden, setHidden] = useState(false);
   const [isSubcategory, setIsSubcategory] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   // Auto-fill form when activeCategory or initialParentId changes
@@ -66,6 +67,7 @@ export default function CategoryFormModal({
       setParentId(initialParentId || (availableParents[0]?.id || availableParents[0]?.slug || ''));
     }
     setErrorMessage('');
+    setIsSubmitting(false);
   }, [activeCategory, initialParentId, isOpen]);
 
   if (!isOpen) return null;
@@ -102,8 +104,6 @@ export default function CategoryFormModal({
       setIsUploading(false);
     }
   };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
