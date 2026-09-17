@@ -103,7 +103,9 @@ export default function CategoryFormModal({
     }
   };
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
       setErrorMessage('Category name is required.');
@@ -111,18 +113,28 @@ export default function CategoryFormModal({
     }
 
     const cleanSlug = slug.trim() || generateSlug(name);
+    setIsSubmitting(true);
+    setErrorMessage('');
 
-    onSave({
-      id: activeCategory?.id || cleanSlug,
-      name: name.trim(),
-      slug: cleanSlug,
-      description: description.trim(),
-      image: image.trim(),
-      hidden: Boolean(hidden),
-      parentId: isSubcategory && parentId ? parentId : null
-    }, isSubcategory && parentId ? parentId : null, activeCategory?.id || null);
-
-    onClose();
+    try {
+      if (onSave) {
+        await onSave({
+          id: activeCategory?.id || cleanSlug,
+          name: name.trim(),
+          slug: cleanSlug,
+          description: description.trim(),
+          image: image.trim(),
+          hidden: Boolean(hidden),
+          parentId: isSubcategory && parentId ? parentId : null
+        }, isSubcategory && parentId ? parentId : null, activeCategory?.id || null);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Failed to save category:', err);
+      setErrorMessage(err.message || 'Failed to save category. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -336,11 +348,20 @@ export default function CategoryFormModal({
             </button>
             <button
               type="submit"
-              disabled={isUploading}
-              className="px-5 py-2.5 rounded-xl bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs font-extrabold shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+              disabled={isUploading || isSubmitting}
+              className="px-5 py-2.5 rounded-xl bg-[#c92127] hover:bg-[#b91c1c] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-extrabold shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
             >
-              <Check className="w-4 h-4" />
-              <span>{editingCategory ? 'Save Changes' : 'Create Category'}</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving Category...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>{editingCategory ? 'Save Changes' : 'Create Category'}</span>
+                </>
+              )}
             </button>
           </div>
 
