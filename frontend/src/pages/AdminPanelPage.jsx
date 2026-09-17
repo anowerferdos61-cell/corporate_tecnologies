@@ -395,6 +395,7 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
               outsideDhakaFee={outsideDhakaFee}
               defaultCourier={defaultCourier}
               isSuperAdmin={isSuperAdmin}
+              products={products}
               onDeliveryFeesUpdated={(inFee, outFee) => {
                 setInsideDhakaFee(inFee);
                 setOutsideDhakaFee(outFee);

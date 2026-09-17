@@ -195,45 +195,39 @@ export default function CartDrawer({ onNavigate }) {
 
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <label 
-                      className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 cursor-pointer transition-all ${
                         deliveryArea === 'inside_dhaka'
-                          ? 'border-[#c92127] bg-red-50/50 text-[#c92127] font-bold'
-                          : 'border-slate-200 bg-white text-slate-600 font-medium'
+                          ? 'border-[#c92127] bg-red-50/50 text-[#c92127] font-bold shadow-2xs'
+                          : 'border-slate-200 bg-white text-slate-700 font-medium hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="radio"
-                          name="deliveryArea"
-                          value="inside_dhaka"
-                          checked={deliveryArea === 'inside_dhaka'}
-                          onChange={() => setDeliveryArea('inside_dhaka')}
-                          className="accent-[#c92127]"
-                        />
-                        <span className="text-[11px] sm:text-xs">ঢাকার ভিতরে</span>
-                      </div>
-                      <span className="font-bold text-[11px] sm:text-xs">৳৬০</span>
+                      <input
+                        type="radio"
+                        name="deliveryArea"
+                        value="inside_dhaka"
+                        checked={deliveryArea === 'inside_dhaka'}
+                        onChange={() => setDeliveryArea('inside_dhaka')}
+                        className="accent-[#c92127]"
+                      />
+                      <span className="text-xs">ঢাকার ভিতরে</span>
                     </label>
 
                     <label 
-                      className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 cursor-pointer transition-all ${
                         deliveryArea === 'outside_dhaka'
-                          ? 'border-[#c92127] bg-red-50/50 text-[#c92127] font-bold'
-                          : 'border-slate-200 bg-white text-slate-600 font-medium'
+                          ? 'border-[#c92127] bg-red-50/50 text-[#c92127] font-bold shadow-2xs'
+                          : 'border-slate-200 bg-white text-slate-700 font-medium hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="radio"
-                          name="deliveryArea"
-                          value="outside_dhaka"
-                          checked={deliveryArea === 'outside_dhaka'}
-                          onChange={() => setDeliveryArea('outside_dhaka')}
-                          className="accent-[#c92127]"
-                        />
-                        <span className="text-[11px] sm:text-xs">ঢাকার বাইরে</span>
-                      </div>
-                      <span className="font-bold text-[11px] sm:text-xs">৳১২০</span>
+                      <input
+                        type="radio"
+                        name="deliveryArea"
+                        value="outside_dhaka"
+                        checked={deliveryArea === 'outside_dhaka'}
+                        onChange={() => setDeliveryArea('outside_dhaka')}
+                        className="accent-[#c92127]"
+                      />
+                      <span className="text-xs">ঢাকার বাইরে</span>
                     </label>
                   </div>
                 </div>

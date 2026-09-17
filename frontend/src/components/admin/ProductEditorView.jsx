@@ -42,6 +42,7 @@ import CategoryFormModal from './modals/CategoryFormModal';
 import { CATEGORY_DEFAULT_IMAGES } from './adminConstants';
 import { getCategoriesTree, saveCategory, getAvailableCategories } from '../../lib/categoryService';
 import { uploadProductImage } from '../../lib/supabaseClient';
+import { fetchShippingTiers } from '../../lib/shippingService';
 
 // Quick Brand suggestions
 const POPULAR_BRANDS = [
@@ -142,6 +143,8 @@ export default function ProductEditorView({
     sku: product?.sku || `CT-${Math.floor(1000 + Math.random() * 9000)}`,
     is_featured: product?.is_featured ?? false,
     warranty_badge: product?.warranty_badge || '১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি',
+    shipping_tier_id: product?.shipping_tier_id || '',
+    is_free_delivery: Boolean(product?.is_free_delivery),
     // Card Customization Options
     badge_text: product?.badge_text || '',
     badge_color: product?.badge_color || 'red',
@@ -153,6 +156,15 @@ export default function ProductEditorView({
     rating_score: product?.rating_score || '4.9',
     show_stock_badge: Boolean(product?.show_stock_badge ?? false)
   });
+
+  // Shipping tiers list state
+  const [shippingTiersList, setShippingTiersList] = useState([]);
+
+  useEffect(() => {
+    fetchShippingTiers().then(tiers => {
+      if (tiers) setShippingTiersList(tiers);
+    }).catch(() => {});
+  }, []);
 
   // Preview options state
   const [previewDevice, setPreviewDevice] = useState('desktop'); // 'desktop' | 'mobile'
@@ -448,6 +460,8 @@ export default function ProductEditorView({
         sku: form.sku.trim() || `CT-${Math.floor(1000 + Math.random() * 9000)}`,
         is_featured: form.is_featured,
         warranty_badge: form.warranty_badge.trim(),
+        shipping_tier_id: form.shipping_tier_id || null,
+        is_free_delivery: Boolean(form.is_free_delivery),
         specifications: specificationsObj,
         key_features: keyFeatures.filter(f => f.trim()),
         // Card Customization Attributes
@@ -1595,6 +1609,62 @@ export default function ProductEditorView({
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 6.1: Shipping & Delivery Tier */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 sm:p-7 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-red-50 text-[#c92127]">
+                  <Truck className="w-4 h-4" />
+                </span>
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                    ডেলিভারি ও শিপিং টিয়ার (Shipping & Delivery Tier)
+                  </h2>
+                  <p className="text-xs text-slate-400">এই প্রোডাক্টের জন্য নির্দিষ্ট ডেলিভারি চার্জ অথবা ফ্রি ডেলিভারি সেট করুন</p>
+                </div>
+              </div>
+
+              {/* Free Delivery Toggle */}
+              <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form.is_free_delivery}
+                  onChange={(e) => setForm({ ...form, is_free_delivery: e.target.checked })}
+                  className="accent-[#c92127] w-4 h-4"
+                />
+                <span className={`text-xs font-bold ${form.is_free_delivery ? 'text-[#c92127]' : 'text-slate-700'}`}>
+                  ফ্রি ডেলিভারি (Free Delivery)
+                </span>
+              </label>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  শিপিং টিয়ার নির্ধারণ (Select Shipping Tier)
+                </label>
+                <select
+                  value={form.shipping_tier_id}
+                  disabled={form.is_free_delivery}
+                  onChange={(e) => setForm({ ...form, shipping_tier_id: e.target.value })}
+                  className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-[#c92127] outline-none cursor-pointer ${
+                    form.is_free_delivery ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <option value="">ক্যাটাগরি অনুযায়ী অটোমেটিক নির্ধারণ (Auto by Category / Default)</option>
+                  {shippingTiersList.map((tier) => (
+                    <option key={tier.id} value={tier.id}>
+                      {tier.name} — ঢাকা: ৳{tier.inside_dhaka} / বাইরে: ৳{tier.outside_dhaka} {tier.badge ? `(${tier.badge})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  ফাঁকা রাখলে প্রোডাক্টের ক্যাটাগরি (যেমন: {form.category || 'Printers'}) অনুযায়ী স্বয়ংক্রিয়ভাবে শিপিং রেট গণনা হবে।
+                </p>
               </div>
             </div>
           </div>

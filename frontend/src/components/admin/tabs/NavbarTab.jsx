@@ -657,14 +657,6 @@ export default function NavbarTab() {
               <h2 className="text-sm font-black text-slate-900">সকল ক্যাটাগরি তালিকা ({navItems.length} টি)</h2>
               <p className="text-[11px] text-slate-500">যে ক্যাটাগরিগুলো নাভবারে দেখাতে চান সেগুলোতে "পিন করুন" চাপুন, বাকিগুলো মেন্যুতে থাকবে</p>
             </div>
-            <button
-              type="button"
-              onClick={() => openMenuModal()}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>নতুন ক্যাটাগরি যোগ করুন</span>
-            </button>
           </div>
 
           <div className="space-y-3">

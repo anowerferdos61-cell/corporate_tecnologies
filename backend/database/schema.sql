@@ -255,8 +255,6 @@ CREATE POLICY "Allow public read products" ON products FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Allow public insert products" ON products;
 CREATE POLICY "Allow public insert products" ON products FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "Allow public update products" ON products;
-CREATE POLICY "Allow public update products" ON products FOR UPDATE USING (true);
-DROP POLICY IF EXISTS "Allow public delete products" ON products;
 CREATE POLICY "Allow public delete products" ON products FOR DELETE USING (true);
 
 -- ------------------------------------------------------------------------------
@@ -273,4 +271,44 @@ CREATE POLICY "Public Upload product-images" ON storage.objects FOR INSERT WITH 
 CREATE POLICY "Public Update product-images" ON storage.objects FOR UPDATE USING (bucket_id = 'product-images');
 CREATE POLICY "Public Delete product-images" ON storage.objects FOR DELETE USING (bucket_id = 'product-images');
 
+-- ------------------------------------------------------------------------------
+-- 11. SHIPPING TIERS & CUSTOM DELIVERY CHARGES (ক্যাটাগরি ও প্রোডাক্টভিত্তিক শিপিং টিয়ার)
+-- ------------------------------------------------------------------------------
+ALTER TABLE products ADD COLUMN IF NOT EXISTS shipping_tier_id VARCHAR(100);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_free_delivery BOOLEAN DEFAULT false;
 
+-- Default Shipping Tiers configuration stored in store_settings
+INSERT INTO store_settings (key, value) VALUES
+('shipping_tiers_v1', '[
+  {
+    "id": "standard_light",
+    "name": "Standard / Light Items (কালি, টোনার ও সাধারণ এক্সেসরিজ)",
+    "inside_dhaka": 60,
+    "outside_dhaka": 120,
+    "badge": "লাইটওয়েট কুরিয়ার",
+    "is_default": true,
+    "categories": ["Inks", "Toner", "Accessories", "Paper & Media", "ID Card Solutions"],
+    "product_ids": []
+  },
+  {
+    "id": "heavy_machinery",
+    "name": "Heavy Machinery & Photocopier (ফটোকপিয়ার ও ভারী মেশিনারি)",
+    "inside_dhaka": 300,
+    "outside_dhaka": 500,
+    "badge": "হেভি ওয়েট মেশিনারি",
+    "is_default": false,
+    "categories": ["Photocopiers", "Heavy Duty Machines", "Large Format Printers", "Laminating & Binding Machines"],
+    "product_ids": []
+  },
+  {
+    "id": "dtf_large_format",
+    "name": "DTF & Industrial Printers (ট্রান্সপোর্ট ও স্পেশাল ডেলিভারি)",
+    "inside_dhaka": 500,
+    "outside_dhaka": 1000,
+    "badge": "স্পেশাল ট্রান্সপোর্ট",
+    "is_default": false,
+    "categories": ["DTF Printers", "Industrial Printers"],
+    "product_ids": []
+  }
+]'::jsonb)
+ON CONFLICT (key) DO NOTHING;

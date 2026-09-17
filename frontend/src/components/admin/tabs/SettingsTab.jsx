@@ -14,17 +14,26 @@ import {
   Clock,
   Zap,
   Eye,
-  EyeOff
+  EyeOff,
+  Package,
+  Plus,
+  Edit2,
+  Layers,
+  Check,
+  Search
 } from 'lucide-react';
 import { updateAdminPin, fetchStaffUsers, createStaffUser, deleteStaffUser } from '../../../lib/adminAuth';
 import { updateStoreSetting } from '../../../lib/adminOrderService';
 import { fetchFlashSaleSettings, updateFlashSaleSettings } from '../../../lib/flashSaleService';
+import { fetchShippingTiers, saveShippingTier, deleteShippingTier, DEFAULT_SHIPPING_TIERS } from '../../../lib/shippingService';
+import { getCachedCategoriesTree } from '../../../lib/categoryService';
 
 export default function SettingsTab({
   insideDhakaFee = 60,
   outsideDhakaFee = 120,
   defaultCourier = 'Steadfast',
   isSuperAdmin = true,
+  products = [],
   onDeliveryFeesUpdated,
   onCourierUpdated
 }) {
@@ -39,6 +48,25 @@ export default function SettingsTab({
   const [outDhaka, setOutDhaka] = useState(outsideDhakaFee);
   const [deliveryFeeSaved, setDeliveryFeeSaved] = useState(false);
   const [deliveryFeeError, setDeliveryFeeError] = useState('');
+
+  // Shipping Tiers State
+  const [shippingTiers, setShippingTiers] = useState(DEFAULT_SHIPPING_TIERS);
+  const [tiersLoading, setTiersLoading] = useState(false);
+  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
+  const [editingTier, setEditingTier] = useState(null);
+  const [tierSaveMsg, setTierSaveMsg] = useState('');
+  const [tierForm, setTierForm] = useState({
+    id: '',
+    name: '',
+    inside_dhaka: 60,
+    outside_dhaka: 120,
+    badge: '',
+    is_default: false,
+    categories: [],
+    product_ids: []
+  });
+  const [tierProductSearch, setTierProductSearch] = useState('');
+  const [categoriesList, setCategoriesList] = useState([]);
 
   // Courier State
   const [selectedCourier, setSelectedCourier] = useState(defaultCourier);
@@ -86,6 +114,137 @@ export default function SettingsTab({
         .catch(() => {});
     }
   }, [isSuperAdmin]);
+
+  useEffect(() => {
+    loadShippingTiers();
+    try {
+      const tree = getCachedCategoriesTree() || [];
+      const catNames = [];
+      tree.forEach(c => {
+        if (!c.hidden && c.name) catNames.push(c.name);
+        if (c.subcategories) {
+          c.subcategories.forEach(sc => {
+            if (!sc.hidden && sc.name) catNames.push(sc.name);
+          });
+        }
+      });
+      if (Array.isArray(products)) {
+        products.forEach(p => {
+          if (p.category) catNames.push(p.category);
+          if (p.sub_category) catNames.push(p.sub_category);
+        });
+      }
+      setCategoriesList([...new Set(catNames.filter(Boolean))]);
+    } catch (err) {
+      console.warn('Error loading categories:', err);
+    }
+  }, [products]);
+
+  async function loadShippingTiers() {
+    setTiersLoading(true);
+    try {
+      const tiers = await fetchShippingTiers();
+      if (tiers && tiers.length > 0) {
+        setShippingTiers(tiers);
+      }
+    } catch (err) {
+      console.warn('Could not load shipping tiers:', err);
+    } finally {
+      setTiersLoading(false);
+    }
+  }
+
+  function handleOpenAddTier() {
+    setEditingTier(null);
+    setTierForm({
+      id: '',
+      name: '',
+      inside_dhaka: inDhaka || 60,
+      outside_dhaka: outDhaka || 120,
+      badge: '',
+      is_default: false,
+      categories: [],
+      product_ids: []
+    });
+    setTierProductSearch('');
+    setIsTierModalOpen(true);
+  }
+
+  function handleOpenEditTier(tier) {
+    setEditingTier(tier);
+    setTierForm({
+      id: tier.id || '',
+      name: tier.name || '',
+      inside_dhaka: tier.inside_dhaka ?? 60,
+      outside_dhaka: tier.outside_dhaka ?? 120,
+      badge: tier.badge || '',
+      is_default: Boolean(tier.is_default),
+      categories: Array.isArray(tier.categories) ? [...tier.categories] : [],
+      product_ids: Array.isArray(tier.product_ids) ? [...tier.product_ids] : []
+    });
+    setTierProductSearch('');
+    setIsTierModalOpen(true);
+  }
+
+  async function handleSaveTierSubmit(e) {
+    e.preventDefault();
+    if (!tierForm.name.trim()) {
+      alert('অনুগ্রহ করে শিপিং টিয়ারের একটি নাম দিন।');
+      return;
+    }
+    setTierSaveMsg('');
+    try {
+      const savedList = await saveShippingTier({
+        ...tierForm,
+        inside_dhaka: Number(tierForm.inside_dhaka) || 0,
+        outside_dhaka: Number(tierForm.outside_dhaka) || 0
+      });
+      setShippingTiers(savedList);
+      setTierSaveMsg(`শিপিং টিয়ার "${tierForm.name}" সফলভাবে সংরক্ষিত হয়েছে!`);
+      setTimeout(() => setTierSaveMsg(''), 4000);
+      setIsTierModalOpen(false);
+    } catch (err) {
+      alert('Failed to save shipping tier: ' + err.message);
+    }
+  }
+
+  async function handleDeleteTier(tier) {
+    if (tier.is_default) {
+      alert('ডিফল্ট শিপিং টিয়ার ডিলিট করা যাবে না।');
+      return;
+    }
+    if (!window.confirm(`আপনি কি নিশ্চিত যে "${tier.name}" শিপিং টিয়ারটি মুছে ফেলতে চান?`)) return;
+    try {
+      const updatedList = await deleteShippingTier(tier.id);
+      setShippingTiers(updatedList);
+      setTierSaveMsg(`শিপিং টিয়ার "${tier.name}" মুছে ফেলা হয়েছে।`);
+      setTimeout(() => setTierSaveMsg(''), 4000);
+    } catch (err) {
+      alert('Failed to delete tier: ' + err.message);
+    }
+  }
+
+  function toggleTierCategory(catName) {
+    setTierForm(prev => {
+      const exists = prev.categories.includes(catName);
+      return {
+        ...prev,
+        categories: exists ? prev.categories.filter(c => c !== catName) : [...prev.categories, catName]
+      };
+    });
+  }
+
+  function toggleTierProduct(prodId) {
+    setTierForm(prev => {
+      const exists = prev.product_ids.includes(String(prodId));
+      return {
+        ...prev,
+        product_ids: exists 
+          ? prev.product_ids.filter(id => id !== String(prodId)) 
+          : [...prev.product_ids, String(prodId)]
+      };
+    });
+  }
 
   function handleSetFlashHours(hours) {
     const future = new Date(Date.now() + hours * 3600000);
@@ -268,65 +427,8 @@ export default function SettingsTab({
           </form>
         </div>
 
-        {/* 2. Delivery Charges Settings */}
+        {/* 2. Courier Partner Config */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-          <div className="flex items-center gap-2 text-slate-900">
-            <Truck className="w-5 h-5 text-[#c92127]" />
-            <h3 className="text-sm font-bold">Standard Delivery Charges</h3>
-          </div>
-          <p className="text-xs text-slate-500">
-            Default courier delivery rates applied at checkout
-          </p>
-
-          <form onSubmit={handleDeliveryFeeSubmit} className="space-y-3 pt-2">
-            {deliveryFeeSaved && (
-              <p className="text-xs text-emerald-600 font-semibold bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
-                ✓ Delivery charges saved successfully!
-              </p>
-            )}
-            {deliveryFeeError && (
-              <p className="text-xs text-rose-600 font-semibold bg-rose-50 p-2.5 rounded-lg border border-rose-200">
-                ⚠ {deliveryFeeError}
-              </p>
-            )}
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                Inside Dhaka (৳)
-              </label>
-              <input
-                type="number"
-                required
-                value={inDhaka}
-                onChange={(e) => setInDhaka(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#c92127]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                Outside Dhaka (৳)
-              </label>
-              <input
-                type="number"
-                required
-                value={outDhaka}
-                onChange={(e) => setOutDhaka(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#c92127]"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-black hover:bg-zinc-800 text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
-            >
-              Save Delivery Fees
-            </button>
-          </form>
-        </div>
-
-        {/* 3. Courier Partner Config */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4 md:col-span-2">
           <div className="flex items-center gap-2 text-slate-900">
             <SlidersHorizontal className="w-5 h-5 text-[#c92127]" />
             <h3 className="text-sm font-bold">Default Courier Partner</h3>
@@ -369,6 +471,135 @@ export default function SettingsTab({
               Save Courier Setting
             </button>
           </form>
+        </div>
+
+        {/* 3.1 Custom Shipping Tiers & Category-wise Delivery Charges Management */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4 md:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5 text-slate-900">
+              <div className="w-8 h-8 rounded-xl bg-red-50 text-[#c92127] flex items-center justify-center shrink-0">
+                <Truck className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">ক্যাটাগরি ও প্রোডাক্টভিত্তিক ডেলিভারি চার্জ (Custom Shipping Tiers)</h3>
+                <p className="text-xs text-slate-500">
+                  বিভিন্ন পণ্য ও ক্যাটাগরির জন্য আলাদা ডেলিভারি চার্জ নির্ধারণ করুন (যেমন: কালি ৳৬০/১২০, ফটোকপিয়ার ৳৩০০/৫০০, ডিটিএফ ৳৫০০/১০০০)
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenAddTier}
+              className="bg-[#c92127] hover:bg-[#b91c1c] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ নতুন শিপিং টিয়ার যুক্ত করুন</span>
+            </button>
+          </div>
+
+          {tierSaveMsg && (
+            <p className="text-xs text-emerald-600 font-semibold bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+              ✓ {tierSaveMsg}
+            </p>
+          )}
+
+          {/* Tier Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+            {shippingTiers.map((tier) => (
+              <div
+                key={tier.id}
+                className="bg-slate-50/70 border border-slate-200/90 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-300 transition-all hover:shadow-xs group"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-xs font-bold text-slate-900 truncate" title={tier.name}>
+                          {tier.name}
+                        </h4>
+                        {tier.is_default && (
+                          <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded-md font-semibold">
+                            Default Fallback
+                          </span>
+                        )}
+                        {tier.badge && (
+                          <span className="text-[10px] bg-red-50 text-[#c92127] border border-red-200 px-2 py-0.5 rounded-md font-semibold">
+                            {tier.badge}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditTier(tier)}
+                        className="p-1.5 text-slate-500 hover:text-black hover:bg-white rounded-lg transition-colors cursor-pointer border border-transparent hover:border-slate-200"
+                        title="Edit Tier"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      {!tier.is_default && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTier(tier)}
+                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Tier"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pricing row */}
+                  <div className="grid grid-cols-2 gap-2 bg-white p-2.5 rounded-xl border border-slate-200/70 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">ঢাকা সিটির ভেতরে:</span>
+                      <span className="font-bold font-mono text-[#c92127] text-sm">৳{tier.inside_dhaka}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">ঢাকার বাইরে:</span>
+                      <span className="font-bold font-mono text-slate-800 text-sm">৳{tier.outside_dhaka}</span>
+                    </div>
+                  </div>
+
+                  {/* Assigned Categories */}
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      অন্তর্ভুক্ত ক্যাটাগরি:
+                    </span>
+                    {Array.isArray(tier.categories) && tier.categories.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {tier.categories.map((c) => (
+                          <span
+                            key={c}
+                            className="text-[10px] bg-white border border-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-medium"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 italic">
+                        {tier.is_default ? 'সকল আন-অ্যাসাইনড ক্যাটাগরি' : 'কোনো ক্যাটাগরি নির্বাচন করা হয়নি'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Specific Products Assigned */}
+                  {Array.isArray(tier.product_ids) && tier.product_ids.length > 0 && (
+                    <div className="pt-1">
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                        ✓ {tier.product_ids.length}টি নির্দিষ্ট প্রোডাক্টে এসাইন করা
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* 4. Flash Sale & Countdown Deals Configuration */}
@@ -707,6 +938,193 @@ export default function SettingsTab({
                   className="px-4 py-2 rounded-xl bg-black hover:bg-zinc-800 text-white font-bold transition-all cursor-pointer shadow-xs"
                 >
                   স্টাফ তৈরি করুন
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Shipping Tier Modal */}
+      {isTierModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-slate-200 space-y-4 my-8 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+              <div className="flex items-center gap-2 text-slate-900">
+                <Truck className="w-5 h-5 text-[#c92127]" />
+                <h3 className="text-sm font-bold">
+                  {editingTier ? 'শিপিং টিয়ার এডিট করুন' : 'নতুন শিপিং টিয়ার যোগ করুন'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTierModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTierSubmit} className="space-y-4 text-xs overflow-y-auto pr-1 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-slate-700 font-bold mb-1">টিয়ারের নাম (Tier Name) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="যেমন: Heavy Machinery & Photocopier"
+                    value={tierForm.name}
+                    onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127] font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ঢাকা সিটির ভেতরে চার্জ (৳) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={tierForm.inside_dhaka}
+                    onChange={(e) => setTierForm({ ...tierForm, inside_dhaka: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127] font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ঢাকার বাইরে চার্জ (৳) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={tierForm.outside_dhaka}
+                    onChange={(e) => setTierForm({ ...tierForm, outside_dhaka: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127] font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">ব্যাজ বা লেবেল (Badge / Tag)</label>
+                  <input
+                    type="text"
+                    placeholder="যেমন: হেভি ওয়েট পার্সেল / ট্রান্সপোর্ট"
+                    value={tierForm.badge}
+                    onChange={(e) => setTierForm({ ...tierForm, badge: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127]"
+                  />
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={tierForm.is_default}
+                      onChange={(e) => setTierForm({ ...tierForm, is_default: e.target.checked })}
+                      className="accent-[#c92127] w-4 h-4"
+                    />
+                    <span className="font-bold text-slate-800">ডিফল্ট শিপিং টিয়ার (Default Fallback Tier)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Category selector */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="block text-slate-800 font-bold">
+                  এই টিয়ারে অন্তর্ভুক্ত ক্যাটাগরিসমূহ নির্বাচন করুন (Select Categories):
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80 max-h-40 overflow-y-auto">
+                  {categoriesList.map((cat) => {
+                    const isChecked = tierForm.categories.includes(cat);
+                    return (
+                      <label
+                        key={cat}
+                        className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-red-50 border-red-300 text-slate-900 font-semibold'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleTierCategory(cat)}
+                          className="accent-[#c92127] w-3.5 h-3.5"
+                        />
+                        <span className="truncate">{cat}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Specific Products selector */}
+              {Array.isArray(products) && products.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-slate-800 font-bold">
+                      নির্দিষ্ট প্রোডাক্ট এসাইন করুন (Optional - Specific Products):
+                    </label>
+                    <span className="text-[10px] text-slate-500 font-semibold">
+                      {tierForm.product_ids.length}টি প্রোডাক্ট নির্বাচিত
+                    </span>
+                  </div>
+                  
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="প্রোডাক্ট খুঁজুন..."
+                      value={tierProductSearch}
+                      onChange={(e) => setTierProductSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-[#c92127]"
+                    />
+                  </div>
+
+                  <div className="space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 max-h-44 overflow-y-auto">
+                    {products
+                      .filter(p => !tierProductSearch || p.title?.toLowerCase().includes(tierProductSearch.toLowerCase()) || p.category?.toLowerCase().includes(tierProductSearch.toLowerCase()))
+                      .map((p) => {
+                        const isChecked = tierForm.product_ids.includes(String(p.id));
+                        return (
+                          <label
+                            key={p.id}
+                            className={`flex items-center gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition-all ${
+                              isChecked
+                                ? 'bg-red-50 border-red-300 text-slate-900 font-semibold'
+                                : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleTierProduct(p.id)}
+                              className="accent-[#c92127] w-3.5 h-3.5 shrink-0"
+                            />
+                            {p.image_url && (
+                              <img src={p.image_url} alt="" className="w-6 h-6 object-contain rounded shrink-0 bg-white" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-medium">{p.title}</p>
+                              <span className="text-[10px] text-slate-400">{p.category}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsTierModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold transition-all cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#c92127] hover:bg-[#b91c1c] text-white font-bold transition-all cursor-pointer shadow-xs"
+                >
+                  {editingTier ? 'টিয়ার আপডেট করুন' : 'টিয়ার সেভ করুন'}
                 </button>
               </div>
             </form>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { trackAddToCart } from '../lib/analyticsTracker';
 import { flyToCartAnimation } from '../lib/flyToCart';
+import { calculateCartShipping, fetchShippingTiers, getCachedShippingTiers } from '../lib/shippingService';
 
 const CartContext = createContext();
 
@@ -17,6 +18,29 @@ export const CartProvider = ({ children }) => {
       return [];
     }
   });
+
+  // Shipping Tiers state
+  const [shippingTiers, setShippingTiers] = useState(getCachedShippingTiers);
+
+  useEffect(() => {
+    fetchShippingTiers().then(tiers => {
+      if (Array.isArray(tiers) && tiers.length > 0) {
+        setShippingTiers(tiers);
+      }
+    }).catch(() => {});
+
+    const handleTiersUpdate = (e) => {
+      if (e?.detail) setShippingTiers(e.detail);
+      else setShippingTiers(getCachedShippingTiers());
+    };
+
+    window.addEventListener('ct_shipping_tiers_updated', handleTiersUpdate);
+    window.addEventListener('storage', handleTiersUpdate);
+    return () => {
+      window.removeEventListener('ct_shipping_tiers_updated', handleTiersUpdate);
+      window.removeEventListener('storage', handleTiersUpdate);
+    };
+  }, []);
 
   // Wishlist
   const [wishlist, setWishlist] = useState(() => {
@@ -127,17 +151,19 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  // Calculations
-  const cartCount = cartItems.reduce((acc, item) => acc + (Number(item?.quantity) || 0), 0);
-  const subtotal = cartItems.reduce(
-    (acc, item) => {
-      const p = item?.product || item || {};
-      const price = Number(p.sale_price) || Number(p.regular_price) || 0;
-      return acc + price * (Number(item?.quantity) || 0);
-    },
-    0
-  );
-  const deliveryFee = cartItems.length === 0 ? 0 : deliveryArea === 'inside_dhaka' ? 60 : 120;
+  // Cart Totals Calculation
+  const cartCount = cartItems.reduce((total, item) => total + (item.quantity || 1), 0);
+  
+  const subtotal = cartItems.reduce((total, item) => {
+    const p = item.product || item;
+    const price = Number(p.sale_price) > 0 ? Number(p.sale_price) : Number(p.regular_price) || 0;
+    return total + price * (item.quantity || 1);
+  }, 0);
+
+  // Dynamic Shipping Calculation based on Cart Items & Area
+  const shippingCalculation = calculateCartShipping(cartItems, deliveryArea, shippingTiers);
+  const deliveryFee = shippingCalculation?.fee ?? 60;
+  const shippingInfo = shippingCalculation;
   const grandTotal = subtotal + deliveryFee;
 
   return (
@@ -162,6 +188,8 @@ export const CartProvider = ({ children }) => {
         deliveryArea,
         setDeliveryArea,
         deliveryFee,
+        shippingInfo,
+        shippingTiers,
         subtotal,
         grandTotal,
         toastMessage,

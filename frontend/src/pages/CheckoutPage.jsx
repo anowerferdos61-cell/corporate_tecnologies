@@ -29,6 +29,7 @@ import { useCart } from '../context/CartContext';
 import { placeOrder } from '../lib/orderService';
 import { getCurrentCustomer } from '../lib/customerAuth';
 import { validateCoupon, fetchActiveCoupons } from '../lib/couponService';
+import { calculateCartShipping } from '../lib/shippingService';
 
 // Popular Bangladesh Districts
 const BANGLADESH_DISTRICTS = [
@@ -44,6 +45,8 @@ export default function CheckoutPage() {
     cartCount,
     subtotal,
     deliveryFee,
+    shippingInfo,
+    shippingTiers,
     deliveryArea,
     setDeliveryArea,
     updateQuantity,
@@ -76,7 +79,7 @@ export default function CheckoutPage() {
   const [availableCoupons, setAvailableCoupons] = useState([]);
 
   // Calculate dynamic delivery fee based on selected area
-  const activeDeliveryFee = cartItems.length === 0 ? 0 : deliveryArea === 'inside_dhaka' ? 60 : 120;
+  const activeDeliveryFee = cartItems.length === 0 ? 0 : (deliveryFee ?? shippingInfo?.fee ?? (deliveryArea === 'inside_dhaka' ? 60 : 120));
   const effectiveGrandTotal = Math.max(0, subtotal - couponDiscount + activeDeliveryFee);
 
   // Auto-fill logged-in customer info
@@ -557,71 +560,96 @@ export default function CheckoutPage() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Inside Dhaka */}
-                <label 
-                  className={`p-4 rounded-2xl border-2 flex items-start gap-3.5 cursor-pointer transition-all ${
-                    deliveryArea === 'inside_dhaka'
-                      ? 'border-[#c92127] bg-red-50/40 text-slate-900 shadow-xs ring-1 ring-[#c92127]/20'
-                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="deliveryArea"
-                    value="inside_dhaka"
-                    checked={deliveryArea === 'inside_dhaka'}
-                    onChange={() => {
-                      setDeliveryArea('inside_dhaka');
-                      setFormData(prev => ({ ...prev, city: 'Dhaka' }));
-                    }}
-                    className="mt-1 accent-[#c92127] w-4 h-4"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs sm:text-sm">ঢাকার ভেতরে ডেলিভারি</span>
-                      <span className="font-black text-[#c92127] text-sm">৳৬০</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      ২৪ ঘণ্টার মধ্যে হোম ডেলিভারি
-                    </p>
-                  </div>
-                </label>
+              {/* Dynamic Inside/Outside Dhaka calculations */}
+              {(() => {
+                const insideCalc = calculateCartShipping(cartItems, 'inside_dhaka', shippingTiers);
+                const outsideCalc = calculateCartShipping(cartItems, 'outside_dhaka', shippingTiers);
+                const activeCalc = deliveryArea === 'inside_dhaka' ? insideCalc : outsideCalc;
 
-                {/* Outside Dhaka */}
-                <label 
-                  className={`p-4 rounded-2xl border-2 flex items-start gap-3.5 cursor-pointer transition-all ${
-                    deliveryArea === 'outside_dhaka'
-                      ? 'border-[#c92127] bg-red-50/40 text-slate-900 shadow-xs ring-1 ring-[#c92127]/20'
-                      : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="deliveryArea"
-                    value="outside_dhaka"
-                    checked={deliveryArea === 'outside_dhaka'}
-                    onChange={() => {
-                      setDeliveryArea('outside_dhaka');
-                      if (formData.city === 'Dhaka') {
-                        setFormData(prev => ({ ...prev, city: 'Chattogram' }));
-                      }
-                    }}
-                    className="mt-1 accent-[#c92127] w-4 h-4"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs sm:text-sm">ঢাকার বাইরে (সারাদেশ)</span>
-                      <span className="font-black text-[#c92127] text-sm">৳১২০</span>
+                return (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Inside Dhaka */}
+                      <label 
+                        className={`p-4 rounded-2xl border-2 flex items-start gap-3.5 cursor-pointer transition-all ${
+                          deliveryArea === 'inside_dhaka'
+                            ? 'border-[#c92127] bg-red-50/40 text-slate-900 shadow-xs ring-1 ring-[#c92127]/20'
+                            : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                        }`}
+                      >
+                        <input 
+                          type="radio"
+                          name="deliveryArea"
+                          value="inside_dhaka"
+                          checked={deliveryArea === 'inside_dhaka'}
+                          onChange={() => {
+                            setDeliveryArea('inside_dhaka');
+                            setFormData(prev => ({ ...prev, city: 'Dhaka' }));
+                          }}
+                          className="mt-1 accent-[#c92127] w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-xs sm:text-sm">ঢাকার ভেতরে ডেলিভারি</span>
+                            <span className="font-black text-[#c92127] text-sm">
+                              {insideCalc.isFreeDelivery ? 'Free (৳০)' : `৳${insideCalc.fee}`}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            ২৪ ঘণ্টার মধ্যে হোম ডেলিভারি
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* Outside Dhaka */}
+                      <label 
+                        className={`p-4 rounded-2xl border-2 flex items-start gap-3.5 cursor-pointer transition-all ${
+                          deliveryArea === 'outside_dhaka'
+                            ? 'border-[#c92127] bg-red-50/40 text-slate-900 shadow-xs ring-1 ring-[#c92127]/20'
+                            : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                        }`}
+                      >
+                        <input 
+                          type="radio"
+                          name="deliveryArea"
+                          value="outside_dhaka"
+                          checked={deliveryArea === 'outside_dhaka'}
+                          onChange={() => {
+                            setDeliveryArea('outside_dhaka');
+                            if (formData.city === 'Dhaka') {
+                              setFormData(prev => ({ ...prev, city: 'Chattogram' }));
+                            }
+                          }}
+                          className="mt-1 accent-[#c92127] w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-xs sm:text-sm">ঢাকার বাইরে (সারাদেশ)</span>
+                            <span className="font-black text-[#c92127] text-sm">
+                              {outsideCalc.isFreeDelivery ? 'Free (৳০)' : `৳${outsideCalc.fee}`}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                            <Truck className="w-3 h-3 text-slate-400" />
+                            ২-৩ দিনের মধ্যে হোম ডেলিভারি
+                          </p>
+                        </div>
+                      </label>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                      <Truck className="w-3 h-3 text-slate-400" />
-                      ২-৩ দিনের মধ্যে হোম ডেলিভারি
-                    </p>
-                  </div>
-                </label>
-              </div>
+
+                    {/* Applied Tier Notice */}
+                    {activeCalc.appliedTier && activeCalc.appliedTier.id !== 'tier-standard' && (
+                      <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-2xl flex items-center gap-2 text-xs text-amber-900 font-medium">
+                        <Truck className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>
+                          আপনার কার্টের পণ্যের জন্য <strong>{activeCalc.tierName}</strong> শিপিং রেট প্রযোজ্য হয়েছে।
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* 3. Payment Method Card */}
