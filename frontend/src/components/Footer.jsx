@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, MapPin, Mail, Facebook, ExternalLink } from 'lucide-react';
+import { Phone, MapPin, Mail, Facebook, Youtube, ExternalLink } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import CorporateLogo from './CorporateLogo';
 
@@ -7,7 +7,7 @@ import CorporateLogo from './CorporateLogo';
  * Corporate Technologies Authentic Footer
  * - Linked Useful Links (Scroll to on-page #faq, #about-us, #contact-us for maximum SEO, no popups)
  * - Popular Category Fast Links
- * - Complete Dhaka & Chittagong branches, official hotlines, emails, and Facebook page
+ * - Complete Dhaka & Chittagong branches, official hotlines, emails, and official Facebook & YouTube channels
  */
 export default function Footer({ onNavigate }) {
   const { setSelectedCategory, setSearchQuery, setPriceRange } = useCart();
@@ -93,13 +93,35 @@ export default function Footer({ onNavigate }) {
               </li>
               <li>
                 <a 
-                  href="https://www.facebook.com/corporatetechnologiesbd"
+                  href="https://www.facebook.com/corporateofficeequipment"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-[#1877F2] transition-colors cursor-pointer text-left flex items-center gap-1.5 font-medium"
                 >
                   <Facebook className="w-3.5 h-3.5 text-[#1877F2]" />
-                  <span>Facebook Official Page</span>
+                  <span>Corporate Office Equipment</span>
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://www.facebook.com/splashjet.bangladesh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#1877F2] transition-colors cursor-pointer text-left flex items-center gap-1.5 font-medium"
+                >
+                  <Facebook className="w-3.5 h-3.5 text-[#1877F2]" />
+                  <span>Splashjet Bangladesh</span>
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://www.youtube.com/@corporatetechbd"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#FF0000] transition-colors cursor-pointer text-left flex items-center gap-1.5 font-medium"
+                >
+                  <Youtube className="w-3.5 h-3.5 text-[#FF0000]" />
+                  <span>YouTube: Corporate Technologies</span>
                 </a>
               </li>
             </ul>
@@ -207,18 +229,44 @@ export default function Footer({ onNavigate }) {
                 </a>
               </div>
 
-              {/* Facebook Page Button */}
-              <div className="pt-1">
-                <a 
-                  href="https://www.facebook.com/corporatetechnologiesbd"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] font-semibold text-xs transition-colors"
-                >
-                  <Facebook className="w-3.5 h-3.5" />
-                  <span>Follow us on Facebook</span>
-                  <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
-                </a>
+              {/* Social Channels Links */}
+              <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Social Channels</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <a 
+                    href="https://www.facebook.com/corporateofficeequipment"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Corporate Office Equipment Facebook Page"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] font-bold text-[11px] transition-colors"
+                  >
+                    <Facebook className="w-3 h-3" />
+                    <span>Office Equipment</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                  </a>
+                  <a 
+                    href="https://www.facebook.com/splashjet.bangladesh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Splashjet Bangladesh Facebook Page"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] font-bold text-[11px] transition-colors"
+                  >
+                    <Facebook className="w-3 h-3" />
+                    <span>Splashjet BD</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                  </a>
+                  <a 
+                    href="https://www.youtube.com/@corporatetechbd"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Corporate Technologies YouTube Channel"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#FF0000]/10 hover:bg-[#FF0000]/20 text-[#FF0000] font-bold text-[11px] transition-colors"
+                  >
+                    <Youtube className="w-3 h-3" />
+                    <span>YouTube</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+                  </a>
+                </div>
               </div>
             </div>
           </div>

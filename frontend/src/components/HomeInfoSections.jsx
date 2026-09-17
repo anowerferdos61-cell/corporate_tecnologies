@@ -10,6 +10,7 @@ import {
   Award, 
   ShieldCheck, 
   Facebook, 
+  Youtube,
   MessageSquare, 
   ChevronDown, 
   Sparkles, 
@@ -336,20 +337,20 @@ export default function HomeInfoSections() {
 
           </div>
 
-          {/* Emails & Official Facebook Social Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
+          {/* Emails & Official Social Media Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 pt-4 border-t border-slate-100">
             
             {/* General Email */}
             <a 
               href="mailto:info@corporatetechbd.com"
-              className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 hover:bg-red-50/50 border border-slate-200/80 transition-colors group cursor-pointer"
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 hover:bg-red-50/50 border border-slate-200/80 transition-colors group cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl bg-white text-[#c92127] flex items-center justify-center border border-slate-200 group-hover:border-[#c92127] transition-colors shrink-0">
-                <Mail className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-white text-[#c92127] flex items-center justify-center border border-slate-200 group-hover:border-[#c92127] transition-colors shrink-0">
+                <Mail className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] text-slate-500 font-semibold">General Enquiries</div>
-                <div className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-[#c92127] transition-colors">
+                <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">General Enquiries</div>
+                <div className="text-xs font-bold text-slate-900 truncate group-hover:text-[#c92127] transition-colors">
                   info@corporatetechbd.com
                 </div>
               </div>
@@ -358,38 +359,78 @@ export default function HomeInfoSections() {
             {/* Sales Email */}
             <a 
               href="mailto:sales@corporatetechbd.com"
-              className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 hover:bg-red-50/50 border border-slate-200/80 transition-colors group cursor-pointer"
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 hover:bg-red-50/50 border border-slate-200/80 transition-colors group cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-xl bg-white text-emerald-600 flex items-center justify-center border border-slate-200 group-hover:border-emerald-600 transition-colors shrink-0">
-                <Mail className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-white text-emerald-600 flex items-center justify-center border border-slate-200 group-hover:border-emerald-600 transition-colors shrink-0">
+                <Mail className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] text-slate-500 font-semibold">Corporate & Sales</div>
-                <div className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-[#c92127] transition-colors">
+                <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Corporate & Sales</div>
+                <div className="text-xs font-bold text-slate-900 truncate group-hover:text-[#c92127] transition-colors">
                   sales@corporatetechbd.com
                 </div>
               </div>
             </a>
 
-            {/* Official Facebook Page */}
+            {/* Facebook 1: Corporate Office Equipment */}
             <a 
-              href="https://www.facebook.com/corporatetechnologiesbd"
+              href="https://www.facebook.com/corporateofficeequipment"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between p-4 rounded-2xl bg-[#1877F2]/5 hover:bg-[#1877F2]/10 border border-[#1877F2]/20 transition-all group cursor-pointer"
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#1877F2]/5 hover:bg-[#1877F2]/10 border border-[#1877F2]/20 transition-all group cursor-pointer"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#1877F2] text-white flex items-center justify-center shadow-sm shrink-0">
-                  <Facebook className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-[#1877F2] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Facebook className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-[#1877F2] font-bold flex items-center gap-1 uppercase tracking-wider">
+                  <span>Facebook Page</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
                 </div>
-                <div className="min-w-0">
-                  <div className="text-[11px] text-[#1877F2] font-bold flex items-center gap-1">
-                    <span>Official Facebook Page</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </div>
-                  <div className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-[#1877F2] transition-colors">
-                    @corporatetechnologiesbd
-                  </div>
+                <div className="text-xs font-bold text-slate-900 truncate group-hover:text-[#1877F2] transition-colors">
+                  Office Equipment
+                </div>
+              </div>
+            </a>
+
+            {/* Facebook 2: Splashjet Bangladesh */}
+            <a 
+              href="https://www.facebook.com/splashjet.bangladesh"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#1877F2]/5 hover:bg-[#1877F2]/10 border border-[#1877F2]/20 transition-all group cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#1877F2] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Facebook className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-[#1877F2] font-bold flex items-center gap-1 uppercase tracking-wider">
+                  <span>Facebook Page</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </div>
+                <div className="text-xs font-bold text-slate-900 truncate group-hover:text-[#1877F2] transition-colors">
+                  Splashjet Bangladesh
+                </div>
+              </div>
+            </a>
+
+            {/* YouTube: Corporate Technologies */}
+            <a 
+              href="https://www.youtube.com/@corporatetechbd"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#FF0000]/5 hover:bg-[#FF0000]/10 border border-[#FF0000]/20 transition-all group cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#FF0000] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Youtube className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-[#FF0000] font-bold flex items-center gap-1 uppercase tracking-wider">
+                  <span>YouTube Channel</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </div>
+                <div className="text-xs font-bold text-slate-900 truncate group-hover:text-[#FF0000] transition-colors">
+                  @corporatetechbd
                 </div>
               </div>
             </a>
