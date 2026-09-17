@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase Credentials from Environment Variables
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+// Supabase Credentials from Environment Variables with project fallback
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vhilsjzpmbcirijhhouc.supabase.co";
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoaWxzanpwbWJjaXJpamhob3VjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU3MzkyNSwiZXhwIjoyMTA0MTQ5OTI1fQ.dLD3rSdQmHoyf5NIr4l4793jo1kmzx6yrmC5CShsfG8";
 
-export const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY)
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : createClient("https://placeholder.supabase.co", "placeholder-key");
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Fallback products data (self-contained within frontend)
 import fallbackProductsData from '../data/fallbackProducts.json';

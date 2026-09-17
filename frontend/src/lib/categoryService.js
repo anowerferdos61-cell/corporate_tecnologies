@@ -161,13 +161,16 @@ export async function saveCategoriesTree(newTree) {
 
   // 2. Sync to Supabase store_settings
   try {
-    await supabase
+    const { error } = await supabase
       .from('store_settings')
       .upsert({
         key: 'categories_tree_v1',
         value: cleanTree,
         updated_at: new Date().toISOString()
       });
+    if (error) {
+      console.error('Supabase categories sync error:', error);
+    }
   } catch (err) {
     console.warn('Supabase categories sync notice:', err.message);
   }

@@ -181,8 +181,12 @@ CREATE POLICY "Allow public delete admin_users" ON admin_users FOR DELETE USING 
 ALTER TABLE store_settings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public read store_settings" ON store_settings;
 CREATE POLICY "Allow public read store_settings" ON store_settings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public insert store_settings" ON store_settings;
+CREATE POLICY "Allow public insert store_settings" ON store_settings FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "Allow public update store_settings" ON store_settings;
-CREATE POLICY "Allow public update store_settings" ON store_settings FOR ALL USING (true);
+CREATE POLICY "Allow public update store_settings" ON store_settings FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Allow public all store_settings" ON store_settings;
+CREATE POLICY "Allow public all store_settings" ON store_settings FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow public delete orders" ON orders;
 CREATE POLICY "Allow public delete orders" ON orders FOR DELETE USING (true);

@@ -490,6 +490,20 @@ export function SettingsProvider({ children }) {
           setHeroBanners(mergedHero);
           localStorage.setItem(LOCAL_HERO_BANNERS_KEY, JSON.stringify(mergedHero));
         }
+
+        // 4. Fetch categories_tree_v1 for global site sync
+        const { data: catData, error: catErr } = await supabase
+          .from('store_settings')
+          .select('value')
+          .eq('key', 'categories_tree_v1')
+          .single();
+
+        if (!catErr && catData?.value && Array.isArray(catData.value) && catData.value.length > 0) {
+          localStorage.setItem('ct_custom_categories_tree_v2', JSON.stringify(catData.value));
+          localStorage.setItem('ct_custom_categories_tree', JSON.stringify(catData.value));
+          localStorage.setItem('ct_custom_categories', JSON.stringify(catData.value.map(c => c.name)));
+          window.dispatchEvent(new CustomEvent('ct_categories_updated', { detail: catData.value }));
+        }
       } catch (err) {
         console.warn('Notice: Remote store_settings fetch fallback to local cache:', err.message);
       }
