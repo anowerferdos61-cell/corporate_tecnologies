@@ -28,7 +28,16 @@ function getPopularInks(allProducts = [], count = 8) {
     return isInkCat || isInkTitle;
   });
 
-  return inks.slice(0, count);
+  // Prioritize newly created/customized products to top
+  const sortedInks = [...inks].sort((a, b) => {
+    const aIsCustom = Boolean(a.badge_text || a.card_border !== 'default' || (a.id && String(a.id).startsWith('prod_')));
+    const bIsCustom = Boolean(b.badge_text || b.card_border !== 'default' || (b.id && String(b.id).startsWith('prod_')));
+    if (aIsCustom && !bIsCustom) return -1;
+    if (!aIsCustom && bIsCustom) return 1;
+    return 0;
+  });
+
+  return sortedInks.slice(0, count);
 }
 
 /**
@@ -68,12 +77,24 @@ function getPopularPrinters(allProducts = [], count = 8) {
   const epson = printers.filter(p => p.title.toLowerCase().includes('epson'));
   const others = printers.filter(p => !p.title.toLowerCase().includes('brother') && !p.title.toLowerCase().includes('toshiba') && !p.title.toLowerCase().includes('epson'));
 
+  // Sort to prioritize newly added/custom products
+  const sortedPrinters = [...printers].sort((a, b) => {
+    const aIsCustom = Boolean(a.badge_text || a.card_border !== 'default' || (a.id && String(a.id).startsWith('prod_')));
+    const bIsCustom = Boolean(b.badge_text || b.card_border !== 'default' || (b.id && String(b.id).startsWith('prod_')));
+    if (aIsCustom && !bIsCustom) return -1;
+    if (!aIsCustom && bIsCustom) return 1;
+    return 0;
+  });
+
   const selected = [];
   const add = (p) => {
     if (p && !selected.some(s => s.id === p.id) && selected.length < count) {
       selected.push(p);
     }
   };
+
+  // Add custom products first
+  sortedPrinters.filter(p => p.badge_text || p.card_border !== 'default' || (p.id && String(p.id).startsWith('prod_'))).forEach(add);
 
   brother.slice(0, 3).forEach(add);
   toshiba.slice(0, 3).forEach(add);

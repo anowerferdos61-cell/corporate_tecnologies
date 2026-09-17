@@ -74,8 +74,11 @@ export default function ShopByCategories({ onCategorySelect, onNavigate }) {
     }
   });
 
+  const [catRevision, setCatRevision] = useState(0);
+
   useEffect(() => {
     const handleSync = () => {
+      setCatRevision(prev => prev + 1);
       try {
         const saved = localStorage.getItem('ct_custom_categories');
         if (saved) {

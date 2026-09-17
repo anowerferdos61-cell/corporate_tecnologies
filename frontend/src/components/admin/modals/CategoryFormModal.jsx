@@ -18,47 +18,61 @@ export default function CategoryFormModal({
   isOpen, 
   onClose, 
   onSave, 
-  editingCategory = null, 
-  parentCategories = [], 
-  defaultParentId = null 
+  editingCategory = null,
+  category = null, 
+  parentCategories = [],
+  categoriesTree = [], 
+  defaultParentId = null,
+  parentId: propParentId = null 
 }) {
+  const activeCategory = category || editingCategory;
+  const initialParentId = propParentId || defaultParentId || (activeCategory?.parentId || null);
+
+  // Normalize parents list from either parentCategories or categoriesTree
+  const rawParents = (parentCategories && parentCategories.length > 0) 
+    ? parentCategories 
+    : (categoriesTree && categoriesTree.length > 0 ? categoriesTree : []);
+  const availableParents = rawParents.filter(p => !p.parentId);
+
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
-  const [parentId, setParentId] = useState(defaultParentId || '');
+  const [parentId, setParentId] = useState('');
   const [hidden, setHidden] = useState(false);
-  const [isSubcategory, setIsSubcategory] = useState(Boolean(defaultParentId));
+  const [isSubcategory, setIsSubcategory] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Auto-fill form when editingCategory changes
+  // Auto-fill form when activeCategory or initialParentId changes
   useEffect(() => {
-    if (editingCategory) {
-      setName(editingCategory.name || '');
-      setSlug(editingCategory.slug || '');
-      setDescription(editingCategory.description || '');
-      setImage(editingCategory.image || '');
-      setHidden(Boolean(editingCategory.hidden));
-      setIsSubcategory(Boolean(editingCategory.parentId));
-      setParentId(editingCategory.parentId || '');
+    if (activeCategory) {
+      setName(activeCategory.name || '');
+      setSlug(activeCategory.slug || '');
+      setDescription(activeCategory.description || '');
+      setImage(activeCategory.image || '');
+      setHidden(Boolean(activeCategory.hidden));
+      const isSub = Boolean(initialParentId || activeCategory.parentId);
+      setIsSubcategory(isSub);
+      setParentId(initialParentId || activeCategory.parentId || '');
     } else {
       setName('');
       setSlug('');
       setDescription('');
       setImage('');
       setHidden(false);
-      setIsSubcategory(Boolean(defaultParentId));
-      setParentId(defaultParentId || '');
+      const isSub = Boolean(initialParentId);
+      setIsSubcategory(isSub);
+      setParentId(initialParentId || (availableParents[0]?.id || availableParents[0]?.slug || ''));
     }
     setErrorMessage('');
-  }, [editingCategory, defaultParentId, isOpen]);
+  }, [activeCategory, initialParentId, isOpen]);
 
   if (!isOpen) return null;
 
   const handleNameChange = (val) => {
     setName(val);
-    if (!editingCategory) {
+    if (!activeCategory) {
       setSlug(generateSlug(val));
     }
   };
@@ -99,14 +113,14 @@ export default function CategoryFormModal({
     const cleanSlug = slug.trim() || generateSlug(name);
 
     onSave({
-      id: editingCategory?.id || cleanSlug,
+      id: activeCategory?.id || cleanSlug,
       name: name.trim(),
       slug: cleanSlug,
       description: description.trim(),
       image: image.trim(),
       hidden: Boolean(hidden),
       parentId: isSubcategory && parentId ? parentId : null
-    }, isSubcategory && parentId ? parentId : null);
+    }, isSubcategory && parentId ? parentId : null, activeCategory?.id || null);
 
     onClose();
   };
@@ -125,7 +139,7 @@ export default function CategoryFormModal({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-slate-900">
-                {editingCategory 
+                {activeCategory 
                   ? `Edit ${isSubcategory ? 'Subcategory' : 'Category'}` 
                   : `Add New ${isSubcategory ? 'Subcategory' : 'Category'}`}
               </h3>
@@ -152,7 +166,7 @@ export default function CategoryFormModal({
           )}
 
           {/* Type Selector (Only when creating new) */}
-          {!editingCategory && (
+          {!activeCategory && (
             <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl mb-2">
               <button
                 type="button"
@@ -167,7 +181,7 @@ export default function CategoryFormModal({
               </button>
               <button
                 type="button"
-                onClick={() => { setIsSubcategory(true); if (parentCategories.length > 0 && !parentId) setParentId(parentCategories[0].id || parentCategories[0].slug); }}
+                onClick={() => { setIsSubcategory(true); if (availableParents.length > 0 && !parentId) setParentId(availableParents[0].id || availableParents[0].slug); }}
                 className={`flex-1 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                   isSubcategory 
                     ? 'bg-[#c92127] text-white shadow-2xs' 
@@ -190,7 +204,7 @@ export default function CategoryFormModal({
                 onChange={(e) => setParentId(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:border-[#c92127] outline-none cursor-pointer"
               >
-                {parentCategories.map((p) => (
+                {availableParents.map((p) => (
                   <option key={p.id || p.slug} value={p.id || p.slug}>
                     {p.name}
                   </option>

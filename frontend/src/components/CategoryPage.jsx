@@ -8,7 +8,7 @@ import {
   productMatchesCategory, 
   findCategoryBySlug 
 } from '../data/categoriesData';
-import { getAvailableCategories } from '../lib/categoryService';
+import { getAvailableCategories, getCachedCategoriesTree } from '../lib/categoryService';
 import { 
   Search, 
   ChevronDown, 
@@ -33,6 +33,23 @@ export default function CategoryPage({
   const { categorySlug: paramCat, subCategorySlug: paramSub } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const [categoryRevision, setCategoryRevision] = useState(0);
+
+  useEffect(() => {
+    const handleCatUpdate = () => setCategoryRevision(prev => prev + 1);
+    window.addEventListener('ct_categories_updated', handleCatUpdate);
+    window.addEventListener('storage', handleCatUpdate);
+    return () => {
+      window.removeEventListener('ct_categories_updated', handleCatUpdate);
+      window.removeEventListener('storage', handleCatUpdate);
+    };
+  }, []);
+
+  const dynamicCategoriesTree = useMemo(() => {
+    const tree = getCachedCategoriesTree(products) || [];
+    return tree.filter(c => !c.hidden);
+  }, [products, categoryRevision]);
 
   const categorySlug = propCatSlug || paramCat;
   const subCategorySlug = propSubCatSlug || paramSub;
@@ -111,17 +128,15 @@ export default function CategoryPage({
 
   // Main Parent Categories for dropdown & sidebar filters (including dynamic admin categories)
   const mainParentCategories = useMemo(() => {
-    const prominent = getAvailableCategories(products);
-    return prominent.map(name => {
-      const found = CATEGORIES_TREE.find(c => c.name.toLowerCase() === name.toLowerCase());
-      const count = products.filter(p => productMatchesCategory(p, name, null)).length;
+    return dynamicCategoriesTree.map(cat => {
+      const count = products.filter(p => productMatchesCategory(p, cat.name, null)).length;
       return {
-        name,
-        slug: found?.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        count: count > 0 ? count : (found?.count || 0)
+        name: cat.name,
+        slug: cat.slug || cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        count: count > 0 ? count : (cat.count || 0)
       };
     }).filter(c => c.count > 0);
-  }, [products]);
+  }, [products, dynamicCategoriesTree]);
 
   const minPriceFound = useMemo(() => {
     if (categoryProductsAll.length === 0) return 300;
@@ -483,11 +498,12 @@ export default function CategoryPage({
             </div>
 
             <ul className="space-y-2 text-xs sm:text-[13px]">
-              {CATEGORIES_TREE.map((cat) => {
+              {dynamicCategoriesTree.map((cat) => {
                 const isParentActive = activeParentCat.toLowerCase() === cat.name.toLowerCase() && !activeSubCat;
                 const hasActiveChild = activeParentCat.toLowerCase() === cat.name.toLowerCase() && !!activeSubCat;
                 const isExpanded = expandedCategories[cat.name] || isParentActive || hasActiveChild;
-                const hasSubcategories = cat.subcategories && cat.subcategories.length > 0;
+                const subcategoriesList = (cat.subcategories || []).filter(s => !s.hidden);
+                const hasSubcategories = subcategoriesList.length > 0;
 
                 return (
                   <li key={cat.slug} className="space-y-1">
@@ -520,7 +536,7 @@ export default function CategoryPage({
                     {/* Subcategories */}
                     {hasSubcategories && isExpanded && (
                       <ul className="pl-4 space-y-1.5 border-l border-slate-200/80 my-1 py-1 animate-fadeIn">
-                        {cat.subcategories.map((sub) => {
+                        {subcategoriesList.map((sub) => {
                           const isSubActive = activeParentCat.toLowerCase() === cat.name.toLowerCase() && 
                                              activeSubCat?.toLowerCase() === sub.name.toLowerCase();
 

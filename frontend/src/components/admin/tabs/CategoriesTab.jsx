@@ -20,13 +20,14 @@ import {
 } from 'lucide-react';
 import {
   getCategoriesTree,
+  getCategoriesTreeAsync,
   saveCategory,
   deleteCategory,
   toggleCategoryVisibility
 } from '../../../lib/categoryService';
 import CategoryFormModal from '../modals/CategoryFormModal';
 
-export default function CategoriesTab() {
+export default function CategoriesTab({ products = [] }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,8 +41,21 @@ export default function CategoriesTab() {
   const [feedbackMsg, setFeedbackMsg] = useState(null);
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    loadCategories(true);
+  }, [products]);
+
+  useEffect(() => {
+    const handleCatUpdate = () => {
+      const tree = getCategoriesTree(products);
+      setCategories(tree);
+    };
+    window.addEventListener('ct_categories_updated', handleCatUpdate);
+    window.addEventListener('storage', handleCatUpdate);
+    return () => {
+      window.removeEventListener('ct_categories_updated', handleCatUpdate);
+      window.removeEventListener('storage', handleCatUpdate);
+    };
+  }, [products]);
 
   const showFeedback = (msg, type = 'success') => {
     setFeedbackMsg({ msg, type });
@@ -51,7 +65,10 @@ export default function CategoriesTab() {
   const loadCategories = async (forceSync = false) => {
     setLoading(true);
     try {
-      const tree = await getCategoriesTree(forceSync);
+      if (forceSync) {
+        await getCategoriesTreeAsync(true);
+      }
+      const tree = getCategoriesTree(products);
       setCategories(tree);
       // Auto-expand all categories by default on first load
       setExpandedIds(new Set(tree.map((c) => c.id)));
@@ -107,20 +124,21 @@ export default function CategoriesTab() {
   // Save Modal Action
   const handleSaveModal = async (formData) => {
     try {
-      const isEdit = Boolean(formData.id);
-      const isSub = Boolean(formData.parentId);
+      const effectiveParentId = formData.parentId || null;
+      const isEdit = Boolean(editingCategory?.id);
+      const isSub = Boolean(effectiveParentId);
       
       const updatedTree = await saveCategory(
         formData,
-        formData.parentId,
-        formData.id
+        effectiveParentId,
+        editingCategory?.id || null
       );
       
       setCategories(updatedTree);
       
       // If we added a subcategory, ensure parent is expanded
-      if (formData.parentId) {
-        setExpandedIds((prev) => new Set([...prev, formData.parentId]));
+      if (effectiveParentId) {
+        setExpandedIds((prev) => new Set([...prev, effectiveParentId]));
       }
 
       showFeedback(

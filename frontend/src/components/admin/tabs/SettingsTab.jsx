@@ -19,7 +19,6 @@ import {
 import { updateAdminPin, fetchStaffUsers, createStaffUser, deleteStaffUser } from '../../../lib/adminAuth';
 import { updateStoreSetting } from '../../../lib/adminOrderService';
 import { fetchFlashSaleSettings, updateFlashSaleSettings } from '../../../lib/flashSaleService';
-import CouponsTab from './CouponsTab';
 
 export default function SettingsTab({
   insideDhakaFee = 60,
@@ -622,13 +621,6 @@ export default function SettingsTab({
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-
-        {/* 6. Discount Coupons & Promo Codes Management */}
-        {isSuperAdmin && (
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs md:col-span-2">
-            <CouponsTab />
           </div>
         )}
       </div>

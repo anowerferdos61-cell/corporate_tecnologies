@@ -139,19 +139,61 @@ export default function ProductCard({ product, onNavigate }) {
     product.stock_quantity === 0
   );
 
-  // Calculate discount percentage
-  const discountPercent = (product.regular_price > product.sale_price)
-    ? Math.round(((product.regular_price - product.sale_price) / product.regular_price) * 100)
+  // Calculate discount percentage (only if both regular and sale are valid numbers > 0)
+  const regNum = Number(product.regular_price) || 0;
+  const saleNum = Number(product.sale_price) || 0;
+  const discountPercent = (regNum > saleNum && saleNum > 0)
+    ? Math.round(((regNum - saleNum) / regNum) * 100)
     : 0;
 
-  // Determine badge text (-X% in Red badge)
-  const badgeText = isSoldOut
-    ? 'Sold Out'
-    : isCallForPrice
-      ? 'Call For Price'
-      : discountPercent > 0
-        ? `-${discountPercent}%`
-        : product.discount_label || null;
+  // Determine badge text
+  let badgeText = null;
+  if (product.badge_mode === 'none' || product.badge_text === '__none__') {
+    badgeText = null;
+  } else if (product.badge_text && product.badge_text.trim() !== '') {
+    badgeText = product.badge_text.trim();
+  } else if (isSoldOut) {
+    badgeText = 'Sold Out';
+  } else if (isCallForPrice) {
+    badgeText = 'Call For Price';
+  } else if (discountPercent > 0) {
+    badgeText = `-${discountPercent}%`;
+  } else if (product.discount_label && product.discount_label.trim() !== '') {
+    badgeText = product.discount_label.trim();
+  } else {
+    badgeText = null;
+  }
+
+  // Badge Color
+  const getBadgeColorClass = () => {
+    if (isSoldOut) return 'bg-slate-800 text-white';
+    switch (product.badge_color) {
+      case 'emerald': return 'bg-emerald-600 text-white';
+      case 'amber': return 'bg-amber-500 text-slate-950 font-black';
+      case 'blue': return 'bg-blue-600 text-white';
+      case 'indigo': return 'bg-indigo-600 text-white';
+      case 'purple': return 'bg-purple-600 text-white';
+      case 'black': return 'bg-slate-950 text-white';
+      case 'rose': return 'bg-rose-600 text-white';
+      case 'red':
+      default:
+        return 'bg-[#c92127] text-white';
+    }
+  };
+
+  // Card Border Styling
+  const getCardBorderClass = () => {
+    switch (product.card_border) {
+      case 'red': return 'border-red-400 ring-2 ring-red-100/80 hover:border-red-500 hover:ring-red-200';
+      case 'gold': return 'border-amber-400 ring-2 ring-amber-100/80 hover:border-amber-500 hover:ring-amber-200 shadow-sm';
+      case 'blue': return 'border-blue-400 ring-2 ring-blue-100/80 hover:border-blue-500 hover:ring-blue-200';
+      case 'emerald': return 'border-emerald-400 ring-2 ring-emerald-100/80 hover:border-emerald-500 hover:ring-emerald-200';
+      case 'dark': return 'border-slate-800 ring-1 ring-slate-800 hover:border-slate-950 shadow-sm';
+      case 'default':
+      default:
+        return 'border-slate-200/90 hover:border-slate-300';
+    }
+  };
 
   const handleOpenDetails = (e) => {
     if (e) e.stopPropagation();
@@ -166,18 +208,29 @@ export default function ProductCard({ product, onNavigate }) {
     }
   };
 
+  const badgePositionClass = product.badge_position === 'right'
+    ? 'top-2.5 right-2.5 sm:top-3.5 sm:right-3.5'
+    : 'top-2.5 left-2.5 sm:top-3.5 sm:left-3.5';
+
   return (
     <div 
       onClick={handleOpenDetails}
-      className="group bg-white rounded-2xl border border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer relative p-3 sm:p-4 md:p-5 hover:-translate-y-1"
+      className={`group bg-white rounded-2xl border ${getCardBorderClass()} shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer relative p-3 sm:p-4 md:p-5 hover:-translate-y-1`}
     >
-      {/* Top Left Discount / Status Badge Pill */}
+      {/* Top Left / Right Discount / Status Badge Pill */}
       {badgeText && (
-        <div className="absolute top-2.5 left-2.5 sm:top-3.5 sm:left-3.5 z-10 pointer-events-none">
-          <span className={`text-white text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-xs tracking-wide ${
-            isSoldOut ? 'bg-slate-800' : 'bg-[#c92127]'
-          }`}>
+        <div className={`absolute ${badgePositionClass} z-10 pointer-events-none`}>
+          <span className={`${getBadgeColorClass()} text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-xs tracking-wide`}>
             {badgeText}
+          </span>
+        </div>
+      )}
+
+      {/* Optional Stock Pill on top right when badge is on left */}
+      {product.show_stock_badge && product.badge_position !== 'right' && (
+        <div className="absolute top-2.5 right-2.5 sm:top-3.5 sm:right-3.5 z-10 pointer-events-none">
+          <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+            In Stock
           </span>
         </div>
       )}
@@ -185,7 +238,7 @@ export default function ProductCard({ product, onNavigate }) {
       {/* Product Image Area (Tall & Spacious) */}
       <div className="relative pt-4 sm:pt-6 pb-2 flex items-center justify-center min-h-[170px] sm:min-h-[210px] md:min-h-[230px] bg-white">
         <img
-          src={product.image_url}
+          src={product.image_url || '/splashjet_images/about-splashjet.jpg'}
           alt={product.title}
           className="max-h-36 sm:max-h-48 md:max-h-52 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
@@ -201,7 +254,7 @@ export default function ProductCard({ product, onNavigate }) {
             className="bg-slate-900 hover:bg-[#c92127] text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-1.5 cursor-pointer transition-colors"
           >
             <Eye className="w-3.5 h-3.5" />
-            <span>View Details</span>
+            <span>{product.card_btn_text || 'View Details'}</span>
           </button>
         </div>
       </div>
@@ -209,6 +262,26 @@ export default function ProductCard({ product, onNavigate }) {
       {/* Product Details (Centered text layout with comfortable sizing) */}
       <div className="pt-3 sm:pt-4 flex-1 flex flex-col justify-between items-center text-center space-y-2">
         
+        {/* Brand Badge & Rating Header if enabled */}
+        {(product.show_brand_badge || product.show_rating) && (
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            {product.show_brand_badge && product.brand && (
+              <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">
+                {product.brand}
+              </span>
+            )}
+            {product.show_brand_badge && product.show_rating && (
+              <span className="text-slate-300 text-xs">•</span>
+            )}
+            {product.show_rating && (
+              <div className="flex items-center gap-1 text-[11px] font-bold text-amber-500">
+                <span>★</span>
+                <span>{product.rating_score || '4.9'}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Title */}
         <h3 
           className="text-[13px] sm:text-[15px] font-black text-slate-900 line-clamp-2 group-hover:text-[#c92127] transition-colors leading-snug min-h-[2.4rem] sm:min-h-[2.8rem]"
@@ -243,7 +316,7 @@ export default function ProductCard({ product, onNavigate }) {
               Call For Price
             </span>
           ) : product.price_range_label ? (
-            <span className="font-black text-slate-900">
+            <span className="font-black text-[#c92127] text-sm sm:text-base tracking-tight">
               {product.price_range_label}
             </span>
           ) : (

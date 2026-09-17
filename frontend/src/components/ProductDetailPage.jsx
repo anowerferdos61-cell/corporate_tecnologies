@@ -283,14 +283,29 @@ export default function ProductDetailPage({
             <div className="relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-4 sm:p-8 flex items-center justify-center min-h-[300px] sm:min-h-[420px] shadow-sm overflow-hidden group">
 
               {/* Badges on Image */}
-              <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
-                {product.is_featured && (
+              <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
+                {/* Custom Badge from Editor */}
+                {product.badge_text && product.badge_mode !== 'none' && (
+                  <span className={`text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-full shadow-sm tracking-wide ${
+                    product.badge_color === 'emerald' ? 'bg-emerald-600 text-white' :
+                    product.badge_color === 'amber' ? 'bg-amber-500 text-slate-950 font-black' :
+                    product.badge_color === 'blue' ? 'bg-blue-600 text-white' :
+                    product.badge_color === 'indigo' ? 'bg-indigo-600 text-white' :
+                    product.badge_color === 'purple' ? 'bg-purple-600 text-white' :
+                    product.badge_color === 'black' ? 'bg-slate-950 text-white' :
+                    product.badge_color === 'rose' ? 'bg-rose-600 text-white' :
+                    'bg-[#c92127] text-white'
+                  }`}>
+                    {product.badge_text}
+                  </span>
+                )}
+                {product.is_featured && !product.badge_text && (
                   <span className="bg-slate-900 text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-amber-400" />
                     <span>FEATURED</span>
                   </span>
                 )}
-                {discountPercent > 0 && (
+                {discountPercent > 0 && !product.badge_text && (
                   <span className="bg-[#c92127] text-white text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
                     -{discountPercent}% OFF
                   </span>
@@ -301,6 +316,15 @@ export default function ProductDetailPage({
                   </span>
                 )}
               </div>
+
+              {/* In Stock Badge Pill on Top Right */}
+              {product.show_stock_badge && !isSoldOut && (
+                <div className="absolute top-4 right-16 z-10 pointer-events-none">
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                    In Stock
+                  </span>
+                </div>
+              )}
 
               {/* Wishlist and Share */}
               <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
@@ -431,6 +455,17 @@ export default function ProductDetailPage({
                     </div>
                   </div>
                 </div>
+              ) : product.price_range_label && !selectedVariation ? (
+                <>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#c92127] tracking-tight">
+                      {product.price_range_label}
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-500">
+                    মডেল, ভ্যারিয়েন্ট বা কনফিগারেশন অনুযায়ী মূল্য প্রযোজ্য হবে।
+                  </p>
+                </>
               ) : (
                 <>
                   <div className="flex items-baseline gap-3 flex-wrap">

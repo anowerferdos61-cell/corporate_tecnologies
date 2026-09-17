@@ -29,14 +29,14 @@ import ProductsTab from '../components/admin/tabs/ProductsTab';
 import CategoriesTab from '../components/admin/tabs/CategoriesTab';
 import CustomersTab from '../components/admin/tabs/CustomersTab';
 import SettingsTab from '../components/admin/tabs/SettingsTab';
-import CouponsTab from '../components/admin/tabs/CouponsTab';
 import AnalyticsTab from '../components/admin/tabs/AnalyticsTab';
 import BannersTab from '../components/admin/tabs/BannersTab';
+import NavbarTab from '../components/admin/tabs/NavbarTab';
 import OrderDetailsDrawer from '../components/admin/modals/OrderDetailsDrawer';
 import ProductEditorView from '../components/admin/ProductEditorView';
 import OrderInvoiceModal from '../components/OrderInvoiceModal';
 
-const VALID_TABS = ['overview', 'orders', 'products', 'customers', 'analytics', 'banners', 'settings'];
+const VALID_TABS = ['overview', 'orders', 'products', 'categories', 'customers', 'analytics', 'banners', 'navbar', 'settings'];
 
 export default function AdminPanelPage({ products = [], onProductsUpdate = () => {} }) {
   // Authentication State
@@ -95,7 +95,7 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
 
   // Auto-protect restricted tabs for staff
   useEffect(() => {
-    if (!isSuperAdmin && (activeTab === 'settings' || activeTab === 'coupons')) {
+    if (!isSuperAdmin && activeTab === 'settings') {
       handleTabChange('orders');
     }
   }, [activeTab, isSuperAdmin]);
@@ -159,14 +159,13 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
 
   async function loadSettings() {
     try {
-      const delivery = await fetchStoreSettings('delivery_charges');
-      if (delivery && delivery.inside_dhaka) {
-        setInsideDhakaFee(delivery.inside_dhaka);
-        setOutsideDhakaFee(delivery.outside_dhaka);
+      const allSettings = await fetchStoreSettings();
+      if (allSettings?.delivery_charges) {
+        setInsideDhakaFee(Number(allSettings.delivery_charges.inside_dhaka) || 60);
+        setOutsideDhakaFee(Number(allSettings.delivery_charges.outside_dhaka) || 120);
       }
-      const courier = await fetchStoreSettings('courier_settings');
-      if (courier && courier.default_courier) {
-        setDefaultCourier(courier.default_courier);
+      if (allSettings?.courier_settings?.default_courier) {
+        setDefaultCourier(allSettings.courier_settings.default_courier);
       }
     } catch (err) {
       console.warn('Could not load store settings:', err);
@@ -363,7 +362,7 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
           )}
 
           {activeTab === 'categories' && (
-            <CategoriesTab />
+            <CategoriesTab products={products} />
           )}
 
           {activeTab === 'customers' && (
@@ -384,6 +383,10 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
 
           {activeTab === 'banners' && (
             <BannersTab />
+          )}
+
+          {activeTab === 'navbar' && (
+            <NavbarTab />
           )}
 
           {activeTab === 'settings' && isSuperAdmin && (

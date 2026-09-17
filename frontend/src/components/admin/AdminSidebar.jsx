@@ -6,7 +6,6 @@ import {
   Package,
   Users,
   BarChart3,
-  Ticket,
   Settings,
   ExternalLink,
   LogOut,
@@ -18,7 +17,8 @@ import {
   PanelLeftClose,
   PanelLeft,
   Sparkles,
-  FolderTree
+  FolderTree,
+  Menu
 } from 'lucide-react';
 
 export default function AdminSidebar({
@@ -72,6 +72,12 @@ export default function AdminSidebar({
       )
     },
     {
+      id: 'categories',
+      label: 'Categories',
+      icon: FolderTree,
+      badge: null
+    },
+    {
       id: 'customers',
       label: 'Customers',
       icon: Users,
@@ -96,6 +102,16 @@ export default function AdminSidebar({
       badge: (
         <span className="text-[9px] font-bold bg-red-100 text-[#c92127] px-1.5 py-0.5 rounded-md">
           Live
+        </span>
+      )
+    },
+    {
+      id: 'navbar',
+      label: 'Navbar & Menus',
+      icon: Menu,
+      badge: (
+        <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md">
+          Custom
         </span>
       )
     },

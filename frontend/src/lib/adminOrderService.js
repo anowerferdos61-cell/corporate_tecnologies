@@ -164,7 +164,7 @@ export async function fetchAdminCustomers() {
 /**
  * Fetch Store Settings from store_settings table
  */
-export async function fetchStoreSettings() {
+export async function fetchStoreSettings(specificKey = null) {
   try {
     const { data, error } = await supabase
       .from('store_settings')
@@ -175,6 +175,9 @@ export async function fetchStoreSettings() {
     data.forEach(item => {
       settings[item.key] = item.value;
     });
+    if (specificKey) {
+      return settings[specificKey] || null;
+    }
     return settings;
   } catch {
     return null;

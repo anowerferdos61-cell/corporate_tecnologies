@@ -157,7 +157,30 @@ export function findCategoryBySlug(slug) {
     return { parent: splashCat, sub: null };
   }
 
-  // Check top-level
+  // Check dynamic categories tree from localStorage
+  try {
+    const savedTree = localStorage.getItem('ct_custom_categories_tree_v2');
+    if (savedTree) {
+      const dynamicTree = JSON.parse(savedTree);
+      if (Array.isArray(dynamicTree)) {
+        for (const cat of dynamicTree) {
+          if (!cat || (cat.name || '').toLowerCase().trim() === 'human') continue;
+          const catSlug = (cat.slug || cat.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-')).toLowerCase();
+          if (catSlug === cleanSlug || cat.id === cleanSlug) {
+            return { parent: cat, sub: null };
+          }
+          for (const sub of (cat.subcategories || [])) {
+            const subSlug = (sub.slug || sub.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-')).toLowerCase();
+            if (subSlug === cleanSlug || sub.id === cleanSlug) {
+              return { parent: cat, sub };
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  // Check top-level static defaults
   for (const cat of CATEGORIES_TREE) {
     if (cat.slug === cleanSlug) return { parent: cat, sub: null };
     for (const sub of cat.subcategories) {
@@ -172,31 +195,6 @@ export function findCategoryBySlug(slug) {
       return { parent: parentCat, sub: { name: sCat.title, slug: sCat.slug } };
     }
   }
-
-  // Check custom categories from localStorage
-  try {
-    const saved = localStorage.getItem('ct_custom_categories');
-    if (saved) {
-      const customCats = JSON.parse(saved);
-      if (Array.isArray(customCats)) {
-        for (const catName of customCats) {
-          if (!catName || catName.toLowerCase().trim() === 'human') continue;
-          const catSlug = catName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-          if (catSlug === cleanSlug) {
-            return {
-              parent: {
-                name: catName,
-                slug: catSlug,
-                count: 1,
-                subcategories: []
-              },
-              sub: null
-            };
-          }
-        }
-      }
-    }
-  } catch (e) {}
 
   // Soft fallback matching
   for (const cat of CATEGORIES_TREE) {
@@ -228,6 +226,23 @@ export function findCategoryByName(name) {
     return { parent: splashCat, sub: null };
   }
 
+  // Check dynamic categories tree first
+  try {
+    const savedTree = localStorage.getItem('ct_custom_categories_tree_v2');
+    if (savedTree) {
+      const dynamicTree = JSON.parse(savedTree);
+      if (Array.isArray(dynamicTree)) {
+        for (const cat of dynamicTree) {
+          if (!cat || (cat.name || '').toLowerCase().trim() === 'human') continue;
+          if ((cat.name || '').toLowerCase() === n) return { parent: cat, sub: null };
+          for (const sub of (cat.subcategories || [])) {
+            if ((sub.name || '').toLowerCase() === n) return { parent: cat, sub };
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
   for (const cat of CATEGORIES_TREE) {
     if (cat.name.toLowerCase() === n) return { parent: cat, sub: null };
     for (const sub of cat.subcategories) {
@@ -256,9 +271,12 @@ export function findCategoryByName(name) {
  * Checks if a product matches a parent category or subcategory
  */
 export function productMatchesCategory(product, parentCatName, subCatName = null) {
+  if (!product) return false;
   if (!parentCatName || parentCatName === 'All' || parentCatName === 'All Products') return true;
 
-  const pTarget = parentCatName.toLowerCase().trim();
+  const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const pTarget = (parentCatName || '').toLowerCase().trim();
   const sTarget = subCatName ? subCatName.toLowerCase().trim() : null;
 
   const pCat = (product.category || '').toLowerCase().trim();
@@ -267,66 +285,83 @@ export function productMatchesCategory(product, parentCatName, subCatName = null
   const brand = (product.brand || '').toLowerCase();
   const desc = (product.description || '').toLowerCase() + ' ' + (product.short_description || '').toLowerCase();
 
-  // Special Splashjet Ink classification
-  if (pTarget === 'splashjet ink' || pTarget === 'splashjet inks') {
-    const isSplashjetProduct = brand.includes('splashjet') || pCat.includes('splashjet') || title.includes('splashjet');
-    if (!isSplashjetProduct) return false;
+  const normTargetParent = normalize(pTarget);
+  const normTargetSub = sTarget ? normalize(sTarget) : null;
+  const normPCat = normalize(pCat);
+  const normPSub = normalize(pSub);
 
-    // If no subcategory is selected, show all Splashjet products
-    if (!sTarget) return true;
+  // 1. Direct Parent Category Check
+  const parentMatches = 
+    normPCat === normTargetParent || 
+    normPCat.includes(normTargetParent) || 
+    normTargetParent.includes(normPCat) ||
+    (normTargetParent.includes('splashjet') && (normPCat.includes('splashjet') || brand.includes('splashjet') || title.includes('splashjet')));
 
-    // Match 4 Main Splashjet Application Subcategories
-    if (sTarget === 'large format printer ink' || sTarget === 'large-format-printer-ink' || sTarget === 'splashjet plotter ink' || sTarget === 'splashjet-plotter-ink') {
+  // If parent doesn't match and it's not a generic match, return false
+  if (!parentMatches && !pTarget.includes('all')) {
+    // Check raw_categories
+    const raw = Array.isArray(product.raw_categories) ? product.raw_categories : [];
+    const rawMatch = raw.some(r => normalize(r).includes(normTargetParent));
+    if (!rawMatch) return false;
+  }
+
+  // If no subcategory is selected, matching the parent category is sufficient
+  if (!sTarget) {
+    return true;
+  }
+
+  // 2. Direct Subcategory Exact/Normalized Match (HIGHEST PRIORITY)
+  if (normPSub && normTargetSub) {
+    if (
+      normPSub === normTargetSub ||
+      normPSub.includes(normTargetSub) ||
+      normTargetSub.includes(normPSub) ||
+      pSub === sTarget ||
+      pSub.toLowerCase() === sTarget.toLowerCase()
+    ) {
+      return true;
+    }
+  }
+
+  // 3. Special Splashjet Subcategory Title & Keyword Heuristics (for fallback legacy data)
+  if (normTargetParent.includes('splashjet')) {
+    if (normTargetSub === 'largeformatprinterink' || normTargetSub === 'splashjetplotterink') {
       return title.includes('plotter') || title.includes('large format') || title.includes('wide format') || title.includes('lfp') || title.includes('surecolor') || title.includes('designjet') || title.includes('imageprograf') || pSub.includes('plotter') || desc.includes('plotter') || desc.includes('large format');
     }
 
-    if (sTarget === 'digital textile printing ink' || sTarget === 'digital-textile-printing-ink' || sTarget === 'splashjet for dtf' || sTarget === 'splashjet-for-dtf' || sTarget === 'splashjet for sublimation' || sTarget === 'splashjet-for-sublimation') {
+    if (normTargetSub === 'digitaltextileprintingink' || normTargetSub === 'splashjetfordtf' || normTargetSub === 'splashjetforsublimation') {
       return title.includes('sublimation') || title.includes('dtf') || title.includes('dtg') || title.includes('textile') || title.includes('fabric') || pSub.includes('dtf') || pSub.includes('sublimation');
     }
 
-    if (sTarget === 'industrial inkjet ink' || sTarget === 'industrial-inkjet-ink') {
-      return title.includes('industrial') || title.includes('coding') || title.includes('marking') || title.includes('tij') || title.includes('batch') || title.includes('packaging') || desc.includes('coding') || desc.includes('industrial');
+    if (normTargetSub === 'industrialinkjetink') {
+      return title.includes('industrial') || title.includes('coding') || title.includes('marking') || title.includes('tij') || title.includes('batch') || title.includes('packaging') || desc.includes('coding') || desc.includes('industrial') || pSub.includes('industrial');
     }
 
-    if (sTarget === 'desktop printer ink' || sTarget === 'desktop-printer-ink') {
-      // Exclude pure textile/sublimation/dtf unless desktop refill
+    if (normTargetSub === 'desktopprinterink') {
       const isTextile = (title.includes('sublimation') || title.includes('dtf') || title.includes('dtg')) && !title.includes('desktop');
       const isPlotter = title.includes('plotter') || title.includes('large format');
       const isIndustrial = title.includes('industrial') || title.includes('tij') || title.includes('coding');
       if (isTextile || isPlotter || isIndustrial) return false;
-      return true; // All standard Splashjet refill inks (Epson, Canon, HP, Brother desktop inks)
-    }
-
-    // Direct brand subcategory matches (e.g. Splashjet For Epson, Splashjet For Canon)
-    if (pSub === sTarget || pSub.includes(sTarget) || sTarget.includes(pSub)) {
       return true;
     }
+
     if (title.includes(sTarget.replace('splashjet for ', ''))) {
       return true;
     }
   }
 
-  // 1. Direct Category field match (always takes priority)
-  if (!sTarget && (pCat === pTarget || pCat.includes(pTarget) || pTarget.includes(pCat))) {
-    return true;
-  }
-  if (sTarget && (pSub === sTarget || pSub.includes(sTarget) || sTarget.includes(pSub))) {
-    return true;
+  // 4. Raw categories match
+  const raw = Array.isArray(product.raw_categories) ? product.raw_categories : [];
+  if (raw.length > 0 && normTargetSub) {
+    return raw.some(r => {
+      const parts = r.toLowerCase().split('>').map(s => normalize(s));
+      return parts.some(p => p === normTargetSub || p.includes(normTargetSub) || normTargetSub.includes(p));
+    });
   }
 
-  // 2. Raw categories match
-  const raw = Array.isArray(product.raw_categories) ? product.raw_categories : [];
-  if (raw.length > 0) {
-    if (sTarget) {
-      return raw.some(r => {
-        const parts = r.toLowerCase().split('>').map(s => s.trim());
-        return parts.some(p => p === sTarget || p.includes(sTarget));
-      });
-    }
-    return raw.some(r => {
-      const parts = r.toLowerCase().split('>').map(s => s.trim());
-      return parts[0] === pTarget || parts.includes(pTarget) || r.toLowerCase().includes(pTarget);
-    });
+  // 5. Title/Brand fallback for standard brands (e.g. Epson Printers, Brother Printers)
+  if (title.includes(sTarget) || (brand && sTarget.includes(brand))) {
+    return true;
   }
 
   return false;

@@ -190,16 +190,18 @@ export default function Navbar({
     return () => window.removeEventListener('scroll', handleWindowScroll);
   }, [isSearchModalOpen, isSearchFocused, setSearchQuery]);
 
-  // Dynamic Category Live Revision Listener
+  // Dynamic Category & Header Settings Live Revision Listener
   const [categoryRevision, setCategoryRevision] = useState(0);
   useEffect(() => {
     const handleCategoryUpdate = () => {
       setCategoryRevision(prev => prev + 1);
     };
     window.addEventListener('ct_categories_updated', handleCategoryUpdate);
+    window.addEventListener('ct_header_settings_updated', handleCategoryUpdate);
     window.addEventListener('storage', handleCategoryUpdate);
     return () => {
       window.removeEventListener('ct_categories_updated', handleCategoryUpdate);
+      window.removeEventListener('ct_header_settings_updated', handleCategoryUpdate);
       window.removeEventListener('storage', handleCategoryUpdate);
     };
   }, []);
@@ -213,92 +215,110 @@ export default function Navbar({
 
   // Combine default categories with custom categories from admin / products, then filter out hidden ones
   const allNavCategories = useMemo(() => {
-    const canonicalMap = {
-      'photocopy machines': 'photocopiers',
-      'photocopy machine': 'photocopiers',
-      'photocopier': 'photocopiers',
-      'photocopiers': 'photocopiers',
-      'machinery': 'heat press & machinery',
-      'heat press & machinery': 'heat press & machinery',
-      'heat press machine': 'heat press & machinery',
-      'accessories & parts': 'parts & accessories',
-      'parts & accessories': 'parts & accessories',
-      'accessories': 'parts & accessories',
-      'toner & inks': 'toner & inks',
-      'toner & ink': 'toner & inks',
-      'printers': 'printers',
-      'printer': 'printers',
-      'splashjet inks': 'splashjet inks',
-      'splashjet ink': 'splashjet inks',
-      'pos & barcode': 'pos & barcode'
-    };
-
-    // Load full cached category tree if available
     const treeCats = getCachedCategoriesTree() || [];
-    let baseCats = [];
+    const savedNavItems = (headerSettings?.navigation?.nav_items && Array.isArray(headerSettings.navigation.nav_items))
+      ? headerSettings.navigation.nav_items
+      : [];
 
-    if (treeCats.length > 0) {
-      baseCats = treeCats
-        .filter(c => !c.hidden)
-        .map(c => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-          icon: Layers,
-          subcategories: (c.subcategories || []).filter(sub => !sub.hidden)
-        }));
-    } else {
-      baseCats = [...PRODUCT_CATEGORIES];
-    }
+    const existingKeys = new Set(savedNavItems.map(i => (i.id || i.slug || i.name || '').toLowerCase().trim()));
+    const merged = savedNavItems.map(item => {
+      const itemKey = (item.id || item.slug || item.name || '').toLowerCase().trim();
+      const matchingTreeCat = treeCats.find(c => (c.id || c.slug || c.name || '').toLowerCase().trim() === itemKey);
+      if (matchingTreeCat && Array.isArray(matchingTreeCat.subcategories)) {
+        const existingSubKeys = new Set((item.subcategories || []).map(s => (s.id || s.slug || s.name || '').toLowerCase().trim()));
+        const extraSubs = matchingTreeCat.subcategories
+          .filter(s => !existingSubKeys.has((s.id || s.slug || s.name || '').toLowerCase().trim()))
+          .map(sub => ({
+            id: sub.id || sub.slug,
+            name: sub.name,
+            slug: sub.slug || `${item.slug}/${sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+            badge: '',
+            hidden: Boolean(sub.hidden)
+          }));
+        return {
+          ...item,
+          hidden: matchingTreeCat.hidden !== undefined ? matchingTreeCat.hidden : item.hidden,
+          subcategories: [...(item.subcategories || []), ...extraSubs]
+        };
+      }
+      return item;
+    });
 
-    // Merge admin custom categories from headerSettings
-    const adminCustomCats = headerSettings?.navigation?.custom_categories || [];
-    const existingIds = new Set(baseCats.map(c => c.id.toLowerCase()));
-    adminCustomCats.forEach(ac => {
-      if (!existingIds.has(ac.id?.toLowerCase())) {
-        baseCats.push({
-          id: ac.id,
-          name: ac.name,
-          slug: ac.slug || ac.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    // Add any category from treeCats that isn't in savedNavItems
+    treeCats.forEach(cat => {
+      const key = (cat.id || cat.slug || cat.name || '').toLowerCase().trim();
+      if (key && !existingKeys.has(key) && key !== 'human') {
+        merged.push({
+          id: cat.id || cat.slug,
+          name: cat.name,
+          slug: cat.slug || cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          badge: '',
+          hidden: Boolean(cat.hidden),
           icon: Layers,
-          subcategories: ac.subcategories || []
+          subcategories: (cat.subcategories || []).map(sub => ({
+            id: sub.id || sub.slug,
+            name: sub.name,
+            slug: sub.slug || `${cat.slug}/${sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+            badge: '',
+            hidden: Boolean(sub.hidden)
+          }))
         });
-        existingIds.add(ac.id?.toLowerCase());
+        existingKeys.add(key);
       }
     });
 
-    const existingCanonical = new Set(
-      baseCats.map(c => canonicalMap[c.name.toLowerCase()] || c.name.toLowerCase())
-    );
-    const customNames = getAvailableCategories(allProducts);
+    // If still empty, fallback to PRODUCT_CATEGORIES
+    if (merged.length === 0) {
+      PRODUCT_CATEGORIES.forEach(pc => merged.push(pc));
+    }
 
-    const extra = customNames
-      .filter(name => {
-        const lower = name.toLowerCase().trim();
-        const canon = canonicalMap[lower] || lower;
-        return !existingCanonical.has(canon);
+    // Filter non-hidden and format for Navbar
+    return merged
+      .filter(item => {
+        if (item.hidden) return false;
+        const lowerName = (item.name || '').toLowerCase().trim();
+        const lowerId = (item.id || '').toLowerCase().trim();
+        if (lowerName === 'human' || lowerId === 'human') return false;
+        return !hiddenCategories.has(lowerName) && !hiddenCategories.has(lowerId);
       })
-      .map(name => {
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        return {
-          id: slug || `cat-${name}`,
-          name,
-          slug,
-          icon: Layers,
-          subcategories: []
-        };
-      });
+      .map(item => ({
+        id: item.id || item.slug,
+        name: item.name,
+        slug: item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        badge: item.badge || '',
+        icon: Layers,
+        subcategories: (item.subcategories || [])
+          .filter(sub => !sub.hidden)
+          .map(sub => ({
+            id: sub.id || sub.slug,
+            name: sub.name,
+            slug: sub.slug || `${item.slug}/${sub.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+            badge: sub.badge || ''
+          }))
+      }));
+  }, [allProducts, categoryRevision, headerSettings?.navigation?.nav_items, headerSettings?.navigation?.hidden_categories, hiddenCategories]);
 
-    const combined = [...baseCats, ...extra];
+  // Specific categories to display directly on Laptop / Desktop Navbar strip (Strictly 14 items, 7+7 per row)
+  const desktopNavCategories = useMemo(() => {
+    const maxItems = 14;
+    const pinned = headerSettings?.navigation?.pinned_navbar_categories;
 
-    // Filter out categories that the admin has "বাদ দেওয়া" (hidden/excluded) or unwanted (e.g. HUMAN)
-    return combined.filter(cat => {
-      const lowerName = (cat.name || '').toLowerCase().trim();
-      const lowerId = (cat.id || '').toLowerCase().trim();
-      if (lowerName === 'human' || lowerId === 'human') return false;
-      return !hiddenCategories.has(lowerName) && !hiddenCategories.has(lowerId);
-    });
-  }, [allProducts, categoryRevision, headerSettings?.navigation?.hidden_categories, headerSettings?.navigation?.custom_categories, hiddenCategories]);
+    // If admin specifically selected/pinned categories to show on navbar
+    if (Array.isArray(pinned) && pinned.length > 0) {
+      const pinnedSet = new Set(pinned.map(id => String(id).toLowerCase().trim()));
+      const selected = allNavCategories.filter(cat =>
+        pinnedSet.has(String(cat.id).toLowerCase().trim()) ||
+        pinnedSet.has(String(cat.slug).toLowerCase().trim()) ||
+        pinnedSet.has(String(cat.name).toLowerCase().trim())
+      );
+      if (selected.length > 0) {
+        return selected.slice(0, maxItems);
+      }
+    }
+
+    // Default: Top 14 categories (7+7)
+    return allNavCategories.slice(0, maxItems);
+  }, [allNavCategories, headerSettings?.navigation?.pinned_navbar_categories]);
 
   // User Profile state for desktop navbar account button
   const [userProfile, setUserProfile] = useState(() => {
@@ -607,18 +627,20 @@ export default function Navbar({
             )}
 
             {/* Splashjet Inks Direct Route Button */}
-            <button
-              onClick={() => {
-                if (onNavigate) onNavigate('/product-category/splashjet-inks/', 'Splashjet Inks');
-                else navigate('/product-category/splashjet-inks');
-                setSelectedCategory('Splashjet Inks');
-              }}
-              className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-white bg-white/15 hover:bg-white/25 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/30 hover:border-white/50 shadow-xs whitespace-nowrap"
-              title="Splashjet Inks কালেকশন দেখুন"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>Splashjet Ink</span>
-            </button>
+            {(headerSettings?.action_buttons?.show_splashjet_btn ?? true) && (
+              <button
+                onClick={() => {
+                  if (onNavigate) onNavigate('/product-category/splashjet-inks/', 'Splashjet Inks');
+                  else navigate('/product-category/splashjet-inks');
+                  setSelectedCategory('Splashjet Inks');
+                }}
+                className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-white bg-white/15 hover:bg-white/25 active:scale-95 transition-all text-xs font-black cursor-pointer border border-white/30 hover:border-white/50 shadow-xs whitespace-nowrap"
+                title="Splashjet Inks কালেকশন দেখুন"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <span>Splashjet Ink</span>
+              </button>
+            )}
 
             {/* Mobile Search Trigger */}
             <button
@@ -789,66 +811,151 @@ export default function Navbar({
         }}
         className={`hidden lg:block ${(headerSettings?.navigation?.sticky_nav ?? true) ? 'sticky top-0 z-40' : 'relative z-30'} border-b text-xs font-black shadow-md shadow-black/10 transition-all`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 xl:space-x-2">
-              {allNavCategories.map((cat, index) => {
-                const isLastTwo = index >= allNavCategories.length - 2;
-                return (
-                  <div
-                    key={cat.id}
-                    className="relative group py-2"
-                    onMouseEnter={() => setActiveDropdown(cat.id)}
-                    onMouseLeave={() => setActiveDropdown(null)}
-                  >
-                    <button
-                      onClick={() => handleCategoryClick(cat)}
-                      className={`px-2.5 xl:px-3 py-1.5 rounded-lg text-white font-extrabold hover:bg-white/15 active:bg-white/20 transition-all cursor-pointer text-[12.5px] xl:text-[13px] tracking-tight whitespace-nowrap flex items-center gap-1 ${
-                        activeDropdown === cat.id ? 'bg-white/20' : ''
-                      }`}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1">
+          <div className="flex items-center justify-between gap-2 xl:gap-3">
+            {/* Left/Center Category Buttons (Strictly 2 lines: Exactly 7 items per line, shifted slightly right) */}
+            <div className="flex-1 min-w-0 pl-2 sm:pl-4 xl:pl-6 pr-2 flex flex-col justify-center gap-y-1 py-1">
+              {/* Line 1 (Strictly First 7 categories in 1 row) */}
+              <div className="grid grid-cols-7 gap-1 xl:gap-1.5 items-center w-full">
+                {desktopNavCategories.slice(0, 7).map((cat, index) => {
+                  const isLastTwo = index >= 5;
+                  return (
+                    <div
+                      key={cat.id || index}
+                      className="relative group"
+                      onMouseEnter={() => setActiveDropdown(cat.id)}
+                      onMouseLeave={() => setActiveDropdown(null)}
                     >
-                      <span className="text-white font-extrabold">{cat.name}</span>
-                      {cat.subcategories && cat.subcategories.length > 0 && (
-                        <ChevronDown className={`w-3.5 h-3.5 text-white/80 transition-transform duration-200 ${
-                          activeDropdown === cat.id ? 'rotate-180 text-white' : ''
-                        }`} />
-                      )}
-                    </button>
+                      <button
+                        onClick={() => handleCategoryClick(cat)}
+                        className={`w-full px-1.5 xl:px-2 py-1 rounded-lg text-white font-extrabold hover:bg-white/15 active:bg-white/20 transition-all cursor-pointer text-[11px] xl:text-[12px] tracking-tight whitespace-nowrap flex items-center justify-center gap-1 ${activeDropdown === cat.id ? 'bg-white/20' : ''
+                          }`}
+                        title={cat.name}
+                      >
+                        <span className="truncate">{cat.name}</span>
+                        {cat.badge && (
+                          <span className="text-[8.5px] font-black bg-white text-[#c92127] px-1 py-0.2 rounded-full shadow-2xs flex-shrink-0">
+                            {cat.badge}
+                          </span>
+                        )}
+                        {cat.subcategories && cat.subcategories.length > 0 && (
+                          <ChevronDown className={`w-3 h-3 text-white/80 flex-shrink-0 transition-transform duration-200 ${activeDropdown === cat.id ? 'rotate-180 text-white' : ''
+                            }`} />
+                        )}
+                      </button>
 
-                    {/* Dropdown Menu for Subcategories */}
-                    {activeDropdown === cat.id && cat.subcategories && cat.subcategories.length > 0 && (
-                      <div className={`absolute top-full ${isLastTwo ? 'right-0' : 'left-0'} mt-0.5 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl py-2 z-50 animate-fadeIn whitespace-normal text-left`}>
-                        <div className="px-3.5 py-1.5 border-b border-slate-100 text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#c92127]"></span>
-                          <span>{cat.name} Collection</span>
+                      {/* Dropdown Menu for Subcategories */}
+                      {activeDropdown === cat.id && cat.subcategories && cat.subcategories.length > 0 && (
+                        <div className={`absolute top-full ${isLastTwo ? 'right-0' : 'left-0'} mt-0.5 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl py-2 z-50 animate-fadeIn whitespace-normal text-left`}>
+                          <div className="px-3.5 py-1.5 border-b border-slate-100 text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#c92127]"></span>
+                            <span>{cat.name} Collection</span>
+                          </div>
+                          {cat.subcategories.map((sub, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleSubCategoryClick(sub.slug, sub.name)}
+                              className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-[#c92127] transition-colors flex items-center justify-between group/sub cursor-pointer"
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                                <span className="truncate group-hover/sub:text-[#c92127]">{sub.name}</span>
+                                {sub.badge && (
+                                  <span className="text-[9px] font-black bg-red-100 text-[#c92127] px-1.5 py-0.2 rounded-full flex-shrink-0">
+                                    {sub.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/sub:text-[#c92127] group-hover/sub:translate-x-0.5 transition-transform stroke-[2] flex-shrink-0" />
+                            </button>
+                          ))}
+                          <div className="p-2 border-t border-slate-100 bg-slate-50/80 mt-1">
+                            <button
+                              onClick={() => handleCategoryClick(cat)}
+                              className="w-full text-center text-xs font-black text-[#c92127] hover:underline cursor-pointer py-1"
+                            >
+                              View All {cat.name} →
+                            </button>
+                          </div>
                         </div>
-                        {cat.subcategories.map((sub, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleSubCategoryClick(sub.slug, sub.name)}
-                            className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-[#c92127] transition-colors flex items-center justify-between group/sub cursor-pointer"
-                          >
-                            <span className="truncate group-hover/sub:text-[#c92127]">{sub.name}</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/sub:text-[#c92127] group-hover/sub:translate-x-0.5 transition-transform stroke-[2]" />
-                          </button>
-                        ))}
-                        <div className="p-2 border-t border-slate-100 bg-slate-50/80 mt-1">
-                          <button
-                            onClick={() => handleCategoryClick(cat)}
-                            className="w-full text-center text-xs font-black text-[#c92127] hover:underline cursor-pointer py-1"
-                          >
-                            View All {cat.name} →
-                          </button>
-                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Line 2 (Strictly Second 7 categories in 1 row) */}
+              {desktopNavCategories.length > 7 && (
+                <div className="grid grid-cols-7 gap-1 xl:gap-1.5 items-center w-full">
+                  {desktopNavCategories.slice(7, 14).map((cat, index) => {
+                    const isLastTwo = index >= 5;
+                    return (
+                      <div
+                        key={cat.id || index + 7}
+                        className="relative group"
+                        onMouseEnter={() => setActiveDropdown(cat.id)}
+                        onMouseLeave={() => setActiveDropdown(null)}
+                      >
+                        <button
+                          onClick={() => handleCategoryClick(cat)}
+                          className={`w-full px-1.5 xl:px-2 py-1 rounded-lg text-white font-extrabold hover:bg-white/15 active:bg-white/20 transition-all cursor-pointer text-[11px] xl:text-[12px] tracking-tight whitespace-nowrap flex items-center justify-center gap-1 ${activeDropdown === cat.id ? 'bg-white/20' : ''
+                            }`}
+                          title={cat.name}
+                        >
+                          <span className="truncate">{cat.name}</span>
+                          {cat.badge && (
+                            <span className="text-[8.5px] font-black bg-white text-[#c92127] px-1 py-0.2 rounded-full shadow-2xs flex-shrink-0">
+                              {cat.badge}
+                            </span>
+                          )}
+                          {cat.subcategories && cat.subcategories.length > 0 && (
+                            <ChevronDown className={`w-3 h-3 text-white/80 flex-shrink-0 transition-transform duration-200 ${activeDropdown === cat.id ? 'rotate-180 text-white' : ''
+                              }`} />
+                          )}
+                        </button>
+
+                        {/* Dropdown Menu for Subcategories */}
+                        {activeDropdown === cat.id && cat.subcategories && cat.subcategories.length > 0 && (
+                          <div className={`absolute top-full ${isLastTwo ? 'right-0' : 'left-0'} mt-0.5 w-64 bg-white border border-slate-200 rounded-xl shadow-2xl py-2 z-50 animate-fadeIn whitespace-normal text-left`}>
+                            <div className="px-3.5 py-1.5 border-b border-slate-100 text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#c92127]"></span>
+                              <span>{cat.name} Collection</span>
+                            </div>
+                            {cat.subcategories.map((sub, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleSubCategoryClick(sub.slug, sub.name)}
+                                className="w-full text-left px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-red-50 hover:text-[#c92127] transition-colors flex items-center justify-between group/sub cursor-pointer"
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                                  <span className="truncate group-hover/sub:text-[#c92127]">{sub.name}</span>
+                                  {sub.badge && (
+                                    <span className="text-[9px] font-black bg-red-100 text-[#c92127] px-1.5 py-0.2 rounded-full flex-shrink-0">
+                                      {sub.badge}
+                                    </span>
+                                  )}
+                                </div>
+                                <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/sub:text-[#c92127] group-hover/sub:translate-x-0.5 transition-transform stroke-[2] flex-shrink-0" />
+                              </button>
+                            ))}
+                            <div className="p-2 border-t border-slate-100 bg-slate-50/80 mt-1">
+                              <button
+                                onClick={() => handleCategoryClick(cat)}
+                                className="w-full text-center text-xs font-black text-[#c92127] hover:underline cursor-pointer py-1"
+                              >
+                                View All {cat.name} →
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Shop / All Products & Desktop Menu Button */}
-            <div className="flex items-center gap-2 xl:gap-2.5 flex-shrink-0">
+            <div className="flex items-center gap-2 xl:gap-2.5 flex-shrink-0 self-center">
               <a
                 href="/shop/"
                 onClick={(e) => {
@@ -1093,6 +1200,11 @@ export default function Navbar({
                         >
                           <CatIcon className="w-4 h-4 text-[#c92127] flex-shrink-0" />
                           <span className="truncate text-slate-900 font-bold">{cat.name}</span>
+                          {cat.badge && (
+                            <span className="text-[9px] font-black bg-red-100 text-[#c92127] px-1.5 py-0.2 rounded-full flex-shrink-0">
+                              {cat.badge}
+                            </span>
+                          )}
                         </button>
 
                         {/* '+' / '-' Accordion Toggle Button */}
@@ -1118,10 +1230,17 @@ export default function Navbar({
                             <button
                               key={sIdx}
                               onClick={() => handleSubCategoryClick(sub.slug, sub.name)}
-                              className="w-full text-left py-1.5 px-2 text-xs font-semibold text-slate-700 hover:text-[#c92127] hover:bg-red-50/60 rounded flex items-center gap-2 transition-colors cursor-pointer"
+                              className="w-full text-left py-1.5 px-2 text-xs font-semibold text-slate-700 hover:text-[#c92127] hover:bg-red-50/60 rounded flex items-center justify-between gap-2 transition-colors cursor-pointer"
                             >
-                              <div className="w-1.5 h-1.5 rounded-full bg-[#c92127] flex-shrink-0" />
-                              <span className="truncate">{sub.name}</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#c92127] flex-shrink-0" />
+                                <span className="truncate">{sub.name}</span>
+                              </div>
+                              {sub.badge && (
+                                <span className="text-[9px] font-black bg-red-100 text-[#c92127] px-1.5 py-0.2 rounded-full flex-shrink-0">
+                                  {sub.badge}
+                                </span>
+                              )}
                             </button>
                           ))}
 

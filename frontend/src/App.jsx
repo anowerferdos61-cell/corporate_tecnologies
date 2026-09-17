@@ -18,7 +18,7 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch Products from Supabase (with automatic fallback)
+  // Fetch Products from Supabase (with automatic fallback & real-time update sync)
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -32,6 +32,24 @@ export default function App() {
       }
     }
     loadData();
+
+    // Listen for live product additions/edits across tabs and admin panels
+    const handleProductsChange = async () => {
+      try {
+        const updated = await getProducts();
+        setProducts(updated);
+      } catch (e) {
+        console.error('Failed to refresh products:', e);
+      }
+    };
+
+    window.addEventListener('ct_products_updated', handleProductsChange);
+    window.addEventListener('storage', handleProductsChange);
+
+    return () => {
+      window.removeEventListener('ct_products_updated', handleProductsChange);
+      window.removeEventListener('storage', handleProductsChange);
+    };
   }, []);
 
   return (

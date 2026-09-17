@@ -40,12 +40,17 @@ export default function ProductsTab({
       setCategoriesTree(getCategoriesTree(products));
     };
     window.addEventListener('ct_categories_updated', handleCatUpdate);
-    return () => window.removeEventListener('ct_categories_updated', handleCatUpdate);
+    window.addEventListener('storage', handleCatUpdate);
+    return () => {
+      window.removeEventListener('ct_categories_updated', handleCatUpdate);
+      window.removeEventListener('storage', handleCatUpdate);
+    };
   }, [products]);
 
   const handleSaveCategory = async (formData) => {
     try {
-      const updatedTree = await saveCategory(formData, formData.parentId, formData.id);
+      const effectiveParentId = formData.parentId || null;
+      const updatedTree = await saveCategory(formData, effectiveParentId, null);
       setCategoriesTree(updatedTree);
       setShowCategoryModal(false);
     } catch (err) {
@@ -370,7 +375,7 @@ export default function ProductsTab({
 
                       {/* Regular Price */}
                       <td className="py-3.5 px-4 font-mono text-slate-400">
-                        {prod.call_for_price ? (
+                        {prod.call_for_price || prod.price_range_label ? (
                           <span className="text-slate-300 text-[11px]">—</span>
                         ) : (
                           <span className="line-through">৳{Number(prod.regular_price || 0).toLocaleString()}</span>
@@ -382,6 +387,10 @@ export default function ProductsTab({
                         {prod.call_for_price ? (
                           <span className="inline-flex items-center gap-1 bg-red-50 text-[#c92127] border border-red-200 font-bold px-2 py-0.5 rounded-md text-[10px]">
                             <Phone className="w-2.5 h-2.5" /> Call for Price
+                          </span>
+                        ) : prod.price_range_label ? (
+                          <span className="inline-block text-[#c92127] font-black text-xs">
+                            {prod.price_range_label}
                           </span>
                         ) : (
                           <span>৳{Number(prod.sale_price || prod.regular_price || 0).toLocaleString()}</span>

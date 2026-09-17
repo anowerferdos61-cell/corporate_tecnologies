@@ -204,11 +204,33 @@ export async function createProductOnSupabase(productData) {
     slug: productData.slug || productData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
     brand: productData.brand || 'Corporate Tech',
     category: productData.category || 'Printers',
+    sub_category: productData.sub_category || '',
     regular_price: Number(productData.regular_price || productData.sale_price || 0),
     sale_price: Number(productData.sale_price || 0),
     stock_quantity: Number(productData.stock_quantity ?? 20),
+    sku: productData.sku || `CT-${Math.floor(1000 + Math.random() * 9000)}`,
     image_url: productData.image_url || '/splashjet_images/about-splashjet.jpg',
-    is_featured: productData.is_featured ?? true
+    gallery_images: Array.isArray(productData.gallery_images) ? productData.gallery_images : (productData.image_url ? [productData.image_url] : []),
+    short_description: productData.short_description || '',
+    description: productData.description || '',
+    specifications: typeof productData.specifications === 'object' ? productData.specifications : {},
+    key_features: Array.isArray(productData.key_features) ? productData.key_features : [],
+    is_featured: productData.is_featured ?? true,
+    rating: productData.rating || 4.9,
+    reviews_count: productData.reviews_count || 1,
+    call_for_price: Boolean(productData.call_for_price),
+    price_range_label: productData.price_range_label || '',
+    badge_text: productData.badge_text || '',
+    badge_color: productData.badge_color || 'red',
+    badge_position: productData.badge_position || 'left',
+    badge_mode: productData.badge_mode || 'custom',
+    card_border: productData.card_border || 'default',
+    card_btn_text: productData.card_btn_text || 'View Details',
+    show_brand_badge: Boolean(productData.show_brand_badge ?? true),
+    show_rating: Boolean(productData.show_rating ?? false),
+    rating_score: productData.rating_score || '4.9',
+    show_stock_badge: Boolean(productData.show_stock_badge ?? false),
+    warranty_badge: productData.warranty_badge || '১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি'
   };
 
   let savedProduct = null;
@@ -236,19 +258,31 @@ export async function createProductOnSupabase(productData) {
     discount_label: productData.discount_label || calculateDiscountLabel(cleanPayload.regular_price, cleanPayload.sale_price),
     rating: productData.rating || 4.9,
     reviews_count: productData.reviews_count || 1,
-    sku: productData.sku || `CT-${Math.floor(1000 + Math.random() * 9000)}`,
-    sub_category: productData.sub_category || '',
-    short_description: productData.short_description || '',
-    description: productData.description || '',
-    specifications: productData.specifications || {},
-    key_features: productData.key_features || [],
-    gallery_images: productData.gallery_images || (productData.image_url ? [productData.image_url] : []),
+    sku: cleanPayload.sku,
+    sub_category: cleanPayload.sub_category,
+    short_description: cleanPayload.short_description,
+    description: cleanPayload.description,
+    specifications: cleanPayload.specifications,
+    key_features: cleanPayload.key_features,
+    gallery_images: cleanPayload.gallery_images,
     call_for_price: Boolean(productData.call_for_price),
-    stock_status: productData.stock_status || (productData.stock_quantity > 0 ? 'instock' : 'outofstock'),
+    price_range_label: productData.price_range_label || '',
+    badge_text: productData.badge_text || '',
+    badge_color: productData.badge_color || 'red',
+    badge_position: productData.badge_position || 'left',
+    badge_mode: productData.badge_mode || 'custom',
+    card_border: productData.card_border || 'default',
+    card_btn_text: productData.card_btn_text || 'View Details',
+    show_brand_badge: Boolean(productData.show_brand_badge ?? true),
+    show_rating: Boolean(productData.show_rating ?? false),
+    rating_score: productData.rating_score || '4.9',
+    show_stock_badge: Boolean(productData.show_stock_badge ?? false),
+    stock_status: productData.stock_status || (cleanPayload.stock_quantity > 0 ? 'instock' : 'outofstock'),
     warranty_badge: productData.warranty_badge || '১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি'
   };
 
   saveCustomProductLocally(finalProduct);
+  window.dispatchEvent(new CustomEvent('ct_products_updated', { detail: finalProduct }));
   return finalProduct;
 }
 
@@ -258,16 +292,35 @@ export async function createProductOnSupabase(productData) {
 export async function updateProductOnSupabase(id, updates) {
   const cleanUpdates = {};
   if (updates.title !== undefined) cleanUpdates.title = updates.title;
+  if (updates.slug !== undefined) cleanUpdates.slug = updates.slug;
   if (updates.brand !== undefined) cleanUpdates.brand = updates.brand;
   if (updates.category !== undefined) cleanUpdates.category = updates.category;
   if (updates.sub_category !== undefined) cleanUpdates.sub_category = updates.sub_category;
   if (updates.regular_price !== undefined) cleanUpdates.regular_price = Number(updates.regular_price);
   if (updates.sale_price !== undefined) cleanUpdates.sale_price = Number(updates.sale_price);
   if (updates.stock_quantity !== undefined) cleanUpdates.stock_quantity = Number(updates.stock_quantity);
+  if (updates.sku !== undefined) cleanUpdates.sku = updates.sku;
   if (updates.image_url !== undefined) cleanUpdates.image_url = updates.image_url;
+  if (updates.gallery_images !== undefined) cleanUpdates.gallery_images = updates.gallery_images;
+  if (updates.short_description !== undefined) cleanUpdates.short_description = updates.short_description;
+  if (updates.description !== undefined) cleanUpdates.description = updates.description;
+  if (updates.specifications !== undefined) cleanUpdates.specifications = updates.specifications;
+  if (updates.key_features !== undefined) cleanUpdates.key_features = updates.key_features;
   if (updates.is_featured !== undefined) cleanUpdates.is_featured = updates.is_featured;
   if (updates.call_for_price !== undefined) cleanUpdates.call_for_price = Boolean(updates.call_for_price);
   if (updates.discount_label !== undefined) cleanUpdates.discount_label = updates.discount_label;
+  if (updates.price_range_label !== undefined) cleanUpdates.price_range_label = updates.price_range_label;
+  if (updates.badge_text !== undefined) cleanUpdates.badge_text = updates.badge_text;
+  if (updates.badge_color !== undefined) cleanUpdates.badge_color = updates.badge_color;
+  if (updates.badge_position !== undefined) cleanUpdates.badge_position = updates.badge_position;
+  if (updates.badge_mode !== undefined) cleanUpdates.badge_mode = updates.badge_mode;
+  if (updates.card_border !== undefined) cleanUpdates.card_border = updates.card_border;
+  if (updates.card_btn_text !== undefined) cleanUpdates.card_btn_text = updates.card_btn_text;
+  if (updates.show_brand_badge !== undefined) cleanUpdates.show_brand_badge = updates.show_brand_badge;
+  if (updates.show_rating !== undefined) cleanUpdates.show_rating = updates.show_rating;
+  if (updates.rating_score !== undefined) cleanUpdates.rating_score = updates.rating_score;
+  if (updates.show_stock_badge !== undefined) cleanUpdates.show_stock_badge = updates.show_stock_badge;
+  if (updates.warranty_badge !== undefined) cleanUpdates.warranty_badge = updates.warranty_badge;
 
   try {
     await supabase
@@ -311,19 +364,24 @@ export async function uploadProductImage(file) {
     const cleanFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
     const filePath = `product-uploads/${cleanFileName}`;
 
-    // Attempt upload to Supabase Storage bucket 'products'
-    const { data, error } = await supabase.storage
-      .from('products')
-      .upload(filePath, file, { cacheControl: '3600', upsert: true });
+    // Attempt upload to Supabase Storage bucket ('product-images' or 'products')
+    const bucketsToTry = ['product-images', 'products'];
+    for (const b of bucketsToTry) {
+      try {
+        const { data, error } = await supabase.storage
+          .from(b)
+          .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
-    if (!error && data) {
-      const { data: publicData } = supabase.storage
-        .from('products')
-        .getPublicUrl(filePath);
+        if (!error && data) {
+          const { data: publicData } = supabase.storage
+            .from(b)
+            .getPublicUrl(filePath);
 
-      if (publicData?.publicUrl) {
-        return publicData.publicUrl;
-      }
+          if (publicData?.publicUrl) {
+            return publicData.publicUrl;
+          }
+        }
+      } catch {}
     }
   } catch (err) {
     console.warn('Supabase storage upload error, falling back to DataURL:', err);

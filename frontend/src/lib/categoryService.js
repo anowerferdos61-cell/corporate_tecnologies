@@ -58,8 +58,27 @@ export async function getCategoriesTreeAsync(forceSync = false) {
         .single();
 
       if (!error && data?.value && Array.isArray(data.value) && data.value.length > 0) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.value));
-        return data.value;
+        let merged = data.value;
+        const localSaved = localStorage.getItem(STORAGE_KEY);
+        if (localSaved) {
+          try {
+            const localParsed = JSON.parse(localSaved);
+            if (Array.isArray(localParsed)) {
+              const remoteIds = new Set(data.value.map(c => (c.id || c.slug || c.name || '').toLowerCase().trim()));
+              const localExtras = localParsed.filter(c => !remoteIds.has((c.id || c.slug || c.name || '').toLowerCase().trim()));
+              if (localExtras.length > 0) {
+                merged = [...data.value, ...localExtras];
+                supabase.from('store_settings').upsert({
+                  key: 'categories_tree_v1',
+                  value: merged,
+                  updated_at: new Date().toISOString()
+                }).catch(() => {});
+              }
+            }
+          } catch (e) {}
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        return merged;
       }
     } catch (e) {
       console.warn('Supabase categories fetch notice:', e);
@@ -133,6 +152,8 @@ export async function saveCategoriesTree(newTree) {
   // 1. Local-first storage
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanTree));
+    localStorage.setItem('ct_custom_categories_tree', JSON.stringify(cleanTree));
+    localStorage.setItem('ct_custom_categories', JSON.stringify(cleanTree.map(c => c.name)));
     window.dispatchEvent(new CustomEvent('ct_categories_updated', { detail: cleanTree }));
   } catch (e) {
     console.warn('LocalStorage save error for categories tree:', e);
@@ -172,7 +193,9 @@ export async function saveCategory(categoryData, parentId = null, existingId = n
     updatedTree = updatedTree.map(cat => {
       if (cat.id === parentId || cat.slug === parentId) {
         const subs = [...(cat.subcategories || [])];
-        const existingSubIdx = subs.findIndex(s => s.id === id || s.slug === slug || (existingId && s.id === existingId));
+        const existingSubIdx = existingId 
+          ? subs.findIndex(s => s.id === existingId || s.slug === existingId)
+          : subs.findIndex(s => s.id === id || s.slug === slug);
 
         const newSub = {
           id,
@@ -194,7 +217,10 @@ export async function saveCategory(categoryData, parentId = null, existingId = n
     });
   } else {
     // Adding or editing a root parent category
-    const existingIndex = updatedTree.findIndex(c => c.id === id || c.slug === slug || (existingId && c.id === existingId));
+    const existingIndex = existingId
+      ? updatedTree.findIndex(c => c.id === existingId || c.slug === existingId)
+      : updatedTree.findIndex(c => c.id === id || c.slug === slug);
+
     const newCategory = {
       id,
       name,
