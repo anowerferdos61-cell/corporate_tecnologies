@@ -16,17 +16,74 @@ import {
   ChevronRight,
   MoveUp,
   MoveDown,
-  Info
+  Info,
+  Megaphone,
+  Type,
+  Sliders,
+  Play,
+  Settings2,
+  Tag,
+  Clock,
+  Gift,
+  Package,
+  Percent,
+  Printer,
+  BadgePercent,
+  Star,
+  CheckCircle2,
+  ShieldCheck,
+  Truck,
+  Headphones,
+  Award,
+  Zap,
+  Flame
 } from 'lucide-react';
-import { useSettings, DEFAULT_HERO_BANNERS } from '../../../context/SettingsContext';
+import { 
+  useSettings, 
+  DEFAULT_HERO_BANNERS, 
+  DEFAULT_HERO_TICKER, 
+  DEFAULT_TICKER_ITEMS 
+} from '../../../context/SettingsContext';
 import { uploadProductImage } from '../../../lib/supabaseClient';
+
+const AVAILABLE_TICKER_ICONS = [
+  { id: 'ShieldCheck', label: 'Shield / Warranty (ওয়ারেন্টি)', Icon: ShieldCheck },
+  { id: 'Sparkles', label: 'Sparkles / Official (অফিসিয়াল)', Icon: Sparkles },
+  { id: 'PhoneCall', label: 'Phone / Hotline (হটলাইন)', Icon: PhoneCall },
+  { id: 'Award', label: 'Award / Genuine (জেনুইন কোয়ালিটি)', Icon: Award },
+  { id: 'Truck', label: 'Truck / Delivery (ডেলিভারি)', Icon: Truck },
+  { id: 'Headphones', label: 'Headphones / Support (সাপোর্ট)', Icon: Headphones },
+  { id: 'Zap', label: 'Zap / Fast / Offer (ফাস্ট/অফার)', Icon: Zap },
+  { id: 'Flame', label: 'Flame / Hot Deal (হট ডিল)', Icon: Flame },
+  { id: 'Star', label: 'Star / Rating (স্টার রেটিং)', Icon: Star },
+  { id: 'CheckCircle2', label: 'Check / Verified (ভেরিফাইড)', Icon: CheckCircle2 },
+  { id: 'Tag', label: 'Tag / Discount (ডিসকাউন্ট)', Icon: Tag },
+  { id: 'Clock', label: 'Clock / 24-7 (সময়/২৪ ঘণ্টা)', Icon: Clock },
+  { id: 'Gift', label: 'Gift / Freebie (উপহার/ফ্রি)', Icon: Gift },
+  { id: 'Package', label: 'Package / Stock (প্যাকেজ/স্টক)', Icon: Package },
+  { id: 'Percent', label: 'Percent / Sale (সেল/ছাড়)', Icon: Percent },
+  { id: 'Printer', label: 'Printer / Machine (প্রিন্টার)', Icon: Printer },
+  { id: 'Megaphone', label: 'Megaphone / Notice (ঘোষণা)', Icon: Megaphone },
+  { id: 'BadgePercent', label: 'Badge / Special (স্পেশাল ব্যাজ)', Icon: BadgePercent }
+];
+
+const AVAILABLE_TICKER_COLORS = [
+  { id: 'red', label: 'Red (লাল)', bg: 'bg-red-50 text-[#c92127]' },
+  { id: 'sky', label: 'Sky Blue (আকাশি)', bg: 'bg-sky-50 text-sky-600' },
+  { id: 'emerald', label: 'Emerald Green (সবুজ)', bg: 'bg-emerald-50 text-emerald-600' },
+  { id: 'amber', label: 'Amber Gold (সোনালী/হলুদ)', bg: 'bg-amber-50 text-amber-600' },
+  { id: 'purple', label: 'Purple (বেগুনী)', bg: 'bg-purple-50 text-purple-600' },
+  { id: 'indigo', label: 'Indigo (নীল)', bg: 'bg-indigo-50 text-indigo-600' },
+  { id: 'rose', label: 'Rose Pink (গোলাপি)', bg: 'bg-rose-50 text-rose-600' },
+  { id: 'slate', label: 'Slate Gray (ধূসর)', bg: 'bg-slate-100 text-slate-700' }
+];
 
 export default function BannersTab() {
   const { heroBanners, updateHeroBanners, resetHeroBanners, loading } = useSettings();
 
-  // Local editing state for all 3 options
+  // Local editing state for all 4 options
   const [formData, setFormData] = useState(() => heroBanners || DEFAULT_HERO_BANNERS);
-  const [activeSection, setActiveSection] = useState('main_slider'); // 'main_slider' | 'side_banner_1' | 'side_banner_2' | 'live_preview'
+  const [activeSection, setActiveSection] = useState('main_slider'); // 'main_slider' | 'side_banner_1' | 'side_banner_2' | 'ticker_marquee' | 'live_preview'
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -42,6 +99,7 @@ export default function BannersTab() {
   const currentSlide = currentSlides[selectedSlideIndex] || currentSlides[0] || {};
   const side1 = formData.sideBanner1 || DEFAULT_HERO_BANNERS.sideBanner1;
   const side2 = formData.sideBanner2 || DEFAULT_HERO_BANNERS.sideBanner2;
+  const ticker = formData.ticker || DEFAULT_HERO_TICKER;
 
   // File Upload Helper (Uploads to Supabase storage with base64 fallback)
   const handleFileUpload = async (file, onComplete) => {
@@ -161,6 +219,95 @@ export default function BannersTab() {
     }));
   };
 
+  // Update Ticker root settings
+  const updateTicker = (field, value) => {
+    setFormData((prev) => {
+      const currentTicker = prev.ticker || DEFAULT_HERO_TICKER;
+      return {
+        ...prev,
+        ticker: {
+          ...currentTicker,
+          [field]: value
+        }
+      };
+    });
+  };
+
+  // Update a single item inside ticker
+  const updateTickerItem = (index, field, value) => {
+    setFormData((prev) => {
+      const currentTicker = prev.ticker || DEFAULT_HERO_TICKER;
+      const items = [...(currentTicker.items || DEFAULT_TICKER_ITEMS)];
+      if (items[index]) {
+        items[index] = { ...items[index], [field]: value };
+      }
+      return {
+        ...prev,
+        ticker: {
+          ...currentTicker,
+          items
+        }
+      };
+    });
+  };
+
+  // Add new ticker item
+  const handleAddTickerItem = () => {
+    setFormData((prev) => {
+      const currentTicker = prev.ticker || DEFAULT_HERO_TICKER;
+      const items = [...(currentTicker.items || DEFAULT_TICKER_ITEMS)];
+      const newItem = {
+        id: `ticker-${Date.now()}`,
+        iconName: 'Sparkles',
+        title: 'নতুন সুবিধা বা অফার',
+        desc: 'সংক্ষিপ্ত বিবরণ দিন',
+        badgeColor: 'red'
+      };
+      return {
+        ...prev,
+        ticker: {
+          ...currentTicker,
+          items: [...items, newItem]
+        }
+      };
+    });
+  };
+
+  // Delete ticker item
+  const handleDeleteTickerItem = (indexToDelete) => {
+    setFormData((prev) => {
+      const currentTicker = prev.ticker || DEFAULT_HERO_TICKER;
+      const items = (currentTicker.items || DEFAULT_TICKER_ITEMS).filter((_, idx) => idx !== indexToDelete);
+      return {
+        ...prev,
+        ticker: {
+          ...currentTicker,
+          items
+        }
+      };
+    });
+  };
+
+  // Move ticker item
+  const handleMoveTickerItem = (index, direction) => {
+    setFormData((prev) => {
+      const currentTicker = prev.ticker || DEFAULT_HERO_TICKER;
+      const items = [...(currentTicker.items || DEFAULT_TICKER_ITEMS)];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= items.length) return prev;
+      const temp = items[index];
+      items[index] = items[targetIndex];
+      items[targetIndex] = temp;
+      return {
+        ...prev,
+        ticker: {
+          ...currentTicker,
+          items
+        }
+      };
+    });
+  };
+
   // Save all banner configurations
   const handleSave = async () => {
     await updateHeroBanners(formData);
@@ -170,7 +317,7 @@ export default function BannersTab() {
 
   // Reset to default presets
   const handleReset = async () => {
-    if (window.confirm('Reset all 3 hero banner designs to factory default?')) {
+    if (window.confirm('Reset all hero banner & ticker designs to factory default?')) {
       await resetHeroBanners();
       setFormData(DEFAULT_HERO_BANNERS);
     }
@@ -184,13 +331,13 @@ export default function BannersTab() {
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-[#c92127] text-xs font-black tracking-wide uppercase mb-1">
             <Sparkles className="w-3.5 h-3.5 fill-current" />
-            <span>Hero Banners Manager</span>
+            <span>Hero Banners & Ticker Manager</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Hero Section & Banners Design Control
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-            Upload custom banner images, customize typography, and manage links for all 3 Hero Banner options in real-time.
+            স্লাইডার, সাইড ব্যানার এবং নিচের স্ক্রলিং টেক্সট/নোটিস ও সুবিধা ব্যাজসমূহ লাইভ কাস্টমাইজ করুন।
           </p>
         </div>
 
@@ -234,12 +381,12 @@ export default function BannersTab() {
         </div>
       </div>
 
-      {/* 3 Main Options Navigation Tabs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* 4 Main Options Navigation Tabs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Option 1 Tab: Main Slider */}
         <button
           onClick={() => setActiveSection('main_slider')}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             activeSection === 'main_slider'
               ? 'bg-white border-[#c92127] ring-2 ring-[#c92127]/20 shadow-md'
               : 'bg-white/80 hover:bg-white border-slate-200/90 text-slate-600'
@@ -251,16 +398,16 @@ export default function BannersTab() {
               {currentSlides.length} Slides
             </span>
           </div>
-          <h3 className="text-base font-extrabold text-slate-900 mt-1">Main Slider (Left)</h3>
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-1">Main Slider</h3>
           <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-            Large dynamic hero carousel with slide manager
+            Dynamic hero carousel
           </p>
         </button>
 
         {/* Option 2 Tab: Top-Right Side Banner */}
         <button
           onClick={() => setActiveSection('side_banner_1')}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             activeSection === 'side_banner_1'
               ? 'bg-white border-[#c92127] ring-2 ring-[#c92127]/20 shadow-md'
               : 'bg-white/80 hover:bg-white border-slate-200/90 text-slate-600'
@@ -272,16 +419,16 @@ export default function BannersTab() {
               Top-Right
             </span>
           </div>
-          <h3 className="text-base font-extrabold text-slate-900 mt-1">Side Banner 1</h3>
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-1">Side Banner 1</h3>
           <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-            Official Partner / Splashjet Inks promo card
+            Splashjet Inks promo card
           </p>
         </button>
 
         {/* Option 3 Tab: Bottom-Right Side Banner */}
         <button
           onClick={() => setActiveSection('side_banner_2')}
-          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+          className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer ${
             activeSection === 'side_banner_2'
               ? 'bg-white border-[#c92127] ring-2 ring-[#c92127]/20 shadow-md'
               : 'bg-white/80 hover:bg-white border-slate-200/90 text-slate-600'
@@ -293,9 +440,30 @@ export default function BannersTab() {
               Bottom-Right
             </span>
           </div>
-          <h3 className="text-base font-extrabold text-slate-900 mt-1">Side Banner 2</h3>
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-1">Side Banner 2</h3>
           <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-            Customer Helpline & Express Support card
+            Helpline & Support card
+          </p>
+        </button>
+
+        {/* Option 4 Tab: Scrolling Ticker / Marquee */}
+        <button
+          onClick={() => setActiveSection('ticker_marquee')}
+          className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            activeSection === 'ticker_marquee'
+              ? 'bg-white border-[#c92127] ring-2 ring-[#c92127]/20 shadow-md'
+              : 'bg-white/80 hover:bg-white border-slate-200/90 text-slate-600'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase text-[#c92127] tracking-wider">Option 4</span>
+            <span className="text-[11px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md">
+              {(formData.ticker?.items || DEFAULT_TICKER_ITEMS).length} Badges
+            </span>
+          </div>
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-1">Scrolling Ticker</h3>
+          <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+            স্ক্রলিং নোটিস ও ব্যাজসমূহ
           </p>
         </button>
       </div>
@@ -1023,6 +1191,549 @@ export default function BannersTab() {
       )}
 
       {/* ========================================================================= */}
+      {/* SECTION 4: SCROLLING TICKER & CUSTOM NOTICE (OPTION 4)                    */}
+      {/* ========================================================================= */}
+      {activeSection === 'ticker_marquee' && (
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xs space-y-6">
+          
+          {/* Section Header & Master Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Megaphone className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase text-purple-700 tracking-wider">Option 4</span>
+                <h3 className="text-base sm:text-lg font-black text-slate-900">
+                  Hero Bottom Scrolling Ticker & Custom Notice
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  হিরো ব্যানারের ঠিক নিচে চলমান টেক্সট/নোটিস ও সুবিধা ব্যাজসমূহ পরিচালনা ও কাস্টমাইজ করুন।
+                </p>
+              </div>
+            </div>
+
+            {/* Master Enable/Disable Switch */}
+            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl self-start sm:self-auto">
+              <span className="text-xs font-bold text-slate-700">
+                {ticker.enabled !== false ? 'স্ক্রলিং বার চালু আছে' : 'স্ক্রলিং বার বন্ধ আছে'}
+              </span>
+              <button
+                type="button"
+                onClick={() => updateTicker('enabled', ticker.enabled === false ? true : false)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                  ticker.enabled !== false ? 'bg-[#c92127]' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    ticker.enabled !== false ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Mode Selector Cards */}
+          <div className="space-y-3">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+              ডিসপ্লে মোড সিলেক্ট করুন (Display Mode)
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              
+              {/* Mode 1: Badges */}
+              <button
+                type="button"
+                onClick={() => updateTicker('mode', 'badges')}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  (ticker.mode || 'badges') === 'badges'
+                    ? 'bg-purple-50/70 border-purple-500 ring-2 ring-purple-500/20 shadow-xs'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">আইকন সহ সুবিধা ব্যাজ</strong>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                  স্টাইলিশ আইকন, টাইটেল ও বিবরণ সহ প্রতিটি সুবিধা পর্যায়ক্রমে স্ক্রল করবে।
+                </p>
+              </button>
+
+              {/* Mode 2: Custom Text */}
+              <button
+                type="button"
+                onClick={() => updateTicker('mode', 'custom_text')}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  ticker.mode === 'custom_text'
+                    ? 'bg-purple-50/70 border-purple-500 ring-2 ring-purple-500/20 shadow-xs'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">কাস্টম লেখা / নোটিস</strong>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                  নিজের ইচ্ছামতো যেকোনো অফার বা টেক্সট লিখে সরাসরি স্ক্রল করাতে পারবেন।
+                </p>
+              </button>
+
+              {/* Mode 3: Both Combined */}
+              <button
+                type="button"
+                onClick={() => updateTicker('mode', 'both')}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  ticker.mode === 'both'
+                    ? 'bg-purple-50/70 border-purple-500 ring-2 ring-purple-500/20 shadow-xs'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center text-xs font-bold">3</span>
+                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">উভয় একসাথে (Combined)</strong>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                  কাস্টম অফার নোটিস হাইলাইট হয়ে থাকবে এবং সাথে সুবিধা ব্যাজগুলোও স্ক্রল হবে।
+                </p>
+              </button>
+
+            </div>
+          </div>
+
+          {/* Custom Textarea (When mode is custom_text or both) */}
+          {(ticker.mode === 'custom_text' || ticker.mode === 'both') && (
+            <div className="p-4 sm:p-5 bg-purple-50/50 border border-purple-200/80 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-purple-900 flex items-center gap-2">
+                  <Type className="w-4 h-4 text-purple-600" />
+                  <span>কাস্টম স্ক্রলিং টেক্সট বা নোটিস লিখুন</span>
+                </label>
+                <span className="text-[11px] font-bold text-purple-700">
+                  {ticker.customText?.length || 0} অক্ষর
+                </span>
+              </div>
+
+              <textarea
+                rows={2}
+                value={ticker.customText || ''}
+                onChange={(e) => updateTicker('customText', e.target.value)}
+                placeholder="যেমন: 🎉 বিশেষ অফার: সকল Splashjet কালিতে আকর্ষণীয় ছাড়! • সারাদেশে দ্রুত ক্যাশ অন ডেলিভারি • হটলাইন: 01777-277740"
+                className="w-full text-xs sm:text-sm px-4 py-3 bg-white border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium text-slate-900"
+              />
+
+              {/* Quick Preset Message Chips */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-purple-900">
+                  ⚡ দ্রুত রেডিমেড মেসেজ সিলেক্ট করুন (ক্লিক করলেই পেস্ট হবে):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    '🎉 বিশেষ অফার: সকল Splashjet কালিতে আকর্ষণীয় ছাড়! • সারাদেশে দ্রুত ক্যাশ অন ডেলিভারি • হটলাইন: 01777-277740',
+                    '🚚 আজই অর্ডার করুন! সারাদেশে ২৪-৪৮ ঘণ্টায় ক্যাশ অন ডেলিভারি ও লাইভ ট্র্যাকিং সুবিধা',
+                    '⭐ শতভাগ অথেনটিক Splashjet ডিজিটাল কালি ও ১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি',
+                    '📞 সরাসরি কল বা হোয়াটসঅ্যাপের মাধ্যমে অর্ডার করতে কল করুন: 01777-277740 (সকাল ১০টা - রাত ৮টা)'
+                  ].map((preset, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => updateTicker('customText', preset)}
+                      className="text-[11px] font-semibold bg-white hover:bg-purple-100 text-purple-800 border border-purple-200 px-3 py-1.5 rounded-lg transition-all text-left line-clamp-1 cursor-pointer"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Speed & Pause-on-Hover Controls */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            {/* Speed Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-slate-500" />
+                <span>স্ক্রলিং গতি (Scroll Speed)</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'slow', label: 'ধীর (Slow - 48s)' },
+                  { id: 'normal', label: 'স্বাভাবিক (30s)' },
+                  { id: 'fast', label: 'দ্রুত (Fast - 18s)' }
+                ].map((sp) => (
+                  <button
+                    key={sp.id}
+                    type="button"
+                    onClick={() => updateTicker('speed', sp.id)}
+                    className={`py-2 px-2 text-xs font-bold rounded-lg border transition-all cursor-pointer text-center ${
+                      (ticker.speed || 'normal') === sp.id
+                        ? 'bg-[#c92127] text-white border-[#c92127] shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {sp.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pause On Hover Switch */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Play className="w-3.5 h-3.5 text-slate-500" />
+                <span>মাউস রাখলে থামবে কিনা (Pause on Hover)</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => updateTicker('pauseOnHover', ticker.pauseOnHover === false ? true : false)}
+                className={`w-full py-2 px-4 rounded-lg border text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  ticker.pauseOnHover !== false
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                    : 'bg-white border-slate-200 text-slate-600'
+                }`}
+              >
+                <span>{ticker.pauseOnHover !== false ? '✓ মাউস রাখলে থামবে (Pause Enabled)' : '✕ সবসময় চলতে থাকবে'}</span>
+                <span className="text-[10px] bg-white px-2 py-0.5 rounded font-black shadow-2xs">
+                  {ticker.pauseOnHover !== false ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Badges Manager (When mode is badges or both) */}
+          {(ticker.mode !== 'custom_text') && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-black text-slate-900">
+                    সুবিধা ব্যাজসমূহ তালিকা ({(ticker.items || DEFAULT_TICKER_ITEMS).length}টি আইটেম)
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    প্রতিটি ব্যাজের লিখা, আইকন ও কালার পরিবর্তন করুন অথবা নতুন ব্যাজ যোগ করুন।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddTickerItem}
+                  className="inline-flex items-center gap-1.5 bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-2xs cursor-pointer transition-all active:scale-95"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>নতুন সুবিধা যোগ করুন</span>
+                </button>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-3">
+                {(ticker.items || DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                  const iconObj = AVAILABLE_TICKER_ICONS.find(i => i.id === item.iconName) || AVAILABLE_TICKER_ICONS[0];
+                  const IconComp = iconObj.Icon;
+                  const colorObj = AVAILABLE_TICKER_COLORS.find(c => c.id === item.badgeColor) || AVAILABLE_TICKER_COLORS[0];
+
+                  return (
+                    <div 
+                      key={item.id || idx} 
+                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-all space-y-3"
+                    >
+                      {/* Item Top Bar with Reorder & Delete */}
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/80">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-md bg-slate-200 text-slate-700 flex items-center justify-center text-[10px] font-black">
+                            {idx + 1}
+                          </span>
+                          <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center`}>
+                            <IconComp className="w-3.5 h-3.5" />
+                          </span>
+                          <strong className="text-xs font-bold text-slate-800 line-clamp-1">
+                            {item.title || `সুবিধা #${idx + 1}`}
+                          </strong>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveTickerItem(idx, -1)}
+                            className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                            title="Move Up"
+                          >
+                            <MoveUp className="w-3 h-3 text-slate-600" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === (ticker.items || DEFAULT_TICKER_ITEMS).length - 1}
+                            onClick={() => handleMoveTickerItem(idx, 1)}
+                            className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
+                            title="Move Down"
+                          >
+                            <MoveDown className="w-3 h-3 text-slate-600" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTickerItem(idx)}
+                            className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 ml-1 cursor-pointer"
+                            title="Delete Item"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Item Form Inputs */}
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        
+                        {/* Title (Main Text) */}
+                        <div className="sm:col-span-4 space-y-1">
+                          <label className="block text-[11px] font-bold text-slate-700">
+                            প্রধান লিখা (Title) *
+                          </label>
+                          <input
+                            type="text"
+                            value={item.title || ''}
+                            onChange={(e) => updateTickerItem(idx, 'title', e.target.value)}
+                            placeholder="যেমন: 1 Year Service Warranty"
+                            className="w-full text-xs px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-[#c92127] font-semibold"
+                          />
+                        </div>
+
+                        {/* Subtitle / Desc (Parenthesis Text) */}
+                        <div className="sm:col-span-4 space-y-1">
+                          <label className="block text-[11px] font-bold text-slate-700">
+                            সংক্ষিপ্ত বিবরণ (Bracket Text)
+                          </label>
+                          <input
+                            type="text"
+                            value={item.desc || ''}
+                            onChange={(e) => updateTickerItem(idx, 'desc', e.target.value)}
+                            placeholder="যেমন: Official Support & Authentic Parts"
+                            className="w-full text-xs px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-[#c92127]"
+                          />
+                        </div>
+
+                        {/* Icon Picker */}
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="block text-[11px] font-bold text-slate-700">
+                            আইকন (Icon)
+                          </label>
+                          <select
+                            value={item.iconName || 'Award'}
+                            onChange={(e) => updateTickerItem(idx, 'iconName', e.target.value)}
+                            className="w-full text-xs px-2.5 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-[#c92127]"
+                          >
+                            {AVAILABLE_TICKER_ICONS.map((ic) => (
+                              <option key={ic.id} value={ic.id}>
+                                {ic.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Color Theme Picker */}
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="block text-[11px] font-bold text-slate-700">
+                            কালার (Theme)
+                          </label>
+                          <select
+                            value={item.badgeColor || 'red'}
+                            onChange={(e) => updateTickerItem(idx, 'badgeColor', e.target.value)}
+                            className="w-full text-xs px-2.5 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-[#c92127]"
+                          >
+                            {AVAILABLE_TICKER_COLORS.map((cl) => (
+                              <option key={cl.id} value={cl.id}>
+                                {cl.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Live Section Sandbox Preview */}
+          <div className="space-y-2 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-purple-600" />
+                <span>লাইভ স্ক্রলিং প্রিভিউ (Live Sandbox Preview)</span>
+              </span>
+              <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                গতি: {ticker.speed === 'fast' ? '18s' : ticker.speed === 'slow' ? '48s' : '30s'}
+              </span>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl py-2.5 px-3 shadow-2xs overflow-hidden relative select-none">
+              <div className="flex overflow-hidden w-full group">
+                <div 
+                  className="flex items-center gap-6 sm:gap-8 flex-shrink-0 animate-marquee-infinite"
+                  style={{ animationDuration: `${ticker.speed === 'fast' ? 18 : ticker.speed === 'slow' ? 48 : 30}s` }}
+                >
+                  {ticker.mode === 'custom_text' ? (
+                    <>
+                      {[1, 2, 3].map((k) => (
+                        <div key={k} className="flex items-center gap-2.5 flex-shrink-0">
+                          <span className="w-6 h-6 rounded-lg bg-red-50 text-[#c92127] inline-flex items-center justify-center flex-shrink-0">
+                            <Megaphone className="w-3.5 h-3.5" />
+                          </span>
+                          <strong className="text-slate-900 font-extrabold text-xs whitespace-nowrap">
+                            {ticker.customText || 'Corporate Technologies BD - 100% Genuine Splashjet Inks'}
+                          </strong>
+                          <span className="text-slate-300 font-black ml-4">•</span>
+                        </div>
+                      ))}
+                    </>
+                  ) : ticker.mode === 'both' ? (
+                    <>
+                      {ticker.customText && (
+                        <div className="flex items-center gap-2 bg-red-50 border border-red-200/80 px-2.5 py-1 rounded-lg flex-shrink-0">
+                          <Megaphone className="w-3.5 h-3.5 text-[#c92127]" />
+                          <strong className="text-[#c92127] font-black text-xs whitespace-nowrap">
+                            {ticker.customText}
+                          </strong>
+                          <span className="text-red-300 font-black ml-2">•</span>
+                        </div>
+                      )}
+                      {(ticker.items || DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                        const iconObj = AVAILABLE_TICKER_ICONS.find(i => i.id === item.iconName) || AVAILABLE_TICKER_ICONS[0];
+                        const IconComp = iconObj.Icon;
+                        const colorObj = AVAILABLE_TICKER_COLORS.find(c => c.id === item.badgeColor) || AVAILABLE_TICKER_COLORS[0];
+                        return (
+                          <div key={item.id || idx} className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                              <IconComp className="w-3.5 h-3.5" />
+                            </span>
+                            <strong className="text-slate-900 font-extrabold text-xs whitespace-nowrap">
+                              {item.title}
+                            </strong>
+                            {item.desc && (
+                              <span className="text-slate-500 font-medium text-xs whitespace-nowrap">
+                                ({item.desc})
+                              </span>
+                            )}
+                            <span className="text-slate-300 font-black ml-3">•</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      {(ticker.items || DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                        const iconObj = AVAILABLE_TICKER_ICONS.find(i => i.id === item.iconName) || AVAILABLE_TICKER_ICONS[0];
+                        const IconComp = iconObj.Icon;
+                        const colorObj = AVAILABLE_TICKER_COLORS.find(c => c.id === item.badgeColor) || AVAILABLE_TICKER_COLORS[0];
+                        return (
+                          <div key={item.id || idx} className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                              <IconComp className="w-3.5 h-3.5" />
+                            </span>
+                            <strong className="text-slate-900 font-extrabold text-xs whitespace-nowrap">
+                              {item.title}
+                            </strong>
+                            {item.desc && (
+                              <span className="text-slate-500 font-medium text-xs whitespace-nowrap">
+                                ({item.desc})
+                              </span>
+                            )}
+                            <span className="text-slate-300 font-black ml-3">•</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+
+                {/* Duplicated track for seamless loop */}
+                <div 
+                  className="flex items-center gap-6 sm:gap-8 flex-shrink-0 animate-marquee-infinite"
+                  aria-hidden="true"
+                  style={{ animationDuration: `${ticker.speed === 'fast' ? 18 : ticker.speed === 'slow' ? 48 : 30}s` }}
+                >
+                  {ticker.mode === 'custom_text' ? (
+                    <>
+                      {[1, 2, 3].map((k) => (
+                        <div key={`d-${k}`} className="flex items-center gap-2.5 flex-shrink-0">
+                          <span className="w-6 h-6 rounded-lg bg-red-50 text-[#c92127] inline-flex items-center justify-center flex-shrink-0">
+                            <Megaphone className="w-3.5 h-3.5" />
+                          </span>
+                          <strong className="text-slate-900 font-extrabold text-xs whitespace-nowrap">
+                            {ticker.customText || 'Corporate Technologies BD - 100% Genuine Splashjet Inks'}
+                          </strong>
+                          <span className="text-slate-300 font-black ml-4">•</span>
+                        </div>
+                      ))}
+                    </>
+                  ) : ticker.mode === 'both' ? (
+                    <>
+                      {ticker.customText && (
+                        <div className="flex items-center gap-2 bg-red-50 border border-red-200/80 px-2.5 py-1 rounded-lg flex-shrink-0">
+                          <Megaphone className="w-3.5 h-3.5 text-[#c92127]" />
+                          <strong className="text-[#c92127] font-black text-xs whitespace-nowrap">
+                            {ticker.customText}
+                          </strong>
+                          <span className="text-red-300 font-black ml-2">•</span>
+                        </div>
+                      )}
+                      {(ticker.items || DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                        const iconObj = AVAILABLE_TICKER_ICONS.find(i => i.id === item.iconName) || AVAILABLE_TICKER_ICONS[0];
+                        const IconComp = iconObj.Icon;
+                        const colorObj = AVAILABLE_TICKER_COLORS.find(c => c.id === item.badgeColor) || AVAILABLE_TICKER_COLORS[0];
+                        return (
+                          <div key={`d-${item.id || idx}`} className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                              <IconComp className="w-3.5 h-3.5" />
+                            </span>
+                            <strong className="text-slate-900 font-extrabold text-xs whitespace-nowrap">
+                              {item.title}
+                            </strong>
+                            {item.desc && (
+                              <span className="text-slate-500 font-medium text-xs whitespace-nowrap">
+                                ({item.desc})
+                              </span>
+                            )}
+                            <span className="text-slate-300 font-black ml-3">•</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      {(ticker.items || DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                        const iconObj = AVAILABLE_TICKER_ICONS.find(i => i.id === item.iconName) || AVAILABLE_TICKER_ICONS[0];
+                        const IconComp = iconObj.Icon;
+                        const colorObj = AVAILABLE_TICKER_COLORS.find(c => c.id === item.badgeColor) || AVAILABLE_TICKER_COLORS[0];
+                        return (
+                          <div key={`d-${item.id || idx}`} className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                              <IconComp className="w-3.5 h-3.5" />
+                            </span>
+                            <strong className="text-slate-900 font-extrabold text-xs whitespace-nowrap">
+                              {item.title}
+                            </strong>
+                            {item.desc && (
+                              <span className="text-slate-500 font-medium text-xs whitespace-nowrap">
+                                ({item.desc})
+                              </span>
+                            )}
+                            <span className="text-slate-300 font-black ml-3">•</span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* LIVE PREVIEW BOX                                                          */}
       {/* ========================================================================= */}
       <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
@@ -1030,116 +1741,156 @@ export default function BannersTab() {
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-emerald-400" />
             <h4 className="text-sm font-extrabold uppercase tracking-wider text-slate-200">
-              Live Mockup Preview (All 3 Options)
+              Live Mockup Preview (All 4 Options Combined)
             </h4>
           </div>
           <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-800/80">
-            Realtime View
+            Realtime Live View
           </span>
         </div>
 
         {/* Scaled Preview Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 bg-slate-950 p-3 sm:p-4 rounded-xl border border-slate-800">
-          
-          {/* Main Slider Preview (Left) */}
-          <div className="lg:col-span-8 h-[200px] sm:h-[240px] rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-r from-amber-50 via-white to-red-50 p-4 flex items-center justify-between text-slate-900 select-none">
-            {currentSlide.isCustomGraphic && currentSlide.customGraphicUrl ? (
-              <img 
-                src={currentSlide.customGraphicUrl} 
-                alt="Full Graphic" 
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <>
-                <div className="space-y-1.5 max-w-[55%] z-10">
-                  <span className="inline-block text-[9px] font-bold bg-white/90 text-slate-800 px-2 py-0.5 rounded-full border border-slate-200">
-                    {currentSlide.badgeText}
-                  </span>
-                  <h3 className="text-base sm:text-xl font-black text-slate-900 line-clamp-1">
-                    {currentSlide.title}
-                  </h3>
-                  <span className="inline-block text-[9px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded">
-                    {currentSlide.warrantyBadge}
-                  </span>
-                  <p className="text-[10px] text-slate-500 line-clamp-1">
-                    {currentSlide.description}
-                  </p>
-                  <button className="bg-[#c92127] text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm mt-1">
-                    <span>{currentSlide.ctaText || 'Shop Now'}</span>
-                    <ArrowRight className="w-2.5 h-2.5" />
-                  </button>
-                </div>
-
-                <div className="w-[45%] h-full flex items-center justify-end relative z-10">
-                  {currentSlide.floatingBadge && (
-                    <span className="absolute top-1 right-1 bg-[#c92127] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow">
-                      {currentSlide.floatingBadge}
-                    </span>
-                  )}
-                  <img
-                    src={currentSlide.cardImage || '/splashjet_images/grow-your-canon-lfp-ink-business.png'}
-                    alt="product"
-                    className="max-h-full max-w-full object-contain filter drop-shadow-md"
-                    onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* 2 Side Banners Preview (Right) */}
-          <div className="lg:col-span-4 flex flex-col gap-2.5 justify-between">
-            {/* Side 1 Preview */}
-            <div className="h-[95px] sm:h-[115px] rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-br from-amber-50 via-white to-red-50/60 p-2.5 flex items-center justify-between text-slate-900">
-              {side1.isCustomGraphic && side1.customGraphicUrl ? (
-                <img src={side1.customGraphicUrl} alt="Graphic" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="space-y-3 bg-slate-950 p-3 sm:p-4 rounded-xl border border-slate-800">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+            {/* Main Slider Preview (Left) */}
+            <div className="lg:col-span-8 h-[200px] sm:h-[240px] rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-r from-amber-50 via-white to-red-50 p-4 flex items-center justify-between text-slate-900 select-none">
+              {currentSlide.isCustomGraphic && currentSlide.customGraphicUrl ? (
+                <img 
+                  src={currentSlide.customGraphicUrl} 
+                  alt="Full Graphic" 
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
               ) : (
                 <>
-                  <div className="space-y-0.5 max-w-[65%]">
-                    <span className="text-[8px] font-extrabold text-[#c92127] bg-red-100 px-1.5 py-0.2 rounded-full">
-                      {side1.badgeText || 'Official Partner'}
+                  <div className="space-y-1.5 max-w-[55%] z-10">
+                    <span className="inline-block text-[9px] font-bold bg-white/90 text-slate-800 px-2 py-0.5 rounded-full border border-slate-200">
+                      {currentSlide.badgeText}
                     </span>
-                    <h4 className="text-xs font-black text-slate-900 line-clamp-1 mt-0.5">{side1.title}</h4>
-                    <p className="text-[9px] text-slate-500 line-clamp-1">{side1.subtitle}</p>
-                    <span className="text-[9px] font-bold text-[#c92127] flex items-center gap-0.5">
-                      {side1.ctaText} <ArrowRight className="w-2.5 h-2.5" />
+                    <h3 className="text-base sm:text-xl font-black text-slate-900 line-clamp-1">
+                      {currentSlide.title}
+                    </h3>
+                    <span className="inline-block text-[9px] font-bold bg-slate-900 text-white px-2 py-0.5 rounded">
+                      {currentSlide.warrantyBadge}
                     </span>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg bg-white p-1 flex items-center justify-center flex-shrink-0">
-                    <img src={side1.image || '/splashjet_images/grow-your-canon-lfp-ink-business.png'} alt="side1" className="w-full h-full object-contain" />
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Side 2 Preview */}
-            <div className="h-[95px] sm:h-[115px] rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2.5 flex flex-col justify-between text-white">
-              {side2.isCustomGraphic && side2.customGraphicUrl ? (
-                <img src={side2.customGraphicUrl} alt="Graphic" className="absolute inset-0 w-full h-full object-cover" />
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.2 rounded">
-                      {side2.badgeText || 'Direct Helpline'}
-                    </span>
-                    <span className="text-[8px] text-slate-400">{side2.subBadge}</span>
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-white flex items-center gap-1">
-                      <PhoneCall className="w-3 h-3 text-[#c92127]" />
-                      <span>{side2.phone}</span>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">
+                      {currentSlide.description}
                     </p>
-                    <p className="text-[9px] text-slate-300 line-clamp-1">{side2.desc}</p>
+                    <button className="bg-[#c92127] text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm mt-1">
+                      <span>{currentSlide.ctaText || 'Shop Now'}</span>
+                      <ArrowRight className="w-2.5 h-2.5" />
+                    </button>
                   </div>
-                  <span className="text-[9px] font-bold text-amber-300 flex items-center justify-between">
-                    <span>{side2.ctaText}</span>
-                    <ArrowRight className="w-2.5 h-2.5" />
-                  </span>
+
+                  <div className="w-[45%] h-full flex items-center justify-end relative z-10">
+                    {currentSlide.floatingBadge && (
+                      <span className="absolute top-1 right-1 bg-[#c92127] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow">
+                        {currentSlide.floatingBadge}
+                      </span>
+                    )}
+                    <img
+                      src={currentSlide.cardImage || '/splashjet_images/grow-your-canon-lfp-ink-business.png'}
+                      alt="product"
+                      className="max-h-full max-w-full object-contain filter drop-shadow-md"
+                      onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
+                    />
+                  </div>
                 </>
               )}
             </div>
+
+            {/* 2 Side Banners Preview (Right) */}
+            <div className="lg:col-span-4 flex flex-col gap-2.5 justify-between">
+              {/* Side 1 Preview */}
+              <div className="h-[95px] sm:h-[115px] rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-br from-amber-50 via-white to-red-50/60 p-2.5 flex items-center justify-between text-slate-900">
+                {side1.isCustomGraphic && side1.customGraphicUrl ? (
+                  <img src={side1.customGraphicUrl} alt="Graphic" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <>
+                    <div className="space-y-0.5 max-w-[65%]">
+                      <span className="text-[8px] font-extrabold text-[#c92127] bg-red-100 px-1.5 py-0.2 rounded-full">
+                        {side1.badgeText || 'Official Partner'}
+                      </span>
+                      <h4 className="text-xs font-black text-slate-900 line-clamp-1 mt-0.5">{side1.title}</h4>
+                      <p className="text-[9px] text-slate-500 line-clamp-1">{side1.subtitle}</p>
+                      <span className="text-[9px] font-bold text-[#c92127] flex items-center gap-0.5">
+                        {side1.ctaText} <ArrowRight className="w-2.5 h-2.5" />
+                      </span>
+                    </div>
+                    <div className="w-12 h-12 rounded-lg bg-white p-1 flex items-center justify-center flex-shrink-0">
+                      <img src={side1.image || '/splashjet_images/grow-your-canon-lfp-ink-business.png'} alt="side1" className="w-full h-full object-contain" />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Side 2 Preview */}
+              <div className="h-[95px] sm:h-[115px] rounded-xl overflow-hidden relative border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2.5 flex flex-col justify-between text-white">
+                {side2.isCustomGraphic && side2.customGraphicUrl ? (
+                  <img src={side2.customGraphicUrl} alt="Graphic" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.2 rounded">
+                        {side2.badgeText || 'Direct Helpline'}
+                      </span>
+                      <span className="text-[8px] text-slate-400">{side2.subBadge}</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-white flex items-center gap-1">
+                        <PhoneCall className="w-3 h-3 text-[#c92127]" />
+                        <span>{side2.phone}</span>
+                      </p>
+                      <p className="text-[9px] text-slate-300 line-clamp-1">{side2.desc}</p>
+                    </div>
+                    <span className="text-[9px] font-bold text-amber-300 flex items-center justify-between">
+                      <span>{side2.ctaText}</span>
+                      <ArrowRight className="w-2.5 h-2.5" />
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
 
+          {/* Option 4: Scrolling Ticker Preview Bar in Mockup */}
+          {ticker.enabled !== false && (
+            <div className="bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 overflow-hidden select-none">
+              <div className="flex items-center gap-4 animate-marquee-infinite">
+                {ticker.mode === 'custom_text' ? (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="w-5 h-5 rounded bg-red-500/20 text-red-400 inline-flex items-center justify-center">
+                      <Megaphone className="w-3 h-3" />
+                    </span>
+                    <span className="text-[11px] font-bold text-white whitespace-nowrap">
+                      {ticker.customText || 'Corporate Technologies BD - Official Splashjet Inks Distributor'}
+                    </span>
+                    <span className="text-slate-600 font-bold ml-3">•</span>
+                  </div>
+                ) : (
+                  (ticker.items || DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                    const iconObj = AVAILABLE_TICKER_ICONS.find(i => i.id === item.iconName) || AVAILABLE_TICKER_ICONS[0];
+                    const IconComp = iconObj.Icon;
+                    return (
+                      <div key={idx} className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="w-4 h-4 rounded bg-white/10 text-amber-400 inline-flex items-center justify-center">
+                          <IconComp className="w-2.5 h-2.5" />
+                        </span>
+                        <strong className="text-[10px] font-extrabold text-white whitespace-nowrap">
+                          {item.title}
+                        </strong>
+                        {item.desc && (
+                          <span className="text-[9px] text-slate-400 whitespace-nowrap">
+                            ({item.desc})
+                          </span>
+                        )}
+                        <span className="text-slate-600 font-black ml-2">•</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -271,6 +271,60 @@ export function deepMergeHeaderSettings(saved) {
   };
 }
 
+export const DEFAULT_TICKER_ITEMS = [
+  {
+    id: 'ticker-1',
+    iconName: 'ShieldCheck',
+    title: '1 Year Service Warranty',
+    desc: 'Official Support & Authentic Parts',
+    badgeColor: 'amber'
+  },
+  {
+    id: 'ticker-2',
+    iconName: 'Sparkles',
+    title: 'Splashjet Authorized Distributor',
+    desc: '100% Authentic Digital Inks',
+    badgeColor: 'purple'
+  },
+  {
+    id: 'ticker-3',
+    iconName: 'PhoneCall',
+    title: 'Hotline: 01777-277740',
+    desc: 'Direct Call for Orders & Inquiries',
+    badgeColor: 'red'
+  },
+  {
+    id: 'ticker-4',
+    iconName: 'Award',
+    title: '100% Genuine Products',
+    desc: 'Certified Inks & Printers',
+    badgeColor: 'red'
+  },
+  {
+    id: 'ticker-5',
+    iconName: 'Truck',
+    title: 'Fastest Delivery',
+    desc: '24h in Dhaka & Rapid Courier BD',
+    badgeColor: 'sky'
+  },
+  {
+    id: 'ticker-6',
+    iconName: 'Headphones',
+    title: 'Expert Tech Support',
+    desc: 'Dedicated Printer & Hardware Care',
+    badgeColor: 'emerald'
+  }
+];
+
+export const DEFAULT_HERO_TICKER = {
+  enabled: true,
+  mode: 'badges', // 'badges' | 'custom_text' | 'both'
+  customText: '🎉 বিশেষ অফার: সকল Splashjet কালিতে আকর্ষণীয় ছাড়! • সারাদেশে দ্রুত ক্যাশ অন ডেলিভারি • হটলাইন: 01777-277740',
+  speed: 'normal', // 'slow' | 'normal' | 'fast'
+  pauseOnHover: true,
+  items: DEFAULT_TICKER_ITEMS
+};
+
 export const DEFAULT_HERO_BANNERS = {
   // Option 1: Main Slider Carousel
   slides: [
@@ -369,8 +423,27 @@ export const DEFAULT_HERO_BANNERS = {
     bgGradient: 'from-slate-900 via-slate-800 to-slate-900',
     isCustomGraphic: false,
     customGraphicUrl: ''
-  }
+  },
+
+  // Option 4: Bottom Scrolling Ticker / Marquee
+  ticker: DEFAULT_HERO_TICKER
 };
+
+export function deepMergeHeroBanners(saved) {
+  if (!saved || typeof saved !== 'object') return DEFAULT_HERO_BANNERS;
+  return {
+    ...DEFAULT_HERO_BANNERS,
+    ...saved,
+    slides: Array.isArray(saved.slides) && saved.slides.length > 0 ? saved.slides : DEFAULT_HERO_BANNERS.slides,
+    sideBanner1: { ...DEFAULT_HERO_BANNERS.sideBanner1, ...(saved.sideBanner1 || {}) },
+    sideBanner2: { ...DEFAULT_HERO_BANNERS.sideBanner2, ...(saved.sideBanner2 || {}) },
+    ticker: {
+      ...DEFAULT_HERO_TICKER,
+      ...(saved.ticker || {}),
+      items: Array.isArray(saved.ticker?.items) && saved.ticker.items.length > 0 ? saved.ticker.items : DEFAULT_TICKER_ITEMS
+    }
+  };
+}
 
 const LOCAL_BRANDING_KEY = 'corporate_tech_branding_v1';
 const LOCAL_HEADER_KEY = 'corporate_tech_header_settings_v1';
@@ -433,7 +506,7 @@ export function SettingsProvider({ children }) {
     try {
       const saved = localStorage.getItem(LOCAL_HERO_BANNERS_KEY);
       if (saved) {
-        return { ...DEFAULT_HERO_BANNERS, ...JSON.parse(saved) };
+        return deepMergeHeroBanners(JSON.parse(saved));
       }
     } catch (e) {
       console.warn('Failed to load hero banners from localStorage:', e);
@@ -486,7 +559,7 @@ export function SettingsProvider({ children }) {
           .single();
 
         if (!heroErr && heroData?.value) {
-          const mergedHero = { ...DEFAULT_HERO_BANNERS, ...heroData.value };
+          const mergedHero = deepMergeHeroBanners(heroData.value);
           setHeroBanners(mergedHero);
           localStorage.setItem(LOCAL_HERO_BANNERS_KEY, JSON.stringify(mergedHero));
         }

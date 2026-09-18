@@ -233,6 +233,11 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
     }
   }
 
+  function handleManualOrderCreated(newOrder) {
+    setOrders((prev) => [newOrder, ...prev]);
+    loadCustomers();
+  }
+
   // Product Handlers
   async function handleSaveProduct(productPayload, existingId = null) {
     if (existingId) {
@@ -341,6 +346,8 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
               orders={orders}
               ordersLoading={ordersLoading}
               globalSearch={globalSearch}
+              products={products}
+              onOrderCreated={handleManualOrderCreated}
               onSelectOrder={setSelectedOrder}
               onPrintInvoice={setInvoiceOrder}
               onDeleteOrder={handleDeleteOrder}

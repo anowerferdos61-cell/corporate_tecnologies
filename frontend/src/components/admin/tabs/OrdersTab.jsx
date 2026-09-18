@@ -9,24 +9,29 @@ import {
   Phone,
   MessageSquare,
   Download,
-  Upload
+  Upload,
+  Plus
 } from 'lucide-react';
 import { exportToCsv, parseCsv } from '../../../lib/csvHelper';
 import AdminPagination from '../AdminPagination';
+import CreateOrderModal from '../modals/CreateOrderModal';
 
 export default function OrdersTab({
   orders = [],
   ordersLoading = false,
   globalSearch = '',
+  products = [],
   onSelectOrder,
   onPrintInvoice,
   onDeleteOrder,
+  onOrderCreated,
   onImportOrders = () => {},
   isSuperAdmin = true
 }) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   const pendingOrdersCount = orders.filter((o) => o.order_status === 'pending').length;
@@ -186,8 +191,17 @@ export default function OrdersTab({
           </p>
         </div>
 
-        {/* Action Buttons: Export & Import CSV */}
+        {/* Action Buttons: Create Order, Export & Import CSV */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCreateOrderOpen(true)}
+            className="bg-[#c92127] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow-md active:scale-95"
+            title="Create manual order for phone call, WhatsApp, or walk-in customer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Create Order</span>
+          </button>
+
           <input
             ref={fileInputRef}
             type="file"
@@ -450,6 +464,19 @@ export default function OrdersTab({
           />
         )}
       </div>
+
+      {/* Manual Order Creation Modal */}
+      <CreateOrderModal
+        isOpen={isCreateOrderOpen}
+        onClose={() => setIsCreateOrderOpen(false)}
+        products={products}
+        onOrderCreated={(newOrder) => {
+          if (onOrderCreated) {
+            onOrderCreated(newOrder);
+          }
+        }}
+        onPrintInvoice={onPrintInvoice}
+      />
     </div>
   );
 }

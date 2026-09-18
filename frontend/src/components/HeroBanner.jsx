@@ -11,50 +11,53 @@ import {
   ChevronRight, 
   Zap, 
   Flame, 
-  Layers 
+  Layers,
+  Star,
+  CheckCircle2,
+  Tag,
+  Clock,
+  Gift,
+  Package,
+  Percent,
+  Printer,
+  Megaphone,
+  BadgePercent
 } from 'lucide-react';
-import { useSettings, DEFAULT_HERO_BANNERS } from '../context/SettingsContext';
+import { useSettings, DEFAULT_HERO_BANNERS, DEFAULT_HERO_TICKER, DEFAULT_TICKER_ITEMS } from '../context/SettingsContext';
 
 const SLIDE_DURATION = 5000; // 5 seconds auto-scroll per client requirement
 
-const TICKER_ITEMS = [
-  {
-    icon: Award,
-    title: '100% Genuine Products',
-    desc: 'Certified Inks & Printers',
-    bg: 'bg-red-50 text-[#c92127]'
-  },
-  {
-    icon: Truck,
-    title: 'Fastest Delivery',
-    desc: '24h in Dhaka & Rapid Courier BD',
-    bg: 'bg-sky-50 text-sky-600'
-  },
-  {
-    icon: Headphones,
-    title: 'Expert Tech Support',
-    desc: 'Dedicated Printer & Hardware Care',
-    bg: 'bg-emerald-50 text-emerald-600'
-  },
-  {
-    icon: ShieldCheck,
-    title: '1 Year Service Warranty',
-    desc: 'Official Support & Authentic Parts',
-    bg: 'bg-amber-50 text-amber-600'
-  },
-  {
-    icon: Sparkles,
-    title: 'Splashjet Authorized Distributor',
-    desc: '100% Authentic Digital Inks',
-    bg: 'bg-purple-50 text-purple-600'
-  },
-  {
-    icon: PhoneCall,
-    title: 'Hotline: 01777-277740',
-    desc: 'Direct Call for Orders & Inquiries',
-    bg: 'bg-red-50 text-[#c92127]'
-  }
-];
+export const TICKER_ICONS_MAP = {
+  ShieldCheck,
+  Sparkles,
+  PhoneCall,
+  Award,
+  Truck,
+  Headphones,
+  Zap,
+  Flame,
+  Star,
+  CheckCircle2,
+  Tag,
+  Clock,
+  Gift,
+  Package,
+  Percent,
+  Printer,
+  Megaphone,
+  BadgePercent
+};
+
+export const TICKER_COLORS_MAP = {
+  red: { bg: 'bg-red-50 text-[#c92127]' },
+  sky: { bg: 'bg-sky-50 text-sky-600' },
+  emerald: { bg: 'bg-emerald-50 text-emerald-600' },
+  amber: { bg: 'bg-amber-50 text-amber-600' },
+  purple: { bg: 'bg-purple-50 text-purple-600' },
+  indigo: { bg: 'bg-indigo-50 text-indigo-600' },
+  rose: { bg: 'bg-rose-50 text-rose-600' },
+  slate: { bg: 'bg-slate-100 text-slate-700' }
+};
 
 export default function HeroBanner({ onExploreClick, onNavigate }) {
   const { heroBanners } = useSettings();
@@ -62,6 +65,7 @@ export default function HeroBanner({ onExploreClick, onNavigate }) {
   const slidesData = heroBanners?.slides?.length > 0 ? heroBanners.slides : DEFAULT_HERO_BANNERS.slides;
   const side1Data = heroBanners?.sideBanner1 || DEFAULT_HERO_BANNERS.sideBanner1;
   const side2Data = heroBanners?.sideBanner2 || DEFAULT_HERO_BANNERS.sideBanner2;
+  const tickerData = heroBanners?.ticker || DEFAULT_HERO_TICKER;
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -439,49 +443,167 @@ export default function HeroBanner({ onExploreClick, onNavigate }) {
         </div>
 
         {/* TRUST & BENEFITS INSTANT CSS MARQUEE */}
-        <div className="mt-3 sm:mt-4 bg-white border border-slate-200/90 rounded-xl py-2.5 px-3 sm:px-4 shadow-2xs overflow-hidden relative select-none">
-          <div className="flex overflow-hidden w-full group">
-            <div className="flex items-center gap-6 sm:gap-8 flex-shrink-0 animate-marquee-infinite">
-              {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, idx) => {
-                const IconComponent = item.icon;
-                return (
-                  <div key={idx} className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`w-6 h-6 rounded-lg ${item.bg} inline-flex items-center justify-center flex-shrink-0`}>
-                      <IconComponent className="w-3.5 h-3.5" />
-                    </span>
-                    <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
-                      {item.title}
-                    </strong>
-                    <span className="text-slate-500 font-medium text-xs hidden sm:inline whitespace-nowrap">
-                      ({item.desc})
-                    </span>
-                    <span className="text-slate-300 font-black ml-3 sm:ml-4">•</span>
-                  </div>
-                );
-              })}
-            </div>
-            {/* Duplicated track for seamless loop */}
-            <div className="flex items-center gap-6 sm:gap-8 flex-shrink-0 animate-marquee-infinite" aria-hidden="true">
-              {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, idx) => {
-                const IconComponent = item.icon;
-                return (
-                  <div key={`dup-${idx}`} className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`w-6 h-6 rounded-lg ${item.bg} inline-flex items-center justify-center flex-shrink-0`}>
-                      <IconComponent className="w-3.5 h-3.5" />
-                    </span>
-                    <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
-                      {item.title}
-                    </strong>
-                    <span className="text-slate-500 font-medium text-xs hidden sm:inline whitespace-nowrap">
-                      ({item.desc})
-                    </span>
-                    <span className="text-slate-300 font-black ml-3 sm:ml-4">•</span>
-                  </div>
-                );
-              })}
+        {tickerData?.enabled !== false && (
+          <div className="mt-3 sm:mt-4 bg-white border border-slate-200/90 rounded-xl py-2.5 px-3 sm:px-4 shadow-2xs overflow-hidden relative select-none">
+            <div className="flex overflow-hidden w-full group">
+              <div 
+                className="flex items-center gap-6 sm:gap-8 flex-shrink-0 animate-marquee-infinite"
+                style={{ animationDuration: `${tickerData?.speed === 'fast' ? 18 : tickerData?.speed === 'slow' ? 48 : 30}s` }}
+              >
+                {/* Mode: custom_text */}
+                {tickerData?.mode === 'custom_text' ? (
+                  <>
+                    {[1, 2, 3].map((k) => (
+                      <div key={k} className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className="w-6 h-6 rounded-lg bg-red-50 text-[#c92127] inline-flex items-center justify-center flex-shrink-0">
+                          <Megaphone className="w-3.5 h-3.5" />
+                        </span>
+                        <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
+                          {tickerData?.customText || 'Corporate Technologies BD - 100% Genuine Splashjet Inks & Printer Supplies'}
+                        </strong>
+                        <span className="text-slate-300 font-black ml-4">•</span>
+                      </div>
+                    ))}
+                  </>
+                ) : tickerData?.mode === 'both' ? (
+                  <>
+                    {tickerData?.customText && (
+                      <div className="flex items-center gap-2 bg-red-50 border border-red-200/80 px-2.5 py-1 rounded-lg flex-shrink-0">
+                        <Megaphone className="w-3.5 h-3.5 text-[#c92127]" />
+                        <strong className="text-[#c92127] font-black text-xs sm:text-sm whitespace-nowrap">
+                          {tickerData.customText}
+                        </strong>
+                        <span className="text-red-300 font-black ml-2">•</span>
+                      </div>
+                    )}
+                    {(tickerData?.items?.length > 0 ? tickerData.items : DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                      const IconComponent = TICKER_ICONS_MAP[item.iconName] || Award;
+                      const colorObj = TICKER_COLORS_MAP[item.badgeColor] || TICKER_COLORS_MAP.red;
+                      return (
+                        <div key={item.id || idx} className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                            <IconComponent className="w-3.5 h-3.5" />
+                          </span>
+                          <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
+                            {item.title}
+                          </strong>
+                          {item.desc && (
+                            <span className="text-slate-500 font-medium text-xs hidden sm:inline whitespace-nowrap">
+                              ({item.desc})
+                            </span>
+                          )}
+                          <span className="text-slate-300 font-black ml-3 sm:ml-4">•</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <>
+                    {/* Mode: badges (Default) */}
+                    {(tickerData?.items?.length > 0 ? tickerData.items : DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                      const IconComponent = TICKER_ICONS_MAP[item.iconName] || Award;
+                      const colorObj = TICKER_COLORS_MAP[item.badgeColor] || TICKER_COLORS_MAP.red;
+                      return (
+                        <div key={item.id || idx} className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                            <IconComponent className="w-3.5 h-3.5" />
+                          </span>
+                          <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
+                            {item.title}
+                          </strong>
+                          {item.desc && (
+                            <span className="text-slate-500 font-medium text-xs hidden sm:inline whitespace-nowrap">
+                              ({item.desc})
+                            </span>
+                          )}
+                          <span className="text-slate-300 font-black ml-3 sm:ml-4">•</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+
+              {/* Duplicated track for seamless loop */}
+              <div 
+                className="flex items-center gap-6 sm:gap-8 flex-shrink-0 animate-marquee-infinite" 
+                aria-hidden="true"
+                style={{ animationDuration: `${tickerData?.speed === 'fast' ? 18 : tickerData?.speed === 'slow' ? 48 : 30}s` }}
+              >
+                {tickerData?.mode === 'custom_text' ? (
+                  <>
+                    {[1, 2, 3].map((k) => (
+                      <div key={`dup-${k}`} className="flex items-center gap-2.5 flex-shrink-0">
+                        <span className="w-6 h-6 rounded-lg bg-red-50 text-[#c92127] inline-flex items-center justify-center flex-shrink-0">
+                          <Megaphone className="w-3.5 h-3.5" />
+                        </span>
+                        <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
+                          {tickerData?.customText || 'Corporate Technologies BD - 100% Genuine Splashjet Inks & Printer Supplies'}
+                        </strong>
+                        <span className="text-slate-300 font-black ml-4">•</span>
+                      </div>
+                    ))}
+                  </>
+                ) : tickerData?.mode === 'both' ? (
+                  <>
+                    {tickerData?.customText && (
+                      <div className="flex items-center gap-2 bg-red-50 border border-red-200/80 px-2.5 py-1 rounded-lg flex-shrink-0">
+                        <Megaphone className="w-3.5 h-3.5 text-[#c92127]" />
+                        <strong className="text-[#c92127] font-black text-xs sm:text-sm whitespace-nowrap">
+                          {tickerData.customText}
+                        </strong>
+                        <span className="text-red-300 font-black ml-2">•</span>
+                      </div>
+                    )}
+                    {(tickerData?.items?.length > 0 ? tickerData.items : DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                      const IconComponent = TICKER_ICONS_MAP[item.iconName] || Award;
+                      const colorObj = TICKER_COLORS_MAP[item.badgeColor] || TICKER_COLORS_MAP.red;
+                      return (
+                        <div key={`dup-${item.id || idx}`} className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                            <IconComponent className="w-3.5 h-3.5" />
+                          </span>
+                          <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
+                            {item.title}
+                          </strong>
+                          {item.desc && (
+                            <span className="text-slate-500 font-medium text-xs hidden sm:inline whitespace-nowrap">
+                              ({item.desc})
+                            </span>
+                          )}
+                          <span className="text-slate-300 font-black ml-3 sm:ml-4">•</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <>
+                    {(tickerData?.items?.length > 0 ? tickerData.items : DEFAULT_TICKER_ITEMS).map((item, idx) => {
+                      const IconComponent = TICKER_ICONS_MAP[item.iconName] || Award;
+                      const colorObj = TICKER_COLORS_MAP[item.badgeColor] || TICKER_COLORS_MAP.red;
+                      return (
+                        <div key={`dup-${item.id || idx}`} className="flex items-center gap-2 flex-shrink-0">
+                          <span className={`w-6 h-6 rounded-lg ${colorObj.bg} inline-flex items-center justify-center flex-shrink-0`}>
+                            <IconComponent className="w-3.5 h-3.5" />
+                          </span>
+                          <strong className="text-slate-900 font-extrabold text-xs sm:text-sm whitespace-nowrap">
+                            {item.title}
+                          </strong>
+                          {item.desc && (
+                            <span className="text-slate-500 font-medium text-xs hidden sm:inline whitespace-nowrap">
+                              ({item.desc})
+                            </span>
+                          )}
+                          <span className="text-slate-300 font-black ml-3 sm:ml-4">•</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
       </div>
 
@@ -504,13 +626,15 @@ export default function HeroBanner({ onExploreClick, onNavigate }) {
         .animate-marquee-infinite {
           display: flex;
           align-items: center;
-          animation: marqueeInfinite 32s linear infinite;
+          animation: marqueeInfinite 30s linear infinite;
           will-change: transform;
         }
 
-        .group:hover .animate-marquee-infinite {
-          animation-play-state: paused;
-        }
+        ${tickerData?.pauseOnHover !== false ? `
+          .group:hover .animate-marquee-infinite {
+            animation-play-state: paused;
+          }
+        ` : ''}
       `}} />
     </section>
   );

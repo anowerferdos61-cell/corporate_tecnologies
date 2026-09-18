@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   KeyRound,
   Truck,
@@ -20,13 +20,27 @@ import {
   Edit2,
   Layers,
   Check,
-  Search
+  Search,
+  Sparkles,
+  Droplet,
+  Printer,
+  ShoppingBag,
+  Award,
+  Tag,
+  ShieldCheck,
+  Box,
+  RotateCcw
 } from 'lucide-react';
 import { updateAdminPin, fetchStaffUsers, createStaffUser, deleteStaffUser } from '../../../lib/adminAuth';
 import { updateStoreSetting } from '../../../lib/adminOrderService';
 import { fetchFlashSaleSettings, updateFlashSaleSettings } from '../../../lib/flashSaleService';
 import { fetchShippingTiers, saveShippingTier, deleteShippingTier, DEFAULT_SHIPPING_TIERS } from '../../../lib/shippingService';
 import { getCachedCategoriesTree } from '../../../lib/categoryService';
+import {
+  fetchPopularCategoriesSettings,
+  savePopularCategoriesSettings,
+  DEFAULT_POPULAR_CATEGORIES_SETTINGS
+} from '../../../lib/popularCategoriesService';
 
 export default function SettingsTab({
   insideDhakaFee = 60,
@@ -40,6 +54,9 @@ export default function SettingsTab({
   // PIN State
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinMessage, setPinMessage] = useState(null);
+  const [pinLoading, setPinLoading] = useState(false);
   const [pinSuccess, setPinSuccess] = useState('');
   const [pinError, setPinError] = useState('');
 
@@ -48,11 +65,23 @@ export default function SettingsTab({
   const [outDhaka, setOutDhaka] = useState(outsideDhakaFee);
   const [deliveryFeeSaved, setDeliveryFeeSaved] = useState(false);
   const [deliveryFeeError, setDeliveryFeeError] = useState('');
+  const [insideFee, setInsideFee] = useState(insideDhakaFee);
+  const [outsideFee, setOutsideFee] = useState(outsideDhakaFee);
+  const [courier, setCourier] = useState(defaultCourier);
+  const [feeMessage, setFeeMessage] = useState(null);
+  const [feeLoading, setFeeLoading] = useState(false);
+
+  // Free Delivery Threshold State
+  const [freeDeliveryEnabled, setFreeDeliveryEnabled] = useState(false);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(2000);
+  const [thresholdLoading, setThresholdLoading] = useState(false);
+  const [thresholdSaved, setThresholdSaved] = useState(false);
 
   // Shipping Tiers State
   const [shippingTiers, setShippingTiers] = useState(DEFAULT_SHIPPING_TIERS);
   const [tiersLoading, setTiersLoading] = useState(false);
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
+  const [tierModalOpen, setTierModalOpen] = useState(false);
   const [editingTier, setEditingTier] = useState(null);
   const [tierSaveMsg, setTierSaveMsg] = useState('');
   const [tierForm, setTierForm] = useState({
@@ -66,7 +95,19 @@ export default function SettingsTab({
     product_ids: []
   });
   const [tierProductSearch, setTierProductSearch] = useState('');
+  const [selectedProductIds, setSelectedProductIds] = useState(new Set());
   const [categoriesList, setCategoriesList] = useState([]);
+
+  // Section collapse state (all open by default)
+  const [collapsedSections, setCollapsedSections] = useState(new Set());
+  const toggleSection = (key) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // Courier State
   const [selectedCourier, setSelectedCourier] = useState(defaultCourier);
@@ -100,9 +141,92 @@ export default function SettingsTab({
     title: 'সীমিত সময়ের ফ্ল্যাশ ডিল',
     subtitle: 'প্রিন্টার ও Splashjet কালিতে আকর্ষণীয় ছাড়!',
     discount_banner: 'UP TO 35% OFF',
-    end_time: new Date(Date.now() + 48 * 3600000).toISOString()
+    end_time: new Date(Date.now() + 48 * 3600000).toISOString(),
+    featured_categories: ['Printers', 'Splashjet Inks'],
+    display_limit: 4
   });
   const [flashSaved, setFlashSaved] = useState(false);
+  const [flashCatSearch, setFlashCatSearch] = useState('');
+
+  // Popular Categories State (Popular This Week - 3 Configurable Categories)
+  const [popularSettings, setPopularSettings] = useState(DEFAULT_POPULAR_CATEGORIES_SETTINGS);
+  const [popularSaved, setPopularSaved] = useState(false);
+  const [popularLoading, setPopularLoading] = useState(false);
+
+  // Compute category counts from products
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    if (Array.isArray(products)) {
+      products.forEach(p => {
+        if (p.category) {
+          counts[p.category] = (counts[p.category] || 0) + 1;
+        }
+        if (p.sub_category && p.sub_category !== p.category) {
+          counts[p.sub_category] = (counts[p.sub_category] || 0) + 1;
+        }
+      });
+    }
+    return counts;
+  }, [products]);
+
+  // Distinct available categories
+  const availableFlashCategories = useMemo(() => {
+    const list = [...new Set([...categoriesList, ...Object.keys(categoryCounts)])].filter(Boolean);
+    list.sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0));
+    return list;
+  }, [categoriesList, categoryCounts]);
+
+  // Count matching products for selected categories
+  const matchedFlashProductCount = useMemo(() => {
+    if (!Array.isArray(products) || products.length === 0) return 0;
+    const selected = (flashSettings.featured_categories || []).map(c => String(c).toLowerCase().trim()).filter(Boolean);
+    if (selected.length === 0) return products.length;
+
+    return products.filter(p => {
+      const cat = (p.category || '').toLowerCase().trim();
+      const subCat = (p.sub_category || '').toLowerCase().trim();
+      const rawCats = Array.isArray(p.raw_categories) 
+        ? p.raw_categories.map(rc => String(rc).toLowerCase().trim()) 
+        : [];
+
+      return selected.some(fc => 
+        cat === fc || cat.includes(fc) || fc.includes(cat) ||
+        subCat === fc || subCat.includes(fc) || fc.includes(subCat) ||
+        rawCats.some(rc => rc.includes(fc))
+      );
+    }).length;
+  }, [products, flashSettings.featured_categories]);
+
+  // Toggle single category for flash sale
+  function toggleFlashCategory(catName) {
+    setFlashSettings((prev) => {
+      const current = Array.isArray(prev.featured_categories) ? prev.featured_categories : [];
+      const exists = current.some(c => c.toLowerCase().trim() === catName.toLowerCase().trim());
+      const updated = exists 
+        ? current.filter(c => c.toLowerCase().trim() !== catName.toLowerCase().trim())
+        : [...current, catName];
+      return {
+        ...prev,
+        featured_categories: updated
+      };
+    });
+  }
+
+  // Select all categories for flash sale
+  function selectAllFlashCategories(allCats) {
+    setFlashSettings((prev) => ({
+      ...prev,
+      featured_categories: allCats
+    }));
+  }
+
+  // Clear all categories for flash sale
+  function clearAllFlashCategories() {
+    setFlashSettings((prev) => ({
+      ...prev,
+      featured_categories: []
+    }));
+  }
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -110,6 +234,11 @@ export default function SettingsTab({
       fetchFlashSaleSettings()
         .then((s) => {
           if (s) setFlashSettings(s);
+        })
+        .catch(() => {});
+      fetchPopularCategoriesSettings()
+        .then((s) => {
+          if (s) setPopularSettings(s);
         })
         .catch(() => {});
     }
@@ -263,6 +392,187 @@ export default function SettingsTab({
       setTimeout(() => setFlashSaved(false), 3000);
     } catch (err) {
       alert('Failed to save flash sale settings: ' + err.message);
+    }
+  }
+
+  // Helper to get all categories with product counts for Popular slots
+  const allCategoryOptionsWithCount = useMemo(() => {
+    const set = new Set(categoriesList);
+    set.add('Splashjet Inks');
+    set.add('Photocopy Machine & Printers');
+    set.add('Heat Press & Machinery');
+    set.add('Printers');
+    set.add('Photocopy Machines');
+    set.add('Toner & Inks');
+    set.add('POS & Barcode');
+    set.add('Sublimation Paper');
+
+    const list = Array.from(set).filter(Boolean);
+    return list.map((catName) => {
+      const lower = catName.toLowerCase().trim();
+      const count = (products || []).filter((p) => {
+        const c = (p.category || '').toLowerCase().trim();
+        const sc = (p.sub_category || '').toLowerCase().trim();
+        const rc = Array.isArray(p.raw_categories) ? p.raw_categories.map(r => String(r).toLowerCase().trim()) : [];
+        return c === lower || c.includes(lower) || sc === lower || sc.includes(lower) || rc.some(r => r.includes(lower));
+      }).length;
+
+      return {
+        name: catName,
+        count
+      };
+    });
+  }, [categoriesList, products]);
+
+  // Update a single slot field in Popular Categories
+  const updatePopularSlot = (slotIndex, field, value) => {
+    setPopularSettings((prev) => {
+      const currentCats = prev?.categories && prev.categories.length === 3 
+        ? [...prev.categories] 
+        : [...DEFAULT_POPULAR_CATEGORIES_SETTINGS.categories];
+      
+      currentCats[slotIndex] = {
+        ...currentCats[slotIndex],
+        [field]: value
+      };
+      return {
+        ...prev,
+        categories: currentCats
+      };
+    });
+  };
+
+  // Preset switchers for Popular Categories
+  const applyPopularPreset = (presetKey) => {
+    if (presetKey === 'default') {
+      setPopularSettings((prev) => ({
+        ...prev,
+        section_title: 'Popular This Week',
+        section_subtitle: 'Explore our best-selling Inks, Photocopiers and Printers',
+        categories: [
+          {
+            id: 'slot_1',
+            enabled: true,
+            category_name: 'Splashjet Inks',
+            display_title: 'Splashjet Inks',
+            badge_text: 'Premium Inks',
+            subtitle: '100% Authentic OEM-grade refill inks for Epson, Canon, HP & Brother',
+            icon: 'Droplet',
+            limit: 8
+          },
+          {
+            id: 'slot_2',
+            enabled: true,
+            category_name: 'Photocopy Machine & Printers',
+            display_title: 'Photocopy Machine & Printers',
+            badge_text: 'Top Models',
+            subtitle: 'Official Brother, Epson, HP Printers and Toshiba Digital Multifunction Copiers',
+            icon: 'Printer',
+            limit: 8
+          },
+          {
+            id: 'slot_3',
+            enabled: true,
+            category_name: 'Heat Press & Machinery',
+            display_title: 'Heat Press & Machinery',
+            badge_text: 'Top Equipment',
+            subtitle: 'Professional 5-in-1 Combo Heat Press, T-Shirt Flat Press & Sublimation Machinery Solutions',
+            icon: 'Flame',
+            limit: 8
+          }
+        ]
+      }));
+    } else if (presetKey === 'machinery') {
+      setPopularSettings((prev) => ({
+        ...prev,
+        section_title: 'Featured Machines & Equipment',
+        section_subtitle: 'Top rated industrial printers, heavy copiers, and POS hardware',
+        categories: [
+          {
+            id: 'slot_1',
+            enabled: true,
+            category_name: 'Printers',
+            display_title: 'Official Printers',
+            badge_text: 'Top Printers',
+            subtitle: 'Best ink tank and photo printers from Brother & Epson',
+            icon: 'Printer',
+            limit: 8
+          },
+          {
+            id: 'slot_2',
+            enabled: true,
+            category_name: 'Photocopy Machines',
+            display_title: 'Photocopy Machines',
+            badge_text: 'Heavy Duty',
+            subtitle: 'Toshiba digital multifunction copiers & high volume machines',
+            icon: 'Layers',
+            limit: 8
+          },
+          {
+            id: 'slot_3',
+            enabled: true,
+            category_name: 'POS & Barcode',
+            display_title: 'POS & Barcode Solutions',
+            badge_text: 'Retail Ready',
+            subtitle: 'Thermal barcode printers, scanners & cash drawers',
+            icon: 'Zap',
+            limit: 8
+          }
+        ]
+      }));
+    } else if (presetKey === 'consumables') {
+      setPopularSettings((prev) => ({
+        ...prev,
+        section_title: 'Inks, Toners & Sublimation Supplies',
+        section_subtitle: 'Premium imported refill consumables for non-stop printing',
+        categories: [
+          {
+            id: 'slot_1',
+            enabled: true,
+            category_name: 'Splashjet Inks',
+            display_title: 'Splashjet Inks',
+            badge_text: 'Direct Imported',
+            subtitle: 'Official premium refill ink bottles for all inkjet models',
+            icon: 'Droplet',
+            limit: 8
+          },
+          {
+            id: 'slot_2',
+            enabled: true,
+            category_name: 'Toner & Inks',
+            display_title: 'Toner & Cartridges',
+            badge_text: 'Best Price',
+            subtitle: 'High yield laser toner cartridges and replacement parts',
+            icon: 'Package',
+            limit: 8
+          },
+          {
+            id: 'slot_3',
+            enabled: true,
+            category_name: 'Sublimation Paper',
+            display_title: 'Sublimation & DTF Supplies',
+            badge_text: 'Printing Media',
+            subtitle: 'High transfer rate sublimation papers, films and powders',
+            icon: 'Sparkles',
+            limit: 8
+          }
+        ]
+      }));
+    }
+  };
+
+  async function handleSavePopularSettings(e) {
+    if (e) e.preventDefault();
+    setPopularLoading(true);
+    setPopularSaved(false);
+    try {
+      await savePopularCategoriesSettings(popularSettings);
+      setPopularSaved(true);
+      setTimeout(() => setPopularSaved(false), 3500);
+    } catch (err) {
+      alert('Failed to save popular categories settings: ' + err.message);
+    } finally {
+      setPopularLoading(false);
     }
   }
 
@@ -640,6 +950,50 @@ export default function SettingsTab({
                 </p>
               )}
 
+              {/* Real-time Expiry / Live Banner Notice */}
+              {flashSettings.is_active && (
+                (() => {
+                  const now = Date.now();
+                  const target = flashSettings.end_time ? new Date(flashSettings.end_time).getTime() : 0;
+                  const diff = target - now;
+                  const isExpired = diff <= 0;
+
+                  if (isExpired) {
+                    return (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5 text-amber-800">
+                        <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0 animate-bounce" />
+                        <div>
+                          <strong className="block text-xs font-black text-amber-900">
+                            ⚠️ অফারের নির্ধারিত সময় পার হয়ে গেছে (Expired)!
+                          </strong>
+                          <p className="text-[11px] text-amber-700 mt-0.5">
+                            যেহেতু অফারের সময় শেষ, তাই হোমপেজে এটি বর্তমানে অদৃশ্য (Hidden) আছে। ওয়েবসাইটে চালু রাখতে নিচের <strong>কুইক সেট</strong> বাটন থেকে <span className="font-bold underline">+24 Hours</span> বা <span className="font-bold underline">+3 Days</span> ক্লিক করে সেভ করুন।
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                  return (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between gap-2 text-emerald-800">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                        <strong className="text-xs font-bold text-emerald-900">
+                          🟢 ফ্ল্যাশ সেল লাইভ চলছে (হোমপেজে দৃশ্যমান)
+                        </strong>
+                      </div>
+                      <span className="text-[11px] font-mono font-black text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs">
+                        বাকি: {days > 0 ? `${days} দিন ` : ''}{hours} ঘণ্টা {minutes} মিনিট
+                      </span>
+                    </div>
+                  );
+                })()
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">ক্যাম্পেইনের নাম (Campaign Title) *</label>
@@ -695,7 +1049,7 @@ export default function SettingsTab({
                           key={preset.label}
                           type="button"
                           onClick={() => handleSetFlashHours(preset.hours)}
-                          className="bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-300 cursor-pointer shadow-2xs"
+                          className="bg-white hover:bg-slate-100 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-slate-300 cursor-pointer shadow-2xs transition-all active:scale-95"
                         >
                           {preset.label}
                         </button>
@@ -705,10 +1059,146 @@ export default function SettingsTab({
 
                   <input
                     type="datetime-local"
-                    value={flashSettings.end_time ? new Date(new Date(flashSettings.end_time).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setFlashSettings({ ...flashSettings, end_time: new Date(e.target.value).toISOString() })}
+                    value={(() => {
+                      if (!flashSettings.end_time) return '';
+                      try {
+                        const d = new Date(flashSettings.end_time);
+                        if (isNaN(d.getTime())) return '';
+                        const offset = d.getTimezoneOffset() * 60000;
+                        return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+                      } catch {
+                        return '';
+                      }
+                    })()}
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const localDate = new Date(e.target.value);
+                      setFlashSettings({ ...flashSettings, end_time: localDate.toISOString() });
+                    }}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-mono text-xs font-bold text-slate-900 focus:outline-none focus:border-[#c92127]"
                   />
+                </div>
+
+                {/* 4. Multi-Category Selector for Flash Deals */}
+                <div className="sm:col-span-2 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="text-slate-800 font-bold flex items-center gap-1.5 text-xs">
+                        <Layers className="w-3.5 h-3.5 text-[#c92127]" />
+                        <span>ফ্ল্যাশ ডিলের ক্যাটাগরি নির্বাচন (Featured Categories) *</span>
+                      </label>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        একাধিক ক্যাটাগরি সিলেক্ট করতে পারেন। হোমপেজে শুধুমাত্র নির্বাচিত ক্যাটাগরির প্রোডাক্টগুলোই ফ্ল্যাশ ডিলে আসবে।
+                      </p>
+                    </div>
+
+                    {/* Actions: Select All / Clear */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => selectAllFlashCategories(availableFlashCategories)}
+                        className="text-[10px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-lg shadow-2xs cursor-pointer transition-all active:scale-95"
+                      >
+                        সকল ক্যাটাগরি (Select All)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearAllFlashCategories}
+                        className="text-[10px] font-bold text-red-600 bg-white hover:bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg shadow-2xs cursor-pointer transition-all active:scale-95"
+                      >
+                        ক্লিয়ার (Clear)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Search input & Stats badges */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={flashCatSearch}
+                        onChange={(e) => setFlashCatSearch(e.target.value)}
+                        placeholder="ক্যাটাগরি ফিল্টার বা সার্চ করুন..."
+                        className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-[#c92127]"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs whitespace-nowrap">
+                        সিলেক্টেড: <strong className="text-[#c92127]">{(flashSettings.featured_categories || []).length} টি</strong>
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs whitespace-nowrap">
+                        ম্যাচিং প্রোডাক্ট: <strong className="text-emerald-900">{matchedFlashProductCount} টি</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Selectable Categories Grid */}
+                  <div className="max-h-48 overflow-y-auto p-2 bg-white rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {availableFlashCategories
+                      .filter(cat => !flashCatSearch || cat.toLowerCase().includes(flashCatSearch.toLowerCase()))
+                      .map((catName) => {
+                        const isSelected = (flashSettings.featured_categories || []).some(
+                          c => c.toLowerCase().trim() === catName.toLowerCase().trim()
+                        );
+                        const count = categoryCounts[catName] || 0;
+
+                        return (
+                          <button
+                            key={catName}
+                            type="button"
+                            onClick={() => toggleFlashCategory(catName)}
+                            className={`p-2 rounded-lg border text-left flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-red-50 border-[#c92127] text-slate-900 shadow-2xs'
+                                : 'bg-slate-50/70 hover:bg-slate-100 border-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0 border ${
+                                isSelected ? 'bg-[#c92127] text-white border-[#c92127]' : 'bg-white border-slate-300'
+                              }`}>
+                                {isSelected ? <Check className="w-3 h-3 stroke-[3]" /> : null}
+                              </span>
+                              <span className="text-xs font-bold truncate">{catName}</span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-slate-400 shrink-0">
+                              {count} টি
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* Display Limit Selector */}
+                <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 block">
+                      হোমপেজে কতটি প্রোডাক্ট দেখাবে? (Display Limit)
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      নির্বাচিত ক্যাটাগরি থেকে সবচেয়ে বেশি ছাড় থাকা প্রোডাক্টগুলো আগে ডিসপ্লে হবে।
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {[4, 8, 12, 16].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setFlashSettings({ ...flashSettings, display_limit: num })}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          (Number(flashSettings.display_limit) || 4) === num
+                            ? 'bg-[#c92127] text-white border-[#c92127] shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {num} টি
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -724,7 +1214,333 @@ export default function SettingsTab({
           </div>
         )}
 
-        {/* 5. Staff Accounts & Permissions (Multi-Admin Roles) */}
+        {/* 5. Popular This Week (3 Configurable Categories) */}
+        {isSuperAdmin && (
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-6 md:col-span-2">
+            {/* Header & Status Toggle */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5 text-slate-900">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <span>Popular This Week Settings (পপুলার দিস উইক ৩টি ক্যাটাগরি)</span>
+                    <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full">
+                      3 Slots
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    হোমপেজের Popular This Week সেকশনে যেকোনো ৩টি ক্যাটাগরি, প্রোডাক্ট লিমিট, টাইটেল ও আইকন সিলেক্ট করুন
+                  </p>
+                </div>
+              </div>
+
+              {/* Active Toggle */}
+              <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                <span className="text-xs font-bold text-slate-700">সেকশন স্ট্যাটাস:</span>
+                <input
+                  type="checkbox"
+                  checked={popularSettings?.is_active !== false}
+                  onChange={(e) => setPopularSettings({ ...popularSettings, is_active: e.target.checked })}
+                  className="accent-[#c92127] w-4 h-4"
+                />
+                <span className={`text-xs font-bold ${popularSettings?.is_active !== false ? 'text-[#c92127]' : 'text-slate-400'}`}>
+                  {popularSettings?.is_active !== false ? 'Active (চালু)' : 'Hidden (বন্ধ)'}
+                </span>
+              </label>
+            </div>
+
+            <form onSubmit={handleSavePopularSettings} className="space-y-6 text-xs">
+              {popularSaved && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-2 font-bold animate-fade-in">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>✓ Popular This Week সেকশনের ৩টি ক্যাটাগরি সফলভাবে সেভ করা হয়েছে এবং ওয়েবসাইটে লাইভ হয়েছে!</span>
+                </div>
+              )}
+
+              {/* Quick Presets Bar */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-xs font-bold text-slate-700">কুইক রেডিমেড প্রেসেট সিলেক্ট করুন:</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyPopularPreset('default')}
+                    className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#c92127] text-slate-700 hover:text-[#c92127] font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                  >
+                    💎 ডিফল্ট (Inks + Printers + Heat Press)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPopularPreset('machinery')}
+                    className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#c92127] text-slate-700 hover:text-[#c92127] font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                  >
+                    🖨️ মেশিনারি (Printers + Copiers + POS)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPopularPreset('consumables')}
+                    className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#c92127] text-slate-700 hover:text-[#c92127] font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                  >
+                    🧪 কনজিউমেবলস (Inks + Toner + Sublimation)
+                  </button>
+                </div>
+              </div>
+
+              {/* Section Header Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/70">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    সেকশন মেইন টাইটেল:
+                  </label>
+                  <input
+                    type="text"
+                    value={popularSettings.section_title || ''}
+                    onChange={(e) => setPopularSettings({ ...popularSettings, section_title: e.target.value })}
+                    placeholder="e.g. Popular This Week"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#c92127]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    সেকশন সাবটাইটেল:
+                  </label>
+                  <input
+                    type="text"
+                    value={popularSettings.section_subtitle || ''}
+                    onChange={(e) => setPopularSettings({ ...popularSettings, section_subtitle: e.target.value })}
+                    placeholder="e.g. Explore our best-selling Inks..."
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#c92127]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    ভিউ অল বাটন টেক্সট:
+                  </label>
+                  <input
+                    type="text"
+                    value={popularSettings.explore_button_text || ''}
+                    onChange={(e) => setPopularSettings({ ...popularSettings, explore_button_text: e.target.value })}
+                    placeholder="e.g. Explore All Products →"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#c92127]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    ভিউ অল বাটন লিংক:
+                  </label>
+                  <input
+                    type="text"
+                    value={popularSettings.explore_button_link || ''}
+                    onChange={(e) => setPopularSettings({ ...popularSettings, explore_button_link: e.target.value })}
+                    placeholder="e.g. /shop"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#c92127]"
+                  />
+                </div>
+              </div>
+
+              {/* 3 Configurable Category Slot Cards */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                    ৩টি ক্যাটাগরি স্লট কনফিগারেশন:
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    (যে কোনো স্লটের ক্যাটাগরি বা নাম পরিবর্তন করুন)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {(popularSettings.categories || DEFAULT_POPULAR_CATEGORIES_SETTINGS.categories).map((slot, index) => {
+                    const slotNum = index + 1;
+                    const isSlotEnabled = slot?.enabled !== false;
+
+                    return (
+                      <div
+                        key={slot.id || index}
+                        className={`rounded-2xl border p-4 transition-all flex flex-col justify-between ${
+                          isSlotEnabled
+                            ? 'bg-white border-slate-300 shadow-xs ring-1 ring-slate-200'
+                            : 'bg-slate-50 border-slate-200 opacity-60'
+                        }`}
+                      >
+                        <div className="space-y-3">
+                          {/* Slot Header */}
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-lg bg-[#c92127] text-white flex items-center justify-center font-black text-xs">
+                                {slotNum}
+                              </span>
+                              <span className="font-extrabold text-slate-900 text-xs">
+                                ক্যাটাগরি স্লট {slotNum}
+                              </span>
+                            </div>
+
+                            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isSlotEnabled}
+                                onChange={(e) => updatePopularSlot(index, 'enabled', e.target.checked)}
+                                className="accent-[#c92127] w-3.5 h-3.5"
+                              />
+                              <span className="text-[11px] font-bold text-slate-600">
+                                {isSlotEnabled ? 'চালু' : 'বন্ধ'}
+                              </span>
+                            </label>
+                          </div>
+
+                          {/* 1. Category Selector */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              প্রোডাক্ট ক্যাটাগরি সিলেক্ট করুন:
+                            </label>
+                            <select
+                              value={slot.category_name || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                updatePopularSlot(index, 'category_name', val);
+                                if (!slot.display_title || slot.display_title === slot.category_name) {
+                                  updatePopularSlot(index, 'display_title', val);
+                                }
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#c92127]"
+                            >
+                              <option value="All">All (সকল প্রোডাক্ট)</option>
+                              {allCategoryOptionsWithCount.map((cat) => (
+                                <option key={cat.name} value={cat.name}>
+                                  {cat.name} ({cat.count} টি প্রোডাক্ট)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* 2. Custom Display Title */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              হেডারে প্রদর্শিত টাইটেল (Display Title):
+                            </label>
+                            <input
+                              type="text"
+                              value={slot.display_title || ''}
+                              onChange={(e) => updatePopularSlot(index, 'display_title', e.target.value)}
+                              placeholder="e.g. Splashjet Inks"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#c92127]"
+                            />
+                          </div>
+
+                          {/* 3. Badge Text */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              ব্যাজ টেক্সট (Badge Text):
+                            </label>
+                            <input
+                              type="text"
+                              value={slot.badge_text || ''}
+                              onChange={(e) => updatePopularSlot(index, 'badge_text', e.target.value)}
+                              placeholder="e.g. Premium Inks / Top Models"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none focus:border-[#c92127]"
+                            />
+                          </div>
+
+                          {/* 4. Subtitle / Description */}
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                              সাবটাইটেল / বর্ণনা (Subtitle):
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={slot.subtitle || ''}
+                              onChange={(e) => updatePopularSlot(index, 'subtitle', e.target.value)}
+                              placeholder="ক্যাটাগরির বিবরণ লিখুন..."
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none focus:border-[#c92127] resize-none"
+                            />
+                          </div>
+
+                          {/* 5. Icon Picker & Limit */}
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                আইকন:
+                              </label>
+                              <select
+                                value={slot.icon || 'Sparkles'}
+                                onChange={(e) => updatePopularSlot(index, 'icon', e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#c92127]"
+                              >
+                                <option value="Droplet">💧 Droplet (কালি)</option>
+                                <option value="Printer">🖨️ Printer (প্রিন্টার)</option>
+                                <option value="Flame">🔥 Flame (হিট প্রেস / হট)</option>
+                                <option value="Sparkles">✨ Sparkles (ফিচার্ড)</option>
+                                <option value="Zap">⚡ Zap (ফাস্ট / স্পিড)</option>
+                                <option value="Package">📦 Package (টোনা / বক্স)</option>
+                                <option value="Layers">📑 Layers (পেপার / পেজ)</option>
+                                <option value="Award">🏆 Award (টপ রেটেড)</option>
+                                <option value="Tag">🏷️ Tag (অফার)</option>
+                                <option value="Box">📦 Box (মেশিন)</option>
+                                <option value="ShieldCheck">🛡️ ShieldCheck (জেনুইন)</option>
+                                <option value="ShoppingBag">🛍️ ShoppingBag (শপ)</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                প্রোডাক্ট সংখ্যা:
+                              </label>
+                              <select
+                                value={Number(slot.limit) || 8}
+                                onChange={(e) => updatePopularSlot(index, 'limit', Number(e.target.value))}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#c92127]"
+                              >
+                                <option value={4}>4 টি প্রোডাক্ট</option>
+                                <option value={8}>8 টি প্রোডাক্ট (Standard)</option>
+                                <option value={12}>12 টি প্রোডাক্ট</option>
+                                <option value={16}>16 টি প্রোডাক্ট</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Slot Visual Header Preview Tag */}
+                        <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400 font-medium">প্রিভিউ:</span>
+                          <span className="font-extrabold text-[#c92127] truncate max-w-[170px]">
+                            {slot.display_title || slot.category_name}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Submit / Save Button */}
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                <button
+                  type="submit"
+                  disabled={popularLoading}
+                  className="bg-[#c92127] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold px-7 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center gap-2"
+                >
+                  {popularLoading ? (
+                    <span>সেভ হচ্ছে...</span>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Save Popular This Week Settings</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* 6. Staff Accounts & Permissions (Multi-Admin Roles) */}
         {isSuperAdmin && (
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4 md:col-span-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
