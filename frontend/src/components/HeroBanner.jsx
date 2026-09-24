@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, 
   Truck, 
@@ -60,6 +61,7 @@ export const TICKER_COLORS_MAP = {
 };
 
 export default function HeroBanner({ onExploreClick, onNavigate }) {
+  const navigate = useNavigate();
   const { heroBanners } = useSettings();
 
   const slidesData = heroBanners?.slides?.length > 0 ? heroBanners.slides : DEFAULT_HERO_BANNERS.slides;
@@ -108,12 +110,11 @@ export default function HeroBanner({ onExploreClick, onNavigate }) {
       return;
     }
     if (onNavigate) {
-      onNavigate(link || '/shop/');
+      onNavigate(link || '/shop');
     } else if (onExploreClick) {
       onExploreClick();
     } else {
-      window.history.pushState({}, '', link || '/shop/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      navigate(link || '/shop');
     }
   };
 

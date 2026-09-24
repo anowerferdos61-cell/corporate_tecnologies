@@ -770,11 +770,12 @@ export default function CheckoutPage() {
               <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pr-1">
                 {cartItems.map((item) => {
                   const p = item.product;
+                  const itemKey = p.cart_item_key || p.id;
                   const itemPrice = p.sale_price || p.regular_price || 0;
                   const lineTotal = itemPrice * item.quantity;
 
                   return (
-                    <div key={p.id} className="py-3 flex items-center gap-3 first:pt-0 last:pb-0">
+                    <div key={itemKey} className="py-3 flex items-center gap-3 first:pt-0 last:pb-0">
                       {/* Thumbnail */}
                       <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-200 p-1 flex-shrink-0 flex items-center justify-center overflow-hidden">
                         <img 
@@ -790,6 +791,11 @@ export default function CheckoutPage() {
                         <h4 className="text-xs font-bold text-slate-800 truncate" title={p.title}>
                           {p.title}
                         </h4>
+                        {p.variation_name && (
+                          <span className="inline-block text-[10px] font-bold text-[#c92127] bg-red-50 px-2 py-0.5 rounded-md border border-red-100 mt-0.5">
+                            {p.variation_name}
+                          </span>
+                        )}
                         <div className="text-[11px] text-slate-500 mt-0.5">
                           ৳{itemPrice.toLocaleString()} × {item.quantity}
                         </div>
@@ -799,7 +805,7 @@ export default function CheckoutPage() {
                           <div className="flex items-center border border-slate-200 rounded-lg bg-slate-50 overflow-hidden">
                             <button
                               type="button"
-                              onClick={() => updateQuantity(p.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(itemKey, item.quantity - 1)}
                               className="p-1 hover:bg-slate-200 text-slate-600 transition-colors"
                               title="কমান"
                             >
@@ -810,7 +816,7 @@ export default function CheckoutPage() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => updateQuantity(p.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(itemKey, item.quantity + 1)}
                               className="p-1 hover:bg-slate-200 text-slate-600 transition-colors"
                               title="বাড়ান"
                             >
@@ -820,7 +826,7 @@ export default function CheckoutPage() {
 
                           <button
                             type="button"
-                            onClick={() => removeFromCart(p.id)}
+                            onClick={() => removeFromCart(itemKey)}
                             className="text-slate-400 hover:text-red-600 p-1 transition-colors"
                             title="মুছে ফেলুন"
                           >

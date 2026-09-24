@@ -116,7 +116,7 @@ export async function getProducts() {
         sub_category: item.sub_category || meta.sub_category || '',
         raw_categories: item.raw_categories || meta.raw_categories || [],
         specifications: item.specifications || meta.specifications || {},
-        variations: meta.variations || [],
+        variations: item.variations || meta.variations || [],
         gallery_images: item.gallery_images || meta.gallery_images || [item.image_url],
         seo: meta.seo || null,
         is_featured: item.is_featured ?? meta.is_featured ?? false,
@@ -212,6 +212,7 @@ export async function createProductOnSupabase(productData) {
     short_description: productData.short_description || '',
     description: productData.description || '',
     specifications: typeof productData.specifications === 'object' ? productData.specifications : {},
+    variations: Array.isArray(productData.variations) ? productData.variations : [],
     key_features: Array.isArray(productData.key_features) ? productData.key_features : [],
     is_featured: productData.is_featured ?? true,
     rating: productData.rating || 4.9,
@@ -261,6 +262,7 @@ export async function createProductOnSupabase(productData) {
     short_description: cleanPayload.short_description,
     description: cleanPayload.description,
     specifications: cleanPayload.specifications,
+    variations: cleanPayload.variations,
     key_features: cleanPayload.key_features,
     gallery_images: cleanPayload.gallery_images,
     call_for_price: Boolean(productData.call_for_price),
@@ -303,6 +305,7 @@ export async function updateProductOnSupabase(id, updates) {
   if (updates.short_description !== undefined) cleanUpdates.short_description = updates.short_description;
   if (updates.description !== undefined) cleanUpdates.description = updates.description;
   if (updates.specifications !== undefined) cleanUpdates.specifications = updates.specifications;
+  if (updates.variations !== undefined) cleanUpdates.variations = Array.isArray(updates.variations) ? updates.variations : [];
   if (updates.key_features !== undefined) cleanUpdates.key_features = updates.key_features;
   if (updates.is_featured !== undefined) cleanUpdates.is_featured = updates.is_featured;
   if (updates.call_for_price !== undefined) cleanUpdates.call_for_price = Boolean(updates.call_for_price);

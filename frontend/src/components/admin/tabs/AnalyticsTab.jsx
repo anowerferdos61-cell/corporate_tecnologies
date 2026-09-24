@@ -36,23 +36,23 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
     if (datePreset === 'today') {
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
-      label = 'Today (আজকের সেলস)';
+      label = 'Today';
     } else if (datePreset === 'yesterday') {
       start.setDate(start.getDate() - 1);
       start.setHours(0, 0, 0, 0);
       end.setDate(end.getDate() - 1);
       end.setHours(23, 59, 59, 999);
-      label = 'Yesterday (গতকালের সেলস)';
+      label = 'Yesterday';
     } else if (datePreset === 'week') {
       start.setDate(start.getDate() - 6);
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
-      label = 'Last 7 Days (এই সপ্তাহের সেলস)';
+      label = 'Last 7 Days';
     } else if (datePreset === 'month') {
       start.setDate(start.getDate() - 29);
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
-      label = 'Last 30 Days (এই মাসের সেলস)';
+      label = 'Last 30 Days';
     } else if (datePreset === 'custom') {
       start = new Date(customStart || thirtyDaysAgoStr);
       start.setHours(0, 0, 0, 0);
@@ -300,7 +300,7 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
           {/* Preset Buttons */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold overflow-x-auto">
             {[
-              { id: 'today', label: 'Today (আজ)' },
+              { id: 'today', label: 'Today' },
               { id: 'yesterday', label: 'Yesterday' },
               { id: 'week', label: 'Last 7 Days' },
               { id: 'month', label: 'Last 30 Days' },
@@ -337,7 +337,7 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
         <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-wrap items-center gap-4 animate-fadeIn text-xs">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-[#c92127]" />
-            <span className="font-bold text-slate-700">তারিখ নির্বাচন করুন (Select Range):</span>
+            <span className="font-bold text-slate-700">Select Date Range:</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -455,13 +455,13 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
               <span>Daily Revenue Trend ({periodLabel})</span>
             </h3>
             <p className="text-xs font-medium text-slate-400">
-              দৈনিক সেলস ও অর্ডারের পরিমাণ (টাকা ও ভলিউম)
+              Daily revenue figures and order volumes
             </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100/90 rounded-2xl text-xs font-bold text-slate-700">
               <span className="w-2.5 h-2.5 rounded-full bg-[#c92127]"></span>
-              <span>সর্বোচ্চ দিন (Peak):</span>
+              <span>Peak Day:</span>
               <span className="font-mono text-black font-black">৳{maxDailyRevenue.toLocaleString()}</span>
             </div>
           </div>
@@ -570,7 +570,7 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#c92127]" />
-                <span>Sales by Category (ক্যাটাগরি ভিত্তিক বিক্রয়)</span>
+                <span>Sales by Category</span>
               </h3>
               <p className="text-xs text-slate-400">Printers vs Splashjet Inks vs Toners</p>
             </div>
@@ -616,7 +616,7 @@ export default function AnalyticsTab({ orders = [], products = [] }) {
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Sales by Brand (ব্র্যান্ড ভিত্তিক বিক্রয়)</span>
+                <span>Sales by Brand</span>
               </h3>
               <p className="text-xs text-slate-400">Epson vs Splashjet vs Canon vs HP</p>
             </div>

@@ -83,14 +83,14 @@ function ImageUploadField({ imageUrl, onImageChange, isUploading, onCategoryPres
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="block text-xs font-bold text-slate-700">
-          প্রোডাক্ট ছবি *
+          Product Image *
         </label>
         <button
           type="button"
           onClick={() => setUseUrlInput(!useUrlInput)}
           className="text-[11px] font-semibold text-[#c92127] hover:underline cursor-pointer"
         >
-          {useUrlInput ? '📁 ফাইল আপলোড ড্রপজোন' : '🔗 লিঙ্ক/পাথ পেস্ট করুন'}
+          {useUrlInput ? '📁 File Upload Dropzone' : '🔗 Paste Link / Path'}
         </button>
       </div>
 
@@ -116,7 +116,7 @@ function ImageUploadField({ imageUrl, onImageChange, isUploading, onCategoryPres
           {isUploading ? (
             <div className="py-3 flex flex-col items-center gap-2">
               <Loader2 className="w-7 h-7 text-[#c92127] animate-spin" />
-              <span className="text-xs font-bold text-slate-600">ছবি আপলোড হচ্ছে...</span>
+              <span className="text-xs font-bold text-slate-600">Uploading image...</span>
             </div>
           ) : imageUrl ? (
             <div className="flex items-center gap-4 w-full justify-between">
@@ -130,15 +130,15 @@ function ImageUploadField({ imageUrl, onImageChange, isUploading, onCategoryPres
                 <div className="text-left">
                   <div className="text-xs font-bold text-emerald-700 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>ছবি সংযুক্ত আছে</span>
+                    <span>Image Attached</span>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    অন্য ছবি দিতে ক্লিক করুন বা নিচে রেডিমেড ছবি বাছাই করুন
+                    Click to replace or select a preset below
                   </p>
                 </div>
               </div>
               <span className="text-[11px] font-bold text-[#c92127] bg-red-50 border border-red-100 px-2.5 py-1 rounded-lg">
-                ছবি পরিবর্তন
+                Change Image
               </span>
             </div>
           ) : (
@@ -147,10 +147,10 @@ function ImageUploadField({ imageUrl, onImageChange, isUploading, onCategoryPres
                 <Upload className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-700">
-                কম্পিউটার থেকে ছবি আপলোড করতে ক্লিক করুন
+                Click to upload an image from your computer
               </span>
               <span className="text-[11px] text-slate-400">
-                অথবা ছবি ড্রপ করুন কিংবা নিচে সব ক্যাটাগরির রেডিমেড ছবি ক্লিক করুন
+                Or drag & drop image, or pick from category presets below
               </span>
             </div>
           )}
@@ -159,7 +159,7 @@ function ImageUploadField({ imageUrl, onImageChange, isUploading, onCategoryPres
         <div>
           <input
             type="text"
-            placeholder="ছবির ওয়েব লিঙ্ক বা পাথ (যেমন: https://...)"
+            placeholder="Image web URL or path (e.g. https://...)"
             value={imageUrl}
             onChange={(e) => onImageChange(e.target.value, true)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-[#c92127]/20 font-mono"
@@ -170,7 +170,7 @@ function ImageUploadField({ imageUrl, onImageChange, isUploading, onCategoryPres
       {/* Preset Quick Picks for ALL Real Categories */}
       <div className="pt-2">
         <span className="text-[11px] font-bold text-slate-500 block mb-2">
-          অথবা সকল ক্যাটাগরির রিয়েল রেডিমেড ছবি সিলেক্ট করুন:
+          Or select a ready-made preset image by category:
         </span>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {presets.map((preset) => {
@@ -203,7 +203,7 @@ function ImageUploadField({ imageUrl, onImageChange, isUploading, onCategoryPres
                   }`}>
                     {preset.label}
                   </span>
-                  <span className="text-[9px] text-slate-400 block">ক্লিক করে সিলেক্ট করুন</span>
+                  <span className="text-[9px] text-slate-400 block">Click to select</span>
                 </div>
               </button>
             );
@@ -251,10 +251,10 @@ export default function AdminDashboard({
         } else {
           setNewProduct(prev => ({ ...prev, image_url: uploadedUrl }));
         }
-        showNotification('ছবি সফলভাবে আপলোড হয়েছে!');
+        showNotification('Image uploaded successfully!');
       }
     } catch (err) {
-      showNotification('ছবি আপলোড করতে সমস্যা হয়েছে', 'error');
+      showNotification('Failed to upload image', 'error');
     } finally {
       setIsUploadingImage(false);
     }
@@ -398,14 +398,14 @@ export default function AdminDashboard({
   const handleRefreshAnalytics = () => {
     const summary = getAnalyticsSummary(products);
     setAnalyticsData(summary);
-    showNotification('এনালিটিক্স ডেটা রিফ্রেশ করা হয়েছে!');
+    showNotification('Analytics data refreshed!');
   };
 
   const handleResetAnalytics = () => {
-    if (window.confirm('আপনি কি ট্র্যাকিং ডেটা রিসেট করতে চান?')) {
+    if (window.confirm('Are you sure you want to reset analytics tracking data?')) {
       const summary = resetAnalytics();
       setAnalyticsData(summary);
-      showNotification('ট্র্যাকিং ডেটা ডিফল্ট অবস্থায় রিসেট করা হয়েছে');
+      showNotification('Tracking data reset to defaults');
     }
   };
 
@@ -428,10 +428,10 @@ export default function AdminDashboard({
       const updatedList = products.map(p => p.id === editingProduct.id ? updatedItem : p);
       onProductsUpdate(updatedList);
 
-      showNotification(`প্রোডাক্ট "${updatedItem.title.slice(0, 25)}..." সফলভাবে আপডেট হয়েছে!`);
+      showNotification(`Product "${updatedItem.title.slice(0, 25)}..." updated successfully!`);
       setEditingProduct(null);
     } catch (err) {
-      showNotification('আপডেট করতে সমস্যা হয়েছে', 'error');
+      showNotification('Failed to update product', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -441,7 +441,7 @@ export default function AdminDashboard({
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!newProduct.title || !newProduct.sale_price) {
-      alert('দয়া করে প্রোডাক্টের নাম ও বিক্রয় মূল্য লিখুন');
+      alert('Please enter product title and sale price');
       return;
     }
     setIsSaving(true);
@@ -463,7 +463,7 @@ export default function AdminDashboard({
 
       onProductsUpdate([productToAdd, ...products]);
 
-      showNotification(`নতুন প্রোডাক্ট "${productToAdd.title.slice(0, 25)}..." সফলভাবে যোগ ও লাইভ হয়েছে!`);
+      showNotification(`Product "${productToAdd.title.slice(0, 25)}..." added and live successfully!`);
       
       setNewProduct({
         title: '',
@@ -478,7 +478,7 @@ export default function AdminDashboard({
       });
       setActiveTab('list');
     } catch (err) {
-      showNotification('প্রোডাক্ট তৈরি করতে সমস্যা হয়েছে', 'error');
+      showNotification('Failed to create product', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -486,15 +486,15 @@ export default function AdminDashboard({
 
   // 3. Handle Delete Product
   const handleDeleteProduct = async (id, title) => {
-    if (!window.confirm(`আপনি কি নিশ্চিতভাবে "${title}" মুছে ফেলতে চান?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
 
     try {
       await deleteProductFromSupabase(id);
       const remaining = products.filter(p => p.id !== id);
       onProductsUpdate(remaining);
-      showNotification(`প্রোডাক্ট মুছে ফেলা হয়েছে!`);
+      showNotification(`Product deleted successfully!`);
     } catch (err) {
-      showNotification('ডিলিট করতে সমস্যা হয়েছে', 'error');
+      showNotification('Failed to delete product', 'error');
     }
   };
 
@@ -534,14 +534,14 @@ export default function AdminDashboard({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-extrabold tracking-tight">
-                  Corporate Tech কন্ট্রোল প্যানেল
+                  Corporate Tech Control Panel
                 </h2>
                 <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  পাবলিক অ্যাক্সেস (Auth মুক্ত)
+                  Public Access (No Auth)
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
-                প্রোডাক্ট ম্যানেজমেন্ট (CRUD) এবং মার্কেটিং অডিয়েন্স ট্র্যাকিং এনালিটিক্স
+                Product Management (CRUD) and Marketing Audience Tracking Analytics
               </p>
             </div>
           </div>
@@ -568,7 +568,7 @@ export default function AdminDashboard({
               }`}
             >
               <BarChart3 className="w-4 h-4 text-emerald-400" />
-              <span>📊 মার্কেটিং এনালিটিক্স</span>
+              <span>📊 Marketing Analytics</span>
             </button>
 
             {/* Tab 2: All Products */}
@@ -581,7 +581,7 @@ export default function AdminDashboard({
               }`}
             >
               <Package className="w-4 h-4" />
-              <span>সকল প্রোডাক্ট ({products.length})</span>
+              <span>All Products ({products.length})</span>
             </button>
 
             {/* Tab 3: Add New Product */}
@@ -594,7 +594,7 @@ export default function AdminDashboard({
               }`}
             >
               <Plus className="w-4 h-4" />
-              <span>নতুন প্রোডাক্ট যোগ</span>
+              <span>Add New Product</span>
             </button>
           </div>
 
@@ -622,13 +622,13 @@ export default function AdminDashboard({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                    <span>গ্রাহক এনগেজমেন্ট ও মার্কেটিং ড্যাশবোর্ড</span>
+                    <span>Customer Engagement & Marketing Dashboard</span>
                     <span className="bg-red-100 text-[#c92127] text-[10px] font-black px-2 py-0.5 rounded-full">
                       LIVE
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    ভিজিটররা কোন প্রোডাক্টে বেশি ক্লিক করছেন এবং কোনগুলো কার্টে নিচ্ছেন তার রিয়েল-টাইম তথ্য
+                    Real-time data on most viewed products, user clicks, and cart actions
                   </p>
                 </div>
 
@@ -639,14 +639,14 @@ export default function AdminDashboard({
                     title="Refresh Stats"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    <span>রিফ্রেশ</span>
+                    <span>Refresh</span>
                   </button>
                   <button
                     onClick={handleResetAnalytics}
                     className="p-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
                     title="Reset Sample Data"
                   >
-                    রিসেট
+                    Reset
                   </button>
                 </div>
               </div>
@@ -656,7 +656,7 @@ export default function AdminDashboard({
                 {/* 1. Total Views / Clicks */}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500">মোট প্রোডাক্ট ক্লিক/ভিউ</span>
+                    <span className="text-xs font-bold text-slate-500">Total Product Views</span>
                     <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                       <Eye className="w-4 h-4" />
                     </div>
@@ -669,13 +669,13 @@ export default function AdminDashboard({
                       <TrendingUp className="w-3 h-3 mr-0.5" /> +18%
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">সব ভিজিটরদের সম্মিলিত ক্লিক</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Aggregated visitor clicks</p>
                 </div>
 
                 {/* 2. Total Add to Cart */}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500">মোট অ্যাড টু কার্ট</span>
+                    <span className="text-xs font-bold text-slate-500">Total Add to Cart</span>
                     <div className="w-8 h-8 rounded-xl bg-red-50 text-[#c92127] flex items-center justify-center">
                       <ShoppingCart className="w-4 h-4" />
                     </div>
@@ -688,13 +688,13 @@ export default function AdminDashboard({
                       <TrendingUp className="w-3 h-3 mr-0.5" /> +12%
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">কার্টে প্রোডাক্ট যুক্ত করার সংখ্যা</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Items added to cart count</p>
                 </div>
 
                 {/* 3. Conversion Rate */}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500">কার্ট কনভার্সন রেট</span>
+                    <span className="text-xs font-bold text-slate-500">Cart Conversion Rate</span>
                     <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                       <TrendingUp className="w-4 h-4" />
                     </div>
@@ -704,16 +704,16 @@ export default function AdminDashboard({
                       {analyticsData.overallConversion}%
                     </span>
                     <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
-                      চমৎকার
+                      Optimal
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">ক্লিককারীদের কতজন কার্টে নিচ্ছেন</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Viewers converting to cart</p>
                 </div>
 
                 {/* 4. Active Catalog Count */}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500">ক্যাটালগ আইটেম</span>
+                    <span className="text-xs font-bold text-slate-500">Catalog Items</span>
                     <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                       <Package className="w-4 h-4" />
                     </div>
@@ -722,9 +722,9 @@ export default function AdminDashboard({
                     <span className="text-2xl sm:text-3xl font-black text-slate-900">
                       {products.length}
                     </span>
-                    <span className="text-[11px] text-slate-500">আইটেম লাইভ</span>
+                    <span className="text-[11px] text-slate-500">Live Items</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">ওয়েবসাইটে প্রদর্শিত মোট পণ্য</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Total products active on store</p>
                 </div>
               </div>
 
@@ -733,7 +733,7 @@ export default function AdminDashboard({
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-5 h-5 text-amber-400" />
                   <h4 className="text-sm font-extrabold text-white">
-                    স্মার্ট মার্কেটিং অ্যাকশন ও সুপারিশ (Automated Marketing Insights)
+                    Automated Marketing Insights & Suggestions
                   </h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -770,10 +770,10 @@ export default function AdminDashboard({
                         <Eye className="w-4 h-4" />
                       </div>
                       <h4 className="text-sm font-extrabold text-slate-900">
-                        সবচেয়ে বেশি ক্লিক ও ভিউ হওয়া প্রোডাক্ট (Top Viewed)
+                        Most Viewed Products (Top Viewed)
                       </h4>
                     </div>
-                    <span className="text-xs font-bold text-slate-400">ক্লিক সংখ্যা</span>
+                    <span className="text-xs font-bold text-slate-400">Views</span>
                   </div>
 
                   <div className="space-y-3 flex-1">
@@ -806,7 +806,7 @@ export default function AdminDashboard({
                             </div>
                             <div className="text-right">
                               <span className="text-sm font-extrabold text-slate-900">{item.views}</span>
-                              <div className="text-[10px] text-slate-400 font-semibold">{item.conversionRate}% কনভার্সন</div>
+                              <div className="text-[10px] text-slate-400 font-semibold">{item.conversionRate}% Conversion</div>
                             </div>
                           </div>
                           
@@ -831,10 +831,10 @@ export default function AdminDashboard({
                         <ShoppingCart className="w-4 h-4" />
                       </div>
                       <h4 className="text-sm font-extrabold text-slate-900">
-                        সবচেয়ে বেশি কার্টে নেওয়া প্রোডাক্ট (Top Added to Cart)
+                        Top Added to Cart Products
                       </h4>
                     </div>
-                    <span className="text-xs font-bold text-slate-400">কার্ট সংখ্যা</span>
+                    <span className="text-xs font-bold text-slate-400">Cart Count</span>
                   </div>
 
                   <div className="space-y-3 flex-1">
@@ -862,12 +862,12 @@ export default function AdminDashboard({
                               </h5>
                               <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
                                 <span className="bg-slate-100 px-1.5 py-0.2 rounded font-medium">{item.category}</span>
-                                <span>স্টক: {item.stock_quantity}টি</span>
+                                <span>Stock: {item.stock_quantity}</span>
                               </div>
                             </div>
                             <div className="text-right">
-                              <span className="text-sm font-extrabold text-[#c92127]">{item.carts} বার</span>
-                              <div className="text-[10px] text-emerald-600 font-bold">{item.conversionRate}% কনভার্ট</div>
+                              <span className="text-sm font-extrabold text-[#c92127]">{item.carts} times</span>
+                              <div className="text-[10px] text-emerald-600 font-bold">{item.conversionRate}% converted</div>
                             </div>
                           </div>
                           
@@ -890,7 +890,7 @@ export default function AdminDashboard({
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <h4 className="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
                   <Layers className="w-4 h-4 text-slate-600" />
-                  <span>ক্যাটাগরি ভিত্তিক গ্রাহকের আগ্রহ (Category Engagement Breakdown)</span>
+                  <span>Category Engagement Breakdown</span>
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {Object.entries(analyticsData.categoryClicks).map(([catName, count]) => (
@@ -898,7 +898,7 @@ export default function AdminDashboard({
                       <div className="text-xs font-bold text-slate-700 truncate">{catName}</div>
                       <div className="mt-1 flex items-baseline justify-between">
                         <span className="text-lg font-black text-slate-900">{count}</span>
-                        <span className="text-[10px] text-slate-500 font-semibold">ক্লিক</span>
+                        <span className="text-[10px] text-slate-500 font-semibold">Clicks</span>
                       </div>
                     </div>
                   ))}
@@ -920,7 +920,7 @@ export default function AdminDashboard({
                 <div className="relative flex-1 max-w-md">
                   <input
                     type="text"
-                    placeholder="প্রোডাক্ট নাম, ব্র্যান্ড বা ক্যাটাগরি সার্চ..."
+                    placeholder="Search product name, brand or category..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-[#c92127]/20 outline-none"
@@ -936,7 +936,7 @@ export default function AdminDashboard({
                     onChange={(e) => setSelectedCategoryFilter(e.target.value)}
                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 outline-none"
                   >
-                    <option value="All">সকল ক্যাটাগরি</option>
+                    <option value="All">All Categories</option>
                     {categories.map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -948,10 +948,10 @@ export default function AdminDashboard({
                     onChange={(e) => setStockFilter(e.target.value)}
                     className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 outline-none"
                   >
-                    <option value="all">সব স্টক</option>
-                    <option value="in_stock">স্টকে আছে</option>
-                    <option value="low_stock">স্টক কম (≤ 5)</option>
-                    <option value="out_of_stock">স্টক শেষ (0)</option>
+                    <option value="all">All Stock Status</option>
+                    <option value="in_stock">In Stock</option>
+                    <option value="low_stock">Low Stock (≤ 5)</option>
+                    <option value="out_of_stock">Out of Stock (0)</option>
                   </select>
 
                   <button
@@ -959,7 +959,7 @@ export default function AdminDashboard({
                     className="bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-sm flex-shrink-0 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>নতুন প্রোডাক্ট</span>
+                    <span>New Product</span>
                   </button>
                 </div>
               </div>
@@ -970,19 +970,19 @@ export default function AdminDashboard({
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                        <th className="py-3 px-4">ছবি ও নাম</th>
-                        <th className="py-3 px-4">ক্যাটাগরি</th>
-                        <th className="py-3 px-4">বিক্রয় মূল্য</th>
-                        <th className="py-3 px-4">রেগুলার মূল্য</th>
-                        <th className="py-3 px-4">স্টক স্ট্যাটাস</th>
-                        <th className="py-3 px-4 text-right">অ্যাকশন</th>
+                        <th className="py-3 px-4">Image & Title</th>
+                        <th className="py-3 px-4">Category</th>
+                        <th className="py-3 px-4">Sale Price</th>
+                        <th className="py-3 px-4">Regular Price</th>
+                        <th className="py-3 px-4">Stock Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredProducts.length === 0 ? (
                         <tr>
                           <td colSpan="6" className="py-12 text-center text-slate-400">
-                            কোনো প্রোডাক্ট খুঁজে পাওয়া যায়নি
+                            No products found matching the criteria
                           </td>
                         </tr>
                       ) : (
@@ -1003,7 +1003,7 @@ export default function AdminDashboard({
                                     <div className="font-bold text-slate-800 truncate" title={p.title}>
                                       {p.title}
                                     </div>
-                                    <div className="text-[11px] text-slate-400">ব্র্যান্ড: {p.brand || 'Corporate Tech'}</div>
+                                    <div className="text-[11px] text-slate-400">Brand: {p.brand || 'Corporate Tech'}</div>
                                   </div>
                                 </div>
                               </td>
@@ -1029,15 +1029,15 @@ export default function AdminDashboard({
                               <td className="py-3 px-4">
                                 {stock === 0 ? (
                                   <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-bold text-[10px]">
-                                    স্টক শেষ
+                                    Out of Stock
                                   </span>
                                 ) : stock <= 5 ? (
                                   <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold text-[10px]">
-                                    স্টক কম ({stock}টি)
+                                    Low Stock ({stock})
                                   </span>
                                 ) : (
                                   <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold text-[10px]">
-                                    স্টকে আছে ({stock}টি)
+                                    In Stock ({stock})
                                   </span>
                                 )}
                               </td>
@@ -1081,9 +1081,9 @@ export default function AdminDashboard({
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-5">
                 <div>
                   <h3 className="text-base font-bold text-slate-900">
-                    প্রোডাক্ট এডিট করুন: {editingProduct.title}
+                    Edit Product: {editingProduct.title}
                   </h3>
-                  <p className="text-xs text-slate-500">মূল্য, স্টক ও তথ্য আপডেট করুন</p>
+                  <p className="text-xs text-slate-500">Update pricing, stock and details</p>
                 </div>
                 <button 
                   onClick={() => setEditingProduct(null)}
@@ -1096,7 +1096,7 @@ export default function AdminDashboard({
               <form onSubmit={handleUpdateProduct} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    প্রোডাক্ট নাম
+                    Product Title *
                   </label>
                   <input
                     type="text"
@@ -1109,7 +1109,7 @@ export default function AdminDashboard({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">ক্যাটাগরি</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
                     <select
                       value={editingProduct.category}
                       onChange={(e) => {
@@ -1129,7 +1129,7 @@ export default function AdminDashboard({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">ব্র্যান্ড</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Brand</label>
                     <input
                       type="text"
                       value={editingProduct.brand || ''}
@@ -1144,11 +1144,11 @@ export default function AdminDashboard({
                   {/* Regular Price */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      রেগুলার মূল্য (৳)
+                      Regular Price (৳)
                     </label>
                     <input
                       type="number"
-                      placeholder="যেমন: ২০০০"
+                      placeholder="e.g. 2000"
                       value={editingProduct.regular_price || ''}
                       onChange={(e) => handleRegularPriceChange(e.target.value, true)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#c92127]/20 font-bold"
@@ -1158,11 +1158,11 @@ export default function AdminDashboard({
                   {/* Discount Badge */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      ডিসকাউন্ট ব্যাজ (ছাড় %)
+                      Discount Badge (%)
                     </label>
                     <input
                       type="text"
-                      placeholder="যেমন: -10%, Sale!"
+                      placeholder="e.g. -10%, Sale!"
                       value={editingProduct.discount_label || ''}
                       onChange={(e) => handleDiscountChange(e.target.value, true)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#c92127]/20 font-bold text-slate-800"
@@ -1173,16 +1173,16 @@ export default function AdminDashboard({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-bold text-slate-700">
-                        বিক্রয় মূল্য (Sale Price ৳) *
+                        Sale Price (৳) *
                       </label>
                       <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded">
-                        অটো ক্যালকুলেট
+                        Auto-Calc
                       </span>
                     </div>
                     <input
                       type="number"
                       required
-                      placeholder="যেমন: ১৮০০"
+                      placeholder="e.g. 1800"
                       value={editingProduct.sale_price}
                       onChange={(e) => handleSalePriceChange(e.target.value, true)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-[#c92127] outline-none focus:ring-2 focus:ring-[#c92127]/20"
@@ -1193,7 +1193,7 @@ export default function AdminDashboard({
                 {/* Quick Discount Presets and Savings Banner */}
                 <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-bold text-slate-500 mr-1">কুইক ডিসকাউন্ট:</span>
+                    <span className="text-[10px] font-bold text-slate-500 mr-1">Quick Discount:</span>
                     {['-5%', '-10%', '-15%', '-20%', '-25%', '-30%', 'Sale!'].map((badge) => (
                       <button
                         key={badge}
@@ -1212,8 +1212,8 @@ export default function AdminDashboard({
 
                   {Number(editingProduct.regular_price) > Number(editingProduct.sale_price) && Number(editingProduct.sale_price) > 0 && (
                     <div className="text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                      <span>💡 সাশ্রয়: ৳{Number(editingProduct.regular_price - editingProduct.sale_price).toLocaleString()}</span>
-                      <span>({Math.round(((editingProduct.regular_price - editingProduct.sale_price) / editingProduct.regular_price) * 100)}% ছাড়)</span>
+                      <span>💡 Savings: ৳{Number(editingProduct.regular_price - editingProduct.sale_price).toLocaleString()}</span>
+                      <span>({Math.round(((editingProduct.regular_price - editingProduct.sale_price) / editingProduct.regular_price) * 100)}% off)</span>
                     </div>
                   )}
                 </div>
@@ -1221,7 +1221,7 @@ export default function AdminDashboard({
                 {/* Stock Quantity */}
                 <div className="max-w-xs">
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    স্টক সংখ্যা
+                    Stock Quantity
                   </label>
                   <input
                     type="number"
@@ -1251,14 +1251,14 @@ export default function AdminDashboard({
                     onClick={() => setEditingProduct(null)}
                     className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
-                    বাতিল
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
                     className="bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
                   >
-                    {isSaving ? 'সংরক্ষণ হচ্ছে...' : 'আপডেট সেভ করুন'}
+                    {isSaving ? 'Saving...' : 'Save Updates'}
                   </button>
                 </div>
               </form>
@@ -1274,21 +1274,21 @@ export default function AdminDashboard({
               {/* Left 2 Cols: Form */}
               <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h3 className="text-base font-extrabold text-slate-900 mb-1">
-                  নতুন প্রোডাক্ট যোগ করুন
+                  Add New Product
                 </h3>
                 <p className="text-xs text-slate-500 mb-5">
-                  প্রয়োজনীয় তথ্য পূরণ করে সাবমিট করুন। ডানের কার্ডে লাইভ দেখতে পারবেন।
+                  Fill in the product details and submit. Live preview updates automatically on the right card.
                 </p>
 
                 <form onSubmit={handleAddProduct} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      প্রোডাক্ট নাম (Title) *
+                      Product Title *
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="যেমন: Splashjet Premium DTF White Ink 1000ml"
+                      placeholder="e.g. Splashjet Premium DTF White Ink 1000ml"
                       value={newProduct.title}
                       onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-[#c92127]/20"
@@ -1298,7 +1298,7 @@ export default function AdminDashboard({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        ক্যাটাগরি *
+                        Category *
                       </label>
                       <select
                         value={newProduct.category}
@@ -1320,14 +1320,14 @@ export default function AdminDashboard({
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        ব্র্যান্ড
+                        Brand
                       </label>
                       <input
                         type="text"
                         placeholder="Corporate Tech, Splashjet, Canon..."
                         value={newProduct.brand}
                         onChange={(e) => setNewProduct({ ...newProduct, brand: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs outline-none"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none"
                       />
                     </div>
                   </div>
@@ -1337,11 +1337,11 @@ export default function AdminDashboard({
                     {/* Regular Price */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        রেগুলার মূল্য (৳)
+                        Regular Price (৳)
                       </label>
                       <input
                         type="number"
-                        placeholder="যেমন: ২০০০"
+                        placeholder="e.g. 2000"
                         value={newProduct.regular_price}
                         onChange={(e) => handleRegularPriceChange(e.target.value, false)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#c92127]/20 font-bold"
@@ -1351,11 +1351,11 @@ export default function AdminDashboard({
                     {/* Discount Badge */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        ডিসকাউন্ট ব্যাজ (ছাড় %)
+                        Discount Badge (%)
                       </label>
                       <input
                         type="text"
-                        placeholder="যেমন: -10%, Sale!"
+                        placeholder="e.g. -10%, Sale!"
                         value={newProduct.discount_label}
                         onChange={(e) => handleDiscountChange(e.target.value, false)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#c92127]/20 font-bold text-slate-800"
@@ -1366,16 +1366,16 @@ export default function AdminDashboard({
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="block text-xs font-bold text-slate-700">
-                          বিক্রয় মূল্য (Sale Price ৳) *
+                          Sale Price (৳) *
                         </label>
                         <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.2 rounded">
-                          অটো ক্যালকুলেট
+                          Auto-Calc
                         </span>
                       </div>
                       <input
                         type="number"
                         required
-                        placeholder="যেমন: ১৮০০"
+                        placeholder="e.g. 1800"
                         value={newProduct.sale_price}
                         onChange={(e) => handleSalePriceChange(e.target.value, false)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-[#c92127] outline-none focus:ring-2 focus:ring-[#c92127]/20"
@@ -1386,7 +1386,7 @@ export default function AdminDashboard({
                   {/* Quick Discount Presets and Savings Banner */}
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-bold text-slate-500 mr-1">কুইক ডিসকাউন্ট:</span>
+                      <span className="text-[10px] font-bold text-slate-500 mr-1">Quick Discount:</span>
                       {['-5%', '-10%', '-15%', '-20%', '-25%', '-30%', 'Sale!'].map((badge) => (
                         <button
                           key={badge}
@@ -1405,8 +1405,8 @@ export default function AdminDashboard({
 
                     {Number(newProduct.regular_price) > Number(newProduct.sale_price) && Number(newProduct.sale_price) > 0 && (
                       <div className="text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                        <span>💡 সাশ্রয়: ৳{Number(newProduct.regular_price - newProduct.sale_price).toLocaleString()}</span>
-                        <span>({Math.round(((newProduct.regular_price - newProduct.sale_price) / newProduct.regular_price) * 100)}% ছাড়)</span>
+                        <span>💡 Savings: ৳{Number(newProduct.regular_price - newProduct.sale_price).toLocaleString()}</span>
+                        <span>({Math.round(((newProduct.regular_price - newProduct.sale_price) / newProduct.regular_price) * 100)}% off)</span>
                       </div>
                     )}
                   </div>
@@ -1414,7 +1414,7 @@ export default function AdminDashboard({
                   {/* Stock Quantity */}
                   <div className="max-w-xs">
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      স্টক সংখ্যা
+                      Stock Quantity
                     </label>
                     <input
                       type="number"
@@ -1444,7 +1444,7 @@ export default function AdminDashboard({
                       onClick={() => setActiveTab('list')}
                       className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                     >
-                      বাতিল
+                      Cancel
                     </button>
                     <button
                       type="submit"
@@ -1452,7 +1452,7 @@ export default function AdminDashboard({
                       className="bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>{isSaving ? 'সংরক্ষণ হচ্ছে...' : 'প্রোডাক্ট সংরক্ষণ করুন'}</span>
+                      <span>{isSaving ? 'Saving...' : 'Save Product'}</span>
                     </button>
                   </div>
                 </form>
@@ -1461,7 +1461,7 @@ export default function AdminDashboard({
               {/* Right Col: Live Preview Card */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
                 <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
-                  গ্রাহক সাইটে যেমন দেখাবে (Live Preview)
+                  Customer Live Preview
                 </span>
 
                 <div className="w-full max-w-[260px] bg-white rounded-2xl border border-slate-200 shadow-md p-4 flex flex-col justify-between relative overflow-hidden">
@@ -1488,7 +1488,7 @@ export default function AdminDashboard({
                       {newProduct.category}
                     </span>
                     <h5 className="text-xs font-bold text-slate-900 line-clamp-2 min-h-[2rem]">
-                      {newProduct.title || 'প্রোডাক্টের নাম এখানে আসবে'}
+                      {newProduct.title || 'Product Title Appears Here'}
                     </h5>
                     <div className="flex items-center justify-center gap-2 pt-1">
                       {newProduct.regular_price && (
@@ -1497,7 +1497,7 @@ export default function AdminDashboard({
                         </span>
                       )}
                       <span className="text-sm font-black text-[#c92127]">
-                        ৳{newProduct.sale_price ? Number(newProduct.sale_price).toLocaleString() : '০'}
+                        ৳{newProduct.sale_price ? Number(newProduct.sale_price).toLocaleString() : '0'}
                       </span>
                     </div>
                   </div>
@@ -1506,13 +1506,13 @@ export default function AdminDashboard({
                   <div className="mt-3 pt-2 border-t border-slate-100">
                     <div className="w-full py-1.5 bg-[#c92127] text-white text-[11px] font-bold rounded-lg text-center flex items-center justify-center gap-1">
                       <ShoppingCart className="w-3.5 h-3.5" />
-                      <span>কার্টে নিন</span>
+                      <span>Add to Cart</span>
                     </div>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-slate-400 text-center mt-4">
-                  ফর্ম পূরণ করার সাথে সাথেই প্রিভিউ স্বয়ংক্রিয়ভাবে আপডেট হচ্ছে।
+                  The preview updates dynamically in real-time as you fill in the form fields.
                 </p>
               </div>
 

@@ -18,7 +18,8 @@ import {
   PanelLeft,
   Sparkles,
   FolderTree,
-  Menu
+  Menu,
+  BookOpen
 } from 'lucide-react';
 
 export default function AdminSidebar({
@@ -112,6 +113,16 @@ export default function AdminSidebar({
       badge: (
         <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md">
           Custom
+        </span>
+      )
+    },
+    {
+      id: 'blogs',
+      label: 'Blogs & Articles',
+      icon: BookOpen,
+      badge: (
+        <span className="text-[9px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-md">
+          CMS
         </span>
       )
     },

@@ -32,11 +32,12 @@ import SettingsTab from '../components/admin/tabs/SettingsTab';
 import AnalyticsTab from '../components/admin/tabs/AnalyticsTab';
 import BannersTab from '../components/admin/tabs/BannersTab';
 import NavbarTab from '../components/admin/tabs/NavbarTab';
+import BlogsTab from '../components/admin/tabs/BlogsTab';
 import OrderDetailsDrawer from '../components/admin/modals/OrderDetailsDrawer';
 import ProductEditorView from '../components/admin/ProductEditorView';
 import OrderInvoiceModal from '../components/OrderInvoiceModal';
 
-const VALID_TABS = ['overview', 'orders', 'products', 'categories', 'customers', 'analytics', 'banners', 'navbar', 'settings'];
+const VALID_TABS = ['overview', 'orders', 'products', 'categories', 'customers', 'analytics', 'banners', 'navbar', 'blogs', 'settings'];
 
 export default function AdminPanelPage({ products = [], onProductsUpdate = () => {} }) {
   // Authentication State
@@ -394,6 +395,10 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
 
           {activeTab === 'navbar' && (
             <NavbarTab />
+          )}
+
+          {activeTab === 'blogs' && (
+            <BlogsTab products={products} />
           )}
 
           {activeTab === 'settings' && isSuperAdmin && (

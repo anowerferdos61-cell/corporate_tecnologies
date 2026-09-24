@@ -145,7 +145,7 @@ export default function CreateOrderModal({
   // Add Custom / Miscellaneous Item
   const handleAddCustomItem = () => {
     if (!customItemTitle.trim()) {
-      alert('দয়া করে আইটেমের নাম লিখুন');
+      alert('Please enter the item name');
       return;
     }
     const price = Number(customItemPrice) || 0;
@@ -207,20 +207,20 @@ export default function CreateOrderModal({
     setErrorMessage('');
 
     if (!customerName.trim()) {
-      setErrorMessage('দয়া করে গ্রাহকের নাম দিন');
+      setErrorMessage('Please enter the customer name');
       return;
     }
     const cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.length < 11) {
-      setErrorMessage('সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017xxxxxxxx)');
+      setErrorMessage('Please enter a valid 11-digit mobile number (e.g., 017xxxxxxxx)');
       return;
     }
     if (!address.trim()) {
-      setErrorMessage('দেলিভারি ঠিকানা দিন');
+      setErrorMessage('Please provide a delivery address');
       return;
     }
     if (selectedItems.length === 0) {
-      setErrorMessage('অর্ডারে অন্তত একটি প্রোডাক্ট যোগ করুন');
+      setErrorMessage('Please add at least one item to the order');
       return;
     }
 
@@ -266,7 +266,7 @@ export default function CreateOrderModal({
 
       onClose();
     } catch (err) {
-      setErrorMessage(err.message || 'অর্ডার তৈরি করতে ব্যর্থ হয়েছে');
+      setErrorMessage(err.message || 'Failed to create order');
     } finally {
       setIsSubmitting(false);
     }
@@ -288,13 +288,13 @@ export default function CreateOrderModal({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
-                <span>ম্যানুয়াল অর্ডার তৈরি করুন (Create Order)</span>
+                <span>Create Manual Order</span>
                 <span className="text-[10px] bg-red-500/30 text-red-200 border border-red-400/30 font-bold px-2 py-0.5 rounded-full">
                   Admin Entry
                 </span>
               </h2>
               <p className="text-xs text-zinc-300">
-                ফোন কল, হোয়াটসঅ্যাপ বা ওয়াক-ইন কাস্টমারের জন্য সরাসরি অর্ডার এন্ট্রি করুন
+                Enter direct orders for phone calls, WhatsApp inquiries, or walk-in customers
               </p>
             </div>
           </div>
@@ -321,18 +321,18 @@ export default function CreateOrderModal({
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-xs font-black text-slate-900 uppercase tracking-wider pb-1 border-b border-slate-100">
                 <User className="w-4 h-4 text-[#c92127]" />
-                <span>গ্রাহক ও ডেলিভারির তথ্য (Customer Details)</span>
+                <span>Customer & Delivery Details</span>
               </div>
 
               {/* Customer Name */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  গ্রাহকের পূর্ণ নাম <span className="text-[#c92127]">*</span>
+                  Customer Full Name <span className="text-[#c92127]">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: মোঃ আনোয়ার হোসেন"
+                  placeholder="e.g. Md. Anwar Hossain"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#c92127] focus:ring-1 focus:ring-[#c92127]"
@@ -342,7 +342,7 @@ export default function CreateOrderModal({
               {/* Phone Number */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  মোবাইল নম্বর <span className="text-[#c92127]">*</span>
+                  Mobile Number <span className="text-[#c92127]">*</span>
                 </label>
                 <div className="relative">
                   <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
@@ -360,7 +360,7 @@ export default function CreateOrderModal({
               {/* City / District */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ডেলিভারি জেলা / সিটি <span className="text-[#c92127]">*</span>
+                  Delivery District / City <span className="text-[#c92127]">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <select
@@ -370,14 +370,14 @@ export default function CreateOrderModal({
                   >
                     {POPULAR_DISTRICTS.map((d) => (
                       <option key={d} value={d}>
-                        {d} {d === 'Dhaka' ? '(ঢাকা - ৳৬০)' : '(ঢাকার বাইরে - ৳১২০)'}
+                        {d} {d === 'Dhaka' ? '(Inside Dhaka - ৳60)' : '(Outside Dhaka - ৳120)'}
                       </option>
                     ))}
                   </select>
 
                   <input
                     type="text"
-                    placeholder="অথবা অন্য জেলা..."
+                    placeholder="Or other district..."
                     onChange={(e) => {
                       if (e.target.value) setCity(e.target.value);
                     }}
@@ -389,12 +389,12 @@ export default function CreateOrderModal({
               {/* Delivery Address */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  বিস্তারিত ডেলিভারি ঠিকানা <span className="text-[#c92127]">*</span>
+                  Detailed Delivery Address <span className="text-[#c92127]">*</span>
                 </label>
                 <textarea
                   rows={2}
                   required
-                  placeholder="রোড নং, বাসা নং, থানা, এলাকার নাম..."
+                  placeholder="Road No., House No., Thana, Area Name..."
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:bg-white focus:outline-none focus:border-[#c92127] resize-none"
@@ -405,7 +405,7 @@ export default function CreateOrderModal({
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    কুরিয়ার সার্ভিস:
+                    Courier Service:
                   </label>
                   <select
                     value={courierName}
@@ -417,13 +417,13 @@ export default function CreateOrderModal({
                     <option value="RedX">RedX</option>
                     <option value="Sundarban">Sundarban Courier</option>
                     <option value="Paperfly">Paperfly</option>
-                    <option value="Office Pickup">Office Pickup (ওয়াক-ইন)</option>
+                    <option value="Office Pickup">Office Pickup (Walk-in)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    ট্র্যাকিং কোড (ঐচ্ছিক):
+                    Tracking Code (Optional):
                   </label>
                   <input
                     type="text"
@@ -438,11 +438,11 @@ export default function CreateOrderModal({
               {/* Admin Internal Notes */}
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  অ্যাডমিন নোট / বিশেষ নির্দেশ (Internal Notes):
+                  Admin Internal Notes:
                 </label>
                 <input
                   type="text"
-                  placeholder="যেমন: কাস্টমার ২টার আগে ডেলিভারি চেয়েছে"
+                  placeholder="e.g. Customer requested delivery before 2 PM"
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:bg-white focus:outline-none focus:border-[#c92127]"
@@ -455,10 +455,10 @@ export default function CreateOrderModal({
               <div className="flex items-center justify-between pb-1 border-b border-slate-100">
                 <div className="flex items-center gap-2 text-xs font-black text-slate-900 uppercase tracking-wider">
                   <Package className="w-4 h-4 text-[#c92127]" />
-                  <span>প্রোডাক্ট নির্বাচন (Ordered Items)</span>
+                  <span>Ordered Items</span>
                 </div>
                 <span className="text-xs font-bold text-slate-500">
-                  {selectedItems.length} টি আইটেম
+                  {selectedItems.length} item(s)
                 </span>
               </div>
 
@@ -467,7 +467,7 @@ export default function CreateOrderModal({
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
                 <input
                   type="text"
-                  placeholder="প্রোডাক্ট খুঁজুন (নাম, ক্যাটাগরি বা SKU দিয়ে)..."
+                  placeholder="Search products (by name, category, or SKU)..."
                   value={searchQuery}
                   onFocus={() => setIsSearchOpen(true)}
                   onChange={(e) => {
@@ -520,7 +520,7 @@ export default function CreateOrderModal({
                 {selectedItems.length === 0 ? (
                   <div className="py-6 text-center text-slate-400 text-xs">
                     <ShoppingBag className="w-6 h-6 mx-auto mb-1 opacity-40" />
-                    <span>কোনো প্রোডাক্ট সিলেক্ট করা হয়নি। উপরের সার্চ বার থেকে প্রোডাক্ট যোগ করুন।</span>
+                    <span>No products selected yet. Search and add products above.</span>
                   </div>
                 ) : (
                   selectedItems.map((item, index) => (
@@ -539,7 +539,7 @@ export default function CreateOrderModal({
                           {item.title}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-slate-400">দর (৳):</span>
+                          <span className="text-[10px] text-slate-400">Price (৳):</span>
                           <input
                             type="number"
                             min="0"
@@ -599,22 +599,22 @@ export default function CreateOrderModal({
                   className="text-[11px] font-bold text-[#c92127] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ কাস্টম সার্ভিস বা আলাদা আইটেম যোগ করুন</span>
+                  <span>+ Add Custom Service or Misc Item</span>
                 </button>
               ) : (
                 <div className="bg-slate-100 p-2.5 rounded-xl border border-slate-200 space-y-2">
-                  <span className="text-[11px] font-bold text-slate-700 block">কাস্টম আইটেম এন্ট্রি:</span>
+                  <span className="text-[11px] font-bold text-slate-700 block">Custom Item Entry:</span>
                   <div className="grid grid-cols-3 gap-2">
                     <input
                       type="text"
-                      placeholder="আইটেমের নাম..."
+                      placeholder="Item name..."
                       value={customItemTitle}
                       onChange={(e) => setCustomItemTitle(e.target.value)}
                       className="col-span-2 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs"
                     />
                     <input
                       type="number"
-                      placeholder="মূল্য ৳"
+                      placeholder="Price ৳"
                       value={customItemPrice}
                       onChange={(e) => setCustomItemPrice(e.target.value)}
                       className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold"
@@ -624,16 +624,16 @@ export default function CreateOrderModal({
                     <button
                       type="button"
                       onClick={() => setIsAddingCustom(false)}
-                      className="text-[10px] font-bold text-slate-500 px-2 py-1 rounded"
+                      className="text-[10px] font-bold text-slate-500 px-2 py-1 rounded cursor-pointer"
                     >
-                      বাতিল
+                      Cancel
                     </button>
                     <button
                       type="button"
                       onClick={handleAddCustomItem}
-                      className="text-[10px] font-bold bg-[#c92127] text-white px-3 py-1 rounded-lg"
+                      className="text-[10px] font-bold bg-[#c92127] text-white px-3 py-1 rounded-lg cursor-pointer"
                     >
-                      যোগ করুন
+                      Add Item
                     </button>
                   </div>
                 </div>
@@ -642,12 +642,12 @@ export default function CreateOrderModal({
               {/* Financial Breakdown & Status Controls */}
               <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600 font-semibold">সাবটোটাল (Subtotal):</span>
+                  <span className="text-slate-600 font-semibold">Subtotal:</span>
                   <span className="font-mono font-bold text-slate-900">৳{subtotal.toLocaleString()}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600 font-semibold">ডেলিভারি ফি (Delivery Fee):</span>
+                  <span className="text-slate-600 font-semibold">Delivery Fee:</span>
                   <div className="flex items-center gap-1">
                     <span className="text-slate-400 font-mono">৳</span>
                     <input
@@ -661,7 +661,7 @@ export default function CreateOrderModal({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600 font-semibold">স্পেশাল ছাড় (Discount):</span>
+                  <span className="text-slate-600 font-semibold">Special Discount:</span>
                   <div className="flex items-center gap-1">
                     <span className="text-slate-400 font-mono">৳</span>
                     <input
@@ -675,7 +675,7 @@ export default function CreateOrderModal({
                 </div>
 
                 <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-                  <span className="font-black text-slate-900 text-sm">সর্বমোট প্রদেয় (Grand Total):</span>
+                  <span className="font-black text-slate-900 text-sm">Grand Total:</span>
                   <span className="font-black text-base text-[#c92127] font-mono">
                     ৳{grandTotal.toLocaleString()}
                   </span>
@@ -684,22 +684,22 @@ export default function CreateOrderModal({
                 {/* Status Options */}
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">অর্ডার স্ট্যাটাস:</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Order Status:</label>
                     <select
                       value={orderStatus}
                       onChange={(e) => setOrderStatus(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-800"
                     >
-                      <option value="confirmed">Confirmed (নিশ্চিত)</option>
-                      <option value="pending">Pending (অপেক্ষমান)</option>
-                      <option value="processing">Processing (প্যাকিং)</option>
-                      <option value="shipped">Shipped (কুরিয়ারে পাঠানো)</option>
-                      <option value="delivered">Delivered (ডেলিভারড)</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">পেমেন্ট মেথড:</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Payment Method:</label>
                     <select
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value)}
@@ -727,7 +727,7 @@ export default function CreateOrderModal({
                 className="accent-[#c92127] w-4 h-4"
               />
               <Printer className="w-3.5 h-3.5 text-slate-500" />
-              <span>অর্ডার তৈরির পর সরাসরি ইনভয়েস প্রিন্ট করুন</span>
+              <span>Auto-print invoice after order creation</span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer select-none font-bold text-slate-700">
@@ -738,7 +738,7 @@ export default function CreateOrderModal({
                 className="accent-emerald-600 w-4 h-4"
               />
               <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-              <span>হোয়াটসঅ্যাপে গ্রাহককে কনফার্মেশন মেসেজ পাঠান</span>
+              <span>Send WhatsApp confirmation message to customer</span>
             </label>
           </div>
 
@@ -749,7 +749,7 @@ export default function CreateOrderModal({
               onClick={onClose}
               className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
             >
-              বাতিল
+              Cancel
             </button>
 
             <button
@@ -758,11 +758,11 @@ export default function CreateOrderModal({
               className="px-7 py-2.5 rounded-xl bg-[#c92127] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold text-xs transition-all flex items-center gap-2 cursor-pointer shadow-md hover:shadow-lg disabled:opacity-50"
             >
               {isSubmitting ? (
-                <span>অর্ডার তৈরি হচ্ছে...</span>
+                <span>Creating order...</span>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4" />
-                  <span>অর্ডার নিশ্চিত ও সেভ করুন</span>
+                  <span>Confirm & Save Order</span>
                 </>
               )}
             </button>

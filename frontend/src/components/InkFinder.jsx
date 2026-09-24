@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, 
   SlidersHorizontal, 
@@ -138,6 +139,7 @@ export default function InkFinder({
   allProducts = [], 
   onNavigate 
 }) {
+  const navigate = useNavigate();
   const { 
     setSelectedCategory, 
     setSearchQuery, 
@@ -193,12 +195,11 @@ export default function InkFinder({
     setSelectedCategory('All');
     onClose();
 
-    // Navigate to /shop/ with the matched query
+    // Navigate to /shop with the matched query
     if (onNavigate) {
-      onNavigate('/shop/');
+      onNavigate('/shop');
     } else {
-      window.history.pushState({}, '', '/shop/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      navigate('/shop');
     }
 
     // Also smooth scroll if on homepage
@@ -210,12 +211,11 @@ export default function InkFinder({
 
   const handleProductClick = (product) => {
     onClose();
-    const targetUrl = `/product/${product.slug || product.id}/`;
+    const targetUrl = `/product/${product.slug || product.id}`;
     if (onNavigate) {
       onNavigate(targetUrl, product);
     } else {
-      window.history.pushState({}, '', targetUrl);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      navigate(targetUrl);
     }
   };
 

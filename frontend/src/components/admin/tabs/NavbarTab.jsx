@@ -213,7 +213,7 @@ export default function NavbarTab() {
       currentPinned = currentPinned.filter(id => id !== itemId);
     } else {
       if (currentPinned.length >= maxNavbarLimit) {
-        alert(`⚠️ আপনি সর্বোচ্চ ১৪টি ক্যাটাগরি (৭+৭) নাভবারে পিন করতে পারবেন। অন্য একটি আনপিন করে এটি যুক্ত করুন।`);
+        alert(`⚠️ You can pin up to ${maxNavbarLimit} categories (7+7) on the navbar. Please unpin another item first.`);
         return;
       }
       currentPinned.push(itemId);
@@ -264,7 +264,7 @@ export default function NavbarTab() {
 
   // Delete Menu Item
   const deleteMenuItem = (id, name) => {
-    if (!window.confirm(`"${name}" মেন্যু আইটেমটি এবং এর সকল ড্রপডাউন সাব-ক্যাটাগরি মুছে ফেলতে চান?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${name}" and all its dropdown subcategories?`)) return;
     const newItems = navItems.filter(item => item.id !== id);
     updateNavItems(newItems);
     if (expandedMenuId === id) setExpandedMenuId(null);
@@ -381,7 +381,7 @@ export default function NavbarTab() {
 
   // Delete Subcategory
   const deleteSubItem = (menuId, subId, subName) => {
-    if (!window.confirm(`"${subName}" ড্রপডাউন অপশনটি মুছে ফেলতে চান?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${subName}" dropdown option?`)) return;
     const newItems = navItems.map(item => {
       if (item.id === menuId) {
         const subs = (item.subcategories || []).filter(sub => sub.id !== subId && sub.name !== subId && sub.slug !== subId);
@@ -480,7 +480,7 @@ export default function NavbarTab() {
 
   // Reset to Default Settings
   const handleResetToDefault = async () => {
-    if (!window.confirm('আপনি কি নিশ্চিত যে নাভবার সেটিংস রিসেট করে ডিফল্ট অবস্থায় ফিরিয়ে নিতে চান?')) return;
+    if (!window.confirm('Are you sure you want to reset all navbar settings to default?')) return;
     setIsSaving(true);
     try {
       await resetHeaderSettings();
@@ -517,7 +517,7 @@ export default function NavbarTab() {
                 </span>
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                ডেস্কটপ নাভবারে প্রতি লাইনে ৭টি করে সর্বোচ্চ ১৪টি ক্যাটাগরি (৭+৭) ও ড্রপডাউন সিলেক্ট করুন, বাকি ক্যাটাগরি সাইড মেন্যুতে সংরক্ষিত থাকবে
+                Configure top navigation categories (7+7 layout), dropdowns, promo notices, and header action buttons.
               </p>
             </div>
           </div>
@@ -529,7 +529,7 @@ export default function NavbarTab() {
             onClick={handleResetToDefault}
             disabled={isSaving}
             className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
-            title="ডিফল্ট নাভবারে ফিরে যান"
+            title="Reset to default navbar"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset to Default</span>
@@ -565,7 +565,7 @@ export default function NavbarTab() {
       {saveSuccess && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-800 text-xs font-bold animate-fadeIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <span>আপনার নাভবার ও ড্রপডাউন সেটিংস সফলভাবে সেভ হয়েছে এবং পুরো ওয়েবসাইটে তাৎক্ষণিকভাবে লাইভ কার্যকর হয়েছে!</span>
+          <span>Your navbar and dropdown settings have been saved successfully and are now live across the website!</span>
         </div>
       )}
 
@@ -579,7 +579,7 @@ export default function NavbarTab() {
             }`}
         >
           <Layers className="w-4 h-4" />
-          <span>ক্যাটাগরি ও ড্রপডাউন নির্বাচন ({pinnedIds.length}/{maxNavbarLimit} নাভবারে পিন করা)</span>
+          <span>Categories & Dropdowns ({pinnedIds.length}/{maxNavbarLimit} Pinned)</span>
         </button>
 
         <button
@@ -590,7 +590,7 @@ export default function NavbarTab() {
             }`}
         >
           <PhoneCall className="w-4 h-4" />
-          <span>হেডার অ্যাকশন বাটনসমূহ</span>
+          <span>Header Action Buttons</span>
         </button>
 
         <button
@@ -601,7 +601,7 @@ export default function NavbarTab() {
             }`}
         >
           <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>টপ প্রমো / অ্যানাউন্সমেন্ট বার</span>
+          <span>Top Promo / Notice Bar</span>
         </button>
 
         <button
@@ -612,7 +612,7 @@ export default function NavbarTab() {
             }`}
         >
           <Eye className="w-4 h-4 text-[#c92127]" />
-          <span>লাইভ ইন্টারেক্টিভ প্রিভিউ</span>
+          <span>Live Interactive Preview</span>
         </button>
       </div>
 
@@ -627,16 +627,16 @@ export default function NavbarTab() {
               </div>
               <div>
                 <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
-                  <span>ডেস্কটপ নাভবার পিন সিলেকশন (Navbar Items Selection)</span>
+                  <span>Desktop Navbar Pin Selection</span>
                   <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${pinnedIds.length === maxNavbarLimit
                       ? 'bg-emerald-600 text-white'
                       : 'bg-[#c92127] text-white'
                     }`}>
-                    {pinnedIds.length} / {maxNavbarLimit} টি সিলেক্টেড
+                    {pinnedIds.length} / {maxNavbarLimit} Selected
                   </span>
                 </h3>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  ল্যাপটপ ও কম্পিউটারে প্রতি লাইনে ৭টি করে সর্বোচ্চ <strong>{maxNavbarLimit}টি ক্যাটাগরি (৭+৭ দুটি লাইনে)</strong> ডানে সামান্য সরিয়ে সুন্দরভাবে দেখাবে। বাকি সব ক্যাটাগরি সাইড "Menu" ড্রয়ারে থাকবে।
+                  Desktop navbar displays up to <strong>{maxNavbarLimit} categories (in 2 rows of 7)</strong>. Other categories are available in the full "Menu" drawer.
                 </p>
               </div>
             </div>
@@ -647,15 +647,15 @@ export default function NavbarTab() {
                 onClick={handleAutoSelectTop14}
                 className="px-3 py-1.5 rounded-xl bg-white border border-red-300 text-xs font-black text-[#c92127] hover:bg-red-50 active:scale-95 transition-all cursor-pointer shadow-2xs"
               >
-                টপ {maxNavbarLimit}টি অটো-সিলেক্ট করুন
+                Auto-select Top {maxNavbarLimit}
               </button>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-black text-slate-900">সকল ক্যাটাগরি তালিকা ({navItems.length} টি)</h2>
-              <p className="text-[11px] text-slate-500">যে ক্যাটাগরিগুলো নাভবারে দেখাতে চান সেগুলোতে "পিন করুন" চাপুন, বাকিগুলো মেন্যুতে থাকবে</p>
+              <h2 className="text-sm font-black text-slate-900">All Categories List ({navItems.length} items)</h2>
+              <p className="text-[11px] text-slate-500">Click "Pin" to display a category in the desktop navbar; others will remain in the Menu drawer</p>
             </div>
           </div>
 
@@ -687,7 +687,7 @@ export default function NavbarTab() {
                           onClick={() => moveMenuItem(index, 'up')}
                           disabled={isFirst}
                           className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-500 hover:text-slate-900 cursor-pointer"
-                          title="উপরে নিন"
+                          title="Move Up"
                         >
                           <MoveUp className="w-3.5 h-3.5" />
                         </button>
@@ -696,7 +696,7 @@ export default function NavbarTab() {
                           onClick={() => moveMenuItem(index, 'down')}
                           disabled={isLast}
                           className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-500 hover:text-slate-900 cursor-pointer"
-                          title="নিচে নিন"
+                          title="Move Down"
                         >
                           <MoveDown className="w-3.5 h-3.5" />
                         </button>
@@ -711,10 +711,10 @@ export default function NavbarTab() {
                             ? 'bg-[#c92127] text-white shadow-xs hover:bg-[#b91c1c]'
                             : 'bg-slate-200/80 hover:bg-slate-300 text-slate-700'
                           } ${item.hidden ? 'opacity-40 cursor-not-allowed' : ''}`}
-                        title={isPinned ? 'নাভবার থেকে আনপিন করুন' : 'নাভবারে পিন করুন (সর্বোচ্চ ১৪টি)'}
+                        title={isPinned ? 'Unpin from navbar' : 'Pin to navbar (max 14)'}
                       >
                         <Star className={`w-3.5 h-3.5 ${isPinned ? 'fill-current text-amber-300' : 'text-slate-500'}`} />
-                        <span>{isPinned ? 'নাভবারে পিনড' : 'নাভবারে দেখান'}</span>
+                        <span>{isPinned ? 'Pinned' : 'Show on Nav'}</span>
                       </button>
 
                       <div className="min-w-0">
@@ -738,7 +738,7 @@ export default function NavbarTab() {
                           )}
                           {item.hidden && (
                             <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
-                              Hidden (অদৃশ্য)
+                              Hidden
                             </span>
                           )}
                         </div>
@@ -758,7 +758,7 @@ export default function NavbarTab() {
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                           }`}
                       >
-                        <span>ড্রপডাউন ({subCount})</span>
+                        <span>Dropdowns ({subCount})</span>
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
 
@@ -770,7 +770,7 @@ export default function NavbarTab() {
                             ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                           }`}
-                        title={item.hidden ? 'নাভবারে দেখান (Show)' : 'নাভবার থেকে লুকান (Hide)'}
+                        title={item.hidden ? 'Show on navbar' : 'Hide from navbar'}
                       >
                         {item.hidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -780,7 +780,7 @@ export default function NavbarTab() {
                         type="button"
                         onClick={() => openMenuModal(item)}
                         className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                        title="এডিট করুন"
+                        title="Edit Category"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -790,7 +790,7 @@ export default function NavbarTab() {
                         type="button"
                         onClick={() => deleteMenuItem(item.id, item.name)}
                         className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                        title="মুছে ফেলুন"
+                        title="Delete Category"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -803,7 +803,7 @@ export default function NavbarTab() {
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#c92127]"></span>
-                          <span>"{item.name}" এর ড্রপডাউন সাব-ক্যাটাগরি তালিকা</span>
+                          <span>"{item.name}" Dropdown Subcategories</span>
                         </span>
                         <button
                           type="button"
@@ -811,7 +811,7 @@ export default function NavbarTab() {
                           className="px-2.5 py-1 rounded-lg bg-[#c92127] hover:bg-[#b91c1c] text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
                         >
                           <Plus className="w-3 h-3" />
-                          <span>ড্রপডাউন লিংক যোগ করুন</span>
+                          <span>Add Dropdown Link</span>
                         </button>
                       </div>
 
@@ -877,7 +877,7 @@ export default function NavbarTab() {
                                     onClick={() => toggleSubItemVisibility(item.id, subId)}
                                     className={`p-1.5 rounded-md transition-colors cursor-pointer ${sub.hidden ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                                       }`}
-                                    title={sub.hidden ? 'আনহাইড করুন' : 'হাইড করুন'}
+                                    title={sub.hidden ? 'Unhide' : 'Hide'}
                                   >
                                     {sub.hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                   </button>
@@ -886,7 +886,7 @@ export default function NavbarTab() {
                                     type="button"
                                     onClick={() => openSubModal(item.id, sub)}
                                     className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-                                    title="এডিট"
+                                    title="Edit"
                                   >
                                     <Edit2 className="w-3.5 h-3.5" />
                                   </button>
@@ -895,7 +895,7 @@ export default function NavbarTab() {
                                     type="button"
                                     onClick={() => deleteSubItem(item.id, subId, sub.name)}
                                     className="p-1.5 rounded-md bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                                    title="মুছুন"
+                                    title="Delete"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -906,7 +906,7 @@ export default function NavbarTab() {
                         </div>
                       ) : (
                         <div className="p-4 bg-white rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-xs">
-                          কোন ড্রপডাউন সাব-আইটেম নেই। নতুন যুক্ত করতে উপরের বাটনে চাপুন।
+                          No dropdown sub-items yet. Click the button above to add one.
                         </div>
                       )}
                     </div>
@@ -922,8 +922,8 @@ export default function NavbarTab() {
       {activeTabSection === 'header_actions' && (
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-6">
           <div>
-            <h2 className="text-base font-black text-slate-900">হেডার অ্যাকশন বাটন ও সার্চ সেটিংস</h2>
-            <p className="text-xs text-slate-500 mt-0.5">টপ হেডারে দৃশ্যমান কল, হোয়াটসঅ্যাপ, ব্লগ বাটন ও সার্চ বার কনফিগারেশন</p>
+            <h2 className="text-base font-black text-slate-900">Header Action Buttons & Search Settings</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Configure top header phone call, WhatsApp chat, blog button, and search bar</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -932,7 +932,7 @@ export default function NavbarTab() {
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-[#c92127]" />
                 <label className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                  সার্চ বার প্লেসহোল্ডার টেক্সট
+                  Search Bar Placeholder Text
                 </label>
               </div>
               <input
@@ -952,7 +952,7 @@ export default function NavbarTab() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <PhoneCall className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">সরাসরি ফোন কল বাটন</span>
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Direct Phone Call Button</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -970,7 +970,7 @@ export default function NavbarTab() {
 
               <div className="space-y-2">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-1">ফোন নাম্বার (Phone Number)</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Phone Number</label>
                   <input
                     type="text"
                     value={formData.action_buttons?.call_phone || ''}
@@ -983,7 +983,7 @@ export default function NavbarTab() {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-1">বাটন লেবেল (Button Label)</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Button Label</label>
                   <input
                     type="text"
                     value={formData.action_buttons?.call_btn_text || ''}
@@ -1003,7 +1003,7 @@ export default function NavbarTab() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageCircle className="w-4 h-4 text-emerald-600" />
-                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">WhatsApp চ্যাট বাটন</span>
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wider">WhatsApp Chat Button</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -1021,7 +1021,7 @@ export default function NavbarTab() {
 
               <div className="space-y-2">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-1">WhatsApp নাম্বার (Country code সহ)</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">WhatsApp Number (with Country Code)</label>
                   <input
                     type="text"
                     value={formData.action_buttons?.whatsapp_number || ''}
@@ -1034,7 +1034,7 @@ export default function NavbarTab() {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-1">বাটন লেবেল (Button Label)</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Button Label</label>
                   <input
                     type="text"
                     value={formData.action_buttons?.whatsapp_btn_text || ''}
@@ -1051,10 +1051,10 @@ export default function NavbarTab() {
 
             {/* Other Button Toggles */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4 md:col-span-2">
-              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">অন্যান্য বাটন ও স্টিকি সেটিংস</h3>
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Other Header Buttons & Sticky Settings</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <label className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between cursor-pointer hover:border-slate-300">
-                  <span className="text-xs font-bold text-slate-800">Blog বাটন দেখান</span>
+                  <span className="text-xs font-bold text-slate-800">Show Blog Button</span>
                   <input
                     type="checkbox"
                     checked={formData.action_buttons?.show_blog_btn ?? true}
@@ -1067,7 +1067,7 @@ export default function NavbarTab() {
                 </label>
 
                 <label className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between cursor-pointer hover:border-slate-300">
-                  <span className="text-xs font-bold text-slate-800">Splashjet Ink বাটন</span>
+                  <span className="text-xs font-bold text-slate-800">Show Splashjet Ink Button</span>
                   <input
                     type="checkbox"
                     checked={formData.action_buttons?.show_splashjet_btn ?? true}
@@ -1080,7 +1080,7 @@ export default function NavbarTab() {
                 </label>
 
                 <label className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between cursor-pointer hover:border-slate-300">
-                  <span className="text-xs font-bold text-slate-800">Sticky Navbar (স্ক্রলে আটকে থাকবে)</span>
+                  <span className="text-xs font-bold text-slate-800">Sticky Navbar (Fix on Scroll)</span>
                   <input
                     type="checkbox"
                     checked={formData.navigation?.sticky_nav ?? true}
@@ -1102,12 +1102,12 @@ export default function NavbarTab() {
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-black text-slate-900">টপ প্রমো ও নোটিশ বার কাস্টমাইজেশন</h2>
-              <p className="text-xs text-slate-500 mt-0.5">হেডারের একদম উপরে যে ঘোষণা/নোটিশ স্ট্রিপ থাকে তার সেটিংস</p>
+              <h2 className="text-base font-black text-slate-900">Top Promo & Notice Bar Customization</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Configure the top announcement banner strip above the header</p>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs font-bold text-slate-600">
-                {(formData.top_bar?.enabled ?? true) ? 'সক্রিয় (Enabled)' : 'বন্ধ (Disabled)'}
+                {(formData.top_bar?.enabled ?? true) ? 'Enabled' : 'Disabled'}
               </span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -1127,7 +1127,7 @@ export default function NavbarTab() {
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold text-slate-700">নোটিশ / ঘোষণা টেক্সট (Notice Text)</label>
+                <label className="text-xs font-bold text-slate-700">Notice / Announcement Text</label>
                 {(formData.top_bar?.custom_notice || '') && (
                   <button
                     type="button"
@@ -1137,7 +1137,7 @@ export default function NavbarTab() {
                     }))}
                     className="text-[11px] font-bold text-red-500 hover:underline cursor-pointer"
                   >
-                    টেক্সট ক্লিয়ার করুন
+                    Clear Text
                   </button>
                 )}
               </div>
@@ -1149,13 +1149,13 @@ export default function NavbarTab() {
                   top_bar: { ...prev.top_bar, custom_notice: e.target.value }
                 }))}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 bg-white outline-none focus:border-[#c92127] focus:ring-2 focus:ring-red-500/20"
-                placeholder="ঘোষণা বা নোটিশ লিখুন (যেমন: 🚚 সারাদেশে দ্রুত ক্যাশ অন ডেলিভারি...)"
+                placeholder="e.g. 🚚 Express Delivery Nationwide • 100% Authentic Products • Hotline: 01777-277740"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">অ্যাকশন বাটন টেক্সট (Action Button Text)</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Action Button Text</label>
                 <input
                   type="text"
                   value={formData.top_bar?.action_text ?? ''}
@@ -1164,12 +1164,12 @@ export default function NavbarTab() {
                     top_bar: { ...prev.top_bar, action_text: e.target.value }
                   }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 bg-white outline-none focus:border-[#c92127] focus:ring-2 focus:ring-red-500/20"
-                  placeholder="অফার দেখুন (খালি রাখতে পারেন)"
+                  placeholder="e.g. Shop Now (optional)"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">অ্যাকশন লিংক / URL</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Action Link / URL</label>
                 <input
                   type="text"
                   value={formData.top_bar?.action_url ?? ''}
@@ -1192,10 +1192,10 @@ export default function NavbarTab() {
           <div className="flex items-center justify-between border-b border-slate-800 pb-4">
             <div className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-red-500" />
-              <h3 className="text-base font-black">রিয়েল-টাইম নাভবার প্রিভিউ (Interactive Live Preview)</h3>
+              <h3 className="text-base font-black">Interactive Live Preview</h3>
             </div>
             <span className="text-[11px] font-bold bg-slate-800 text-slate-300 px-3 py-1 rounded-full">
-              নাভবারে মোট {previewNavbarItems.length}টি ক্যাটাগরি প্রদর্শিত হবে
+              Total {previewNavbarItems.length} categories shown in navbar
             </span>
           </div>
 
@@ -1205,7 +1205,7 @@ export default function NavbarTab() {
             {(formData.top_bar?.enabled ?? true) && formData.top_bar?.custom_notice?.trim() && (
               <div className="bg-slate-950 text-white text-[11px] px-4 py-1.5 flex items-center justify-between border-b border-zinc-800">
                 <div className="flex items-center gap-2 truncate">
-                  <span className="bg-[#c92127] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">ঘোষণা</span>
+                  <span className="bg-[#c92127] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">Announcement</span>
                   <span className="truncate">{formData.top_bar.custom_notice}</span>
                   {formData.top_bar.action_text?.trim() && (
                     <span className="text-amber-300 font-bold ml-1">{formData.top_bar.action_text} →</span>
@@ -1381,7 +1381,7 @@ export default function NavbarTab() {
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-[#c92127]" />
-                <span>{editingMenuItem ? 'ক্যাটাগরি এডিট করুন' : 'নতুন ক্যাটাগরি যোগ করুন'}</span>
+                <span>{editingMenuItem ? 'Edit Category' : 'Add New Category'}</span>
               </h3>
               <button
                 type="button"
@@ -1395,7 +1395,7 @@ export default function NavbarTab() {
             <form onSubmit={saveMenuItem} className="p-5 space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
-                  ক্যাটাগরি নাম (Name) <span className="text-red-500">*</span>
+                  Category Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1403,34 +1403,34 @@ export default function NavbarTab() {
                   value={menuItemForm.name}
                   onChange={(e) => setMenuItemForm(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500/20 focus:border-[#c92127] outline-none"
-                  placeholder="যেমন: Photocopiers, Printers, Laser Inks"
+                  placeholder="e.g. Photocopiers, Printers, Laser Inks"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
-                  স্লাগ / ক্যাটাগরি URL (Category Slug)
+                  Category Slug / URL (Route)
                 </label>
                 <input
                   type="text"
                   value={menuItemForm.slug}
                   onChange={(e) => setMenuItemForm(prev => ({ ...prev, slug: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500/20 focus:border-[#c92127] outline-none font-mono"
-                  placeholder="যেমন: photocopy-machine বা printers"
+                  placeholder="e.g. photocopy-machine or printers"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">ফাঁকা রাখলে নাম অনুযায়ী স্বয়ংক্রিয়ভাবে স্লাগ তৈরি হবে।</p>
+                <p className="text-[10px] text-slate-400 mt-1">Leave blank to auto-generate slug from name.</p>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
-                  ব্যাজ টেক্সট (Badge - ঐচ্ছিক)
+                  Badge Text (Optional)
                 </label>
                 <input
                   type="text"
                   value={menuItemForm.badge}
                   onChange={(e) => setMenuItemForm(prev => ({ ...prev, badge: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500/20 focus:border-[#c92127] outline-none"
-                  placeholder="যেমন: Hot, New, Popular, Official"
+                  placeholder="e.g. Hot, New, Popular, Official"
                 />
               </div>
 
@@ -1440,13 +1440,13 @@ export default function NavbarTab() {
                   onClick={() => setMenuModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  বাতিল
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-black text-white bg-[#c92127] hover:bg-[#b91c1c] cursor-pointer shadow-xs"
                 >
-                  {editingMenuItem ? 'আপডেট করুন' : 'যোগ করুন'}
+                  {editingMenuItem ? 'Update' : 'Add'}
                 </button>
               </div>
             </form>
@@ -1461,7 +1461,7 @@ export default function NavbarTab() {
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
                 <ChevronRight className="w-4 h-4 text-[#c92127]" />
-                <span>{editingSubItem ? 'ড্রপডাউন অপশন এডিট করুন' : 'নতুন ড্রপডাউন অপশন যোগ করুন'}</span>
+                <span>{editingSubItem ? 'Edit Dropdown Option' : 'Add Dropdown Option'}</span>
               </h3>
               <button
                 type="button"
@@ -1475,7 +1475,7 @@ export default function NavbarTab() {
             <form onSubmit={saveSubItem} className="p-5 space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
-                  ড্রপডাউন আইটেম নাম <span className="text-red-500">*</span>
+                  Dropdown Item Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1483,33 +1483,33 @@ export default function NavbarTab() {
                   value={subItemForm.name}
                   onChange={(e) => setSubItemForm(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500/20 focus:border-[#c92127] outline-none"
-                  placeholder="যেমন: Color Series Photocopiers"
+                  placeholder="e.g. Color Series Photocopiers"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
-                  স্লাগ / লিংক URL (Slug / Route)
+                  Slug / Link URL (Route)
                 </label>
                 <input
                   type="text"
                   value={subItemForm.slug}
                   onChange={(e) => setSubItemForm(prev => ({ ...prev, slug: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500/20 focus:border-[#c92127] outline-none font-mono"
-                  placeholder="যেমন: photocopy-machine/color-series"
+                  placeholder="e.g. photocopy-machine/color-series"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">
-                  ব্যাজ (Badge - ঐচ্ছিক)
+                  Badge (Optional)
                 </label>
                 <input
                   type="text"
                   value={subItemForm.badge}
                   onChange={(e) => setSubItemForm(prev => ({ ...prev, badge: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500/20 focus:border-[#c92127] outline-none"
-                  placeholder="যেমন: Hot, New, Best Seller"
+                  placeholder="e.g. Hot, New, Best Seller"
                 />
               </div>
 
@@ -1519,13 +1519,13 @@ export default function NavbarTab() {
                   onClick={() => setSubModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  বাতিল
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-black text-white bg-[#c92127] hover:bg-[#b91c1c] cursor-pointer shadow-xs"
                 >
-                  {editingSubItem ? 'আপডেট করুন' : 'যোগ করুন'}
+                  {editingSubItem ? 'Update' : 'Add'}
                 </button>
               </div>
             </form>

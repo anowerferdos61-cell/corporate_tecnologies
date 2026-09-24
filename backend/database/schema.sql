@@ -237,6 +237,7 @@ CREATE TABLE IF NOT EXISTS products (
     short_description TEXT,
     description TEXT,
     specifications JSONB DEFAULT '{}'::jsonb,
+    variations JSONB DEFAULT '[]'::jsonb,
     key_features JSONB DEFAULT '[]'::jsonb,
     is_featured BOOLEAN DEFAULT false,
     rating NUMERIC(3, 2) DEFAULT 4.9,

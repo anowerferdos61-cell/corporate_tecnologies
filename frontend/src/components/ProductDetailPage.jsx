@@ -204,8 +204,15 @@ export default function ProductDetailPage({
     }
   };
 
-  // Check if current product is already in cart
-  const cartItem = cartItems?.find(item => (item.product?.id || item.id) === product?.id);
+  // Check if current product or selected variation is already in cart
+  const currentItemKey = selectedVariation
+    ? `${product?.id}__${selectedVariation.name}`
+    : String(product?.id || '');
+
+  const cartItem = cartItems?.find(item => {
+    const key = item.product?.cart_item_key || `${item.product?.id || item.id}__${item.product?.variation_name || item.variation_name || ''}`;
+    return key === currentItemKey || ((item.product?.id || item.id) === product?.id && !selectedVariation && !item.product?.variation_name);
+  });
   const isInCart = Boolean(cartItem);
   const cartQuantity = cartItem?.quantity || 0;
 
@@ -239,26 +246,6 @@ export default function ProductDetailPage({
       showToast('প্রোডাক্ট লিংক কপি করা হয়েছে!', 'info');
     }
   };
-
-  if (!product) {
-    return (
-      <div className="bg-white min-h-[70vh] flex flex-col items-center justify-center py-20 px-4 text-center">
-        <div className="w-16 h-16 bg-red-50 text-[#c92127] rounded-full flex items-center justify-center mb-4">
-          <ShoppingCart className="w-8 h-8 animate-pulse" />
-        </div>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">পণ্যটি লোড হচ্ছে অথবা পাওয়া যায়নি</h2>
-        <p className="text-xs sm:text-sm text-slate-500 max-w-sm mb-6 leading-relaxed">
-          অনুগ্রহ করে কিছুক্ষণ অপেক্ষা করুন অথবা আমাদের শপ পেজে গিয়ে পছন্দের পণ্যটি বেছে নিন।
-        </p>
-        <button
-          onClick={() => onNavigate ? onNavigate('/shop') : navigate('/shop')}
-          className="bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs sm:text-sm font-bold px-6 py-2.5 rounded-xl shadow-md transition-all cursor-pointer"
-        >
-          শপ পেজে যান
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white min-h-screen pb-36 md:pb-12">
@@ -496,11 +483,11 @@ export default function ProductDetailPage({
                 <div className="flex items-center justify-between">
                   <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <Layers className="w-4 h-4 text-[#c92127]" />
-                    <span>Select Variant / Color Option:</span>
+                    <span>কালার / ভ্যারিয়েন্ট সিলেক্ট করুন:</span>
                   </label>
                   {selectedVariation && (
-                    <span className="text-xs font-bold text-[#c92127]">
-                      {selectedVariation.name}
+                    <span className="text-xs font-bold text-[#c92127] bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
+                      সিলেক্টেড: {selectedVariation.name}
                     </span>
                   )}
                 </div>
@@ -508,6 +495,7 @@ export default function ProductDetailPage({
                 <div className="flex flex-wrap gap-2.5">
                   {product.variations.map((v, idx) => {
                     const isSelected = selectedVariation?.name === v.name;
+                    const varPrice = Number(v.sale_price || v.regular_price || 0);
                     return (
                       <button
                         key={idx}
@@ -515,15 +503,24 @@ export default function ProductDetailPage({
                           setSelectedVariation(v);
                           if (v.image_url) setSelectedImage(v.image_url);
                         }}
-                        className={`text-xs sm:text-sm px-4 py-2.5 rounded-xl border transition-all cursor-pointer font-semibold flex items-center gap-2 ${isSelected
-                            ? 'bg-[#c92127] text-white border-[#c92127] shadow-md transform scale-[1.02]'
+                        className={`text-xs sm:text-sm px-3.5 py-2.5 rounded-2xl border transition-all cursor-pointer font-semibold flex items-center gap-2.5 shadow-2xs ${isSelected
+                            ? 'bg-[#c92127] text-white border-[#c92127] shadow-md transform scale-[1.02] ring-2 ring-[#c92127]/20'
                             : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:bg-slate-50'
                           }`}
                       >
+                        {/* Color Dot if available */}
+                        {v.color_code && (
+                          <span
+                            className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0"
+                            style={{ backgroundColor: v.color_code }}
+                          />
+                        )}
                         <span>{v.name}</span>
-                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-[#c92127]'}`}>
-                          ৳{Number(v.sale_price || v.regular_price).toLocaleString()}
-                        </span>
+                        {varPrice > 0 && (
+                          <span className={`text-xs font-bold font-mono ${isSelected ? 'text-white/90' : 'text-[#c92127]'}`}>
+                            ৳{varPrice.toLocaleString()}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -674,10 +671,7 @@ export default function ProductDetailPage({
                       <button
                         onClick={() => {
                           if (onNavigate) onNavigate('/compare/', 'Product Compare');
-                          else {
-                            window.history.pushState({}, '', '/compare/');
-                            window.dispatchEvent(new PopStateEvent('popstate'));
-                          }
+                          else navigate('/compare');
                         }}
                         className="py-3 px-4 rounded-2xl text-xs sm:text-sm font-black text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer flex items-center gap-1 flex-shrink-0"
                       >

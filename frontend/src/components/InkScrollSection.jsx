@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
   ChevronRight, 
@@ -74,6 +75,7 @@ function isPureInkProduct(p) {
 }
 
 export default function InkScrollSection({ allProducts = [], onNavigate }) {
+  const navigate = useNavigate();
   const { cartItems, addToCart } = useCart();
   const [addedId, setAddedId] = useState(null);
 
@@ -278,13 +280,12 @@ export default function InkScrollSection({ allProducts = [], onNavigate }) {
     if (e) e.stopPropagation();
     trackProductView(product);
     const targetSlug = product.slug || product.id;
-    const targetUrl = `/product/${targetSlug}/`;
+    const targetUrl = `/product/${targetSlug}`;
 
     if (onNavigate) {
       onNavigate(targetUrl, product);
     } else {
-      window.history.pushState({}, '', targetUrl);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      navigate(targetUrl);
     }
   };
 
@@ -316,7 +317,7 @@ export default function InkScrollSection({ allProducts = [], onNavigate }) {
           {/* Action Link: View All button */}
           <div>
             <button
-              onClick={() => onNavigate ? onNavigate('/product-category/splashjet-ink/', 'Splashjet Ink') : window.location.href = '/product-category/splashjet-ink/'}
+              onClick={() => onNavigate ? onNavigate('/product-category/splashjet-ink', 'Splashjet Ink') : navigate('/product-category/splashjet-ink')}
               className="inline-flex items-center gap-1.5 bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs sm:text-sm font-extrabold px-5 py-2.5 rounded-full shadow-md transition-all cursor-pointer transform hover:-translate-y-0.5"
             >
               <span>Explore All Inks</span>

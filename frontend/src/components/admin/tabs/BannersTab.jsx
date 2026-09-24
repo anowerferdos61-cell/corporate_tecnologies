@@ -47,35 +47,35 @@ import {
 import { uploadProductImage } from '../../../lib/supabaseClient';
 
 const AVAILABLE_TICKER_ICONS = [
-  { id: 'ShieldCheck', label: 'Shield / Warranty (ওয়ারেন্টি)', Icon: ShieldCheck },
-  { id: 'Sparkles', label: 'Sparkles / Official (অফিসিয়াল)', Icon: Sparkles },
-  { id: 'PhoneCall', label: 'Phone / Hotline (হটলাইন)', Icon: PhoneCall },
-  { id: 'Award', label: 'Award / Genuine (জেনুইন কোয়ালিটি)', Icon: Award },
-  { id: 'Truck', label: 'Truck / Delivery (ডেলিভারি)', Icon: Truck },
-  { id: 'Headphones', label: 'Headphones / Support (সাপোর্ট)', Icon: Headphones },
-  { id: 'Zap', label: 'Zap / Fast / Offer (ফাস্ট/অফার)', Icon: Zap },
-  { id: 'Flame', label: 'Flame / Hot Deal (হট ডিল)', Icon: Flame },
-  { id: 'Star', label: 'Star / Rating (স্টার রেটিং)', Icon: Star },
-  { id: 'CheckCircle2', label: 'Check / Verified (ভেরিফাইড)', Icon: CheckCircle2 },
-  { id: 'Tag', label: 'Tag / Discount (ডিসকাউন্ট)', Icon: Tag },
-  { id: 'Clock', label: 'Clock / 24-7 (সময়/২৪ ঘণ্টা)', Icon: Clock },
-  { id: 'Gift', label: 'Gift / Freebie (উপহার/ফ্রি)', Icon: Gift },
-  { id: 'Package', label: 'Package / Stock (প্যাকেজ/স্টক)', Icon: Package },
-  { id: 'Percent', label: 'Percent / Sale (সেল/ছাড়)', Icon: Percent },
-  { id: 'Printer', label: 'Printer / Machine (প্রিন্টার)', Icon: Printer },
-  { id: 'Megaphone', label: 'Megaphone / Notice (ঘোষণা)', Icon: Megaphone },
-  { id: 'BadgePercent', label: 'Badge / Special (স্পেশাল ব্যাজ)', Icon: BadgePercent }
+  { id: 'ShieldCheck', label: 'Shield / Warranty', Icon: ShieldCheck },
+  { id: 'Sparkles', label: 'Sparkles / Official', Icon: Sparkles },
+  { id: 'PhoneCall', label: 'Phone / Hotline', Icon: PhoneCall },
+  { id: 'Award', label: 'Award / Genuine Quality', Icon: Award },
+  { id: 'Truck', label: 'Truck / Delivery', Icon: Truck },
+  { id: 'Headphones', label: 'Headphones / Support', Icon: Headphones },
+  { id: 'Zap', label: 'Zap / Fast Offer', Icon: Zap },
+  { id: 'Flame', label: 'Flame / Hot Deal', Icon: Flame },
+  { id: 'Star', label: 'Star / Top Rated', Icon: Star },
+  { id: 'CheckCircle2', label: 'Check / Verified', Icon: CheckCircle2 },
+  { id: 'Tag', label: 'Tag / Discount', Icon: Tag },
+  { id: 'Clock', label: 'Clock / 24-7 Service', Icon: Clock },
+  { id: 'Gift', label: 'Gift / Freebie', Icon: Gift },
+  { id: 'Package', label: 'Package / In Stock', Icon: Package },
+  { id: 'Percent', label: 'Percent / Sale', Icon: Percent },
+  { id: 'Printer', label: 'Printer / Machine', Icon: Printer },
+  { id: 'Megaphone', label: 'Megaphone / Announcement', Icon: Megaphone },
+  { id: 'BadgePercent', label: 'Badge / Special Offer', Icon: BadgePercent }
 ];
 
 const AVAILABLE_TICKER_COLORS = [
-  { id: 'red', label: 'Red (লাল)', bg: 'bg-red-50 text-[#c92127]' },
-  { id: 'sky', label: 'Sky Blue (আকাশি)', bg: 'bg-sky-50 text-sky-600' },
-  { id: 'emerald', label: 'Emerald Green (সবুজ)', bg: 'bg-emerald-50 text-emerald-600' },
-  { id: 'amber', label: 'Amber Gold (সোনালী/হলুদ)', bg: 'bg-amber-50 text-amber-600' },
-  { id: 'purple', label: 'Purple (বেগুনী)', bg: 'bg-purple-50 text-purple-600' },
-  { id: 'indigo', label: 'Indigo (নীল)', bg: 'bg-indigo-50 text-indigo-600' },
-  { id: 'rose', label: 'Rose Pink (গোলাপি)', bg: 'bg-rose-50 text-rose-600' },
-  { id: 'slate', label: 'Slate Gray (ধূসর)', bg: 'bg-slate-100 text-slate-700' }
+  { id: 'red', label: 'Red', bg: 'bg-red-50 text-[#c92127]' },
+  { id: 'sky', label: 'Sky Blue', bg: 'bg-sky-50 text-sky-600' },
+  { id: 'emerald', label: 'Emerald Green', bg: 'bg-emerald-50 text-emerald-600' },
+  { id: 'amber', label: 'Amber Gold', bg: 'bg-amber-50 text-amber-600' },
+  { id: 'purple', label: 'Purple', bg: 'bg-purple-50 text-purple-600' },
+  { id: 'indigo', label: 'Indigo', bg: 'bg-indigo-50 text-indigo-600' },
+  { id: 'rose', label: 'Rose Pink', bg: 'bg-rose-50 text-rose-600' },
+  { id: 'slate', label: 'Slate Gray', bg: 'bg-slate-100 text-slate-700' }
 ];
 
 export default function BannersTab() {
@@ -259,8 +259,8 @@ export default function BannersTab() {
       const newItem = {
         id: `ticker-${Date.now()}`,
         iconName: 'Sparkles',
-        title: 'নতুন সুবিধা বা অফার',
-        desc: 'সংক্ষিপ্ত বিবরণ দিন',
+        title: 'New Benefit or Offer',
+        desc: 'Brief description here',
         badgeColor: 'red'
       };
       return {
@@ -337,7 +337,7 @@ export default function BannersTab() {
             Hero Section & Banners Design Control
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-            স্লাইডার, সাইড ব্যানার এবং নিচের স্ক্রলিং টেক্সট/নোটিস ও সুবিধা ব্যাজসমূহ লাইভ কাস্টমাইজ করুন।
+            Customize sliders, side banners, scrolling ticker notices, and value proposition badges live.
           </p>
         </div>
 
@@ -463,7 +463,7 @@ export default function BannersTab() {
           </div>
           <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-1">Scrolling Ticker</h3>
           <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
-            স্ক্রলিং নোটিস ও ব্যাজসমূহ
+            Scrolling Notice & Badges
           </p>
         </button>
       </div>
@@ -1208,7 +1208,7 @@ export default function BannersTab() {
                   Hero Bottom Scrolling Ticker & Custom Notice
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  হিরো ব্যানারের ঠিক নিচে চলমান টেক্সট/নোটিস ও সুবিধা ব্যাজসমূহ পরিচালনা ও কাস্টমাইজ করুন।
+                  Manage and customize the animated scrolling marquee, announcements, and trust badges right below the hero banner.
                 </p>
               </div>
             </div>
@@ -1216,7 +1216,7 @@ export default function BannersTab() {
             {/* Master Enable/Disable Switch */}
             <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl self-start sm:self-auto">
               <span className="text-xs font-bold text-slate-700">
-                {ticker.enabled !== false ? 'স্ক্রলিং বার চালু আছে' : 'স্ক্রলিং বার বন্ধ আছে'}
+                {ticker.enabled !== false ? 'Ticker is Active' : 'Ticker is Disabled'}
               </span>
               <button
                 type="button"
@@ -1237,7 +1237,7 @@ export default function BannersTab() {
           {/* Mode Selector Cards */}
           <div className="space-y-3">
             <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-              ডিসপ্লে মোড সিলেক্ট করুন (Display Mode)
+              Select Display Mode
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               
@@ -1253,10 +1253,10 @@ export default function BannersTab() {
               >
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center text-xs font-bold">1</span>
-                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">আইকন সহ সুবিধা ব্যাজ</strong>
+                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">Trust Badges with Icons</strong>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                  স্টাইলিশ আইকন, টাইটেল ও বিবরণ সহ প্রতিটি সুবিধা পর্যায়ক্রমে স্ক্রল করবে।
+                  Displays animated rotating badges with stylish icons, titles, and subtitle descriptions.
                 </p>
               </button>
 
@@ -1272,10 +1272,10 @@ export default function BannersTab() {
               >
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center text-xs font-bold">2</span>
-                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">কাস্টম লেখা / নোটিস</strong>
+                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">Custom Announcement Text</strong>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                  নিজের ইচ্ছামতো যেকোনো অফার বা টেক্সট লিখে সরাসরি স্ক্রল করাতে পারবেন।
+                  Write and scroll any custom promotion message, notice, or marketing announcement.
                 </p>
               </button>
 
@@ -1291,10 +1291,10 @@ export default function BannersTab() {
               >
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-md bg-purple-600 text-white flex items-center justify-center text-xs font-bold">3</span>
-                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">উভয় একসাথে (Combined)</strong>
+                  <strong className="text-xs sm:text-sm font-extrabold text-slate-900">Combined (Both Modes)</strong>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                  কাস্টম অফার নোটিস হাইলাইট হয়ে থাকবে এবং সাথে সুবিধা ব্যাজগুলোও স্ক্রল হবে।
+                  Highlights custom promotion text alongside continuously scrolling benefit badges.
                 </p>
               </button>
 
@@ -1307,10 +1307,10 @@ export default function BannersTab() {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black uppercase tracking-wider text-purple-900 flex items-center gap-2">
                   <Type className="w-4 h-4 text-purple-600" />
-                  <span>কাস্টম স্ক্রলিং টেক্সট বা নোটিস লিখুন</span>
+                  <span>Custom Marquee Text / Notice</span>
                 </label>
                 <span className="text-[11px] font-bold text-purple-700">
-                  {ticker.customText?.length || 0} অক্ষর
+                  {ticker.customText?.length || 0} characters
                 </span>
               </div>
 
@@ -1318,21 +1318,21 @@ export default function BannersTab() {
                 rows={2}
                 value={ticker.customText || ''}
                 onChange={(e) => updateTicker('customText', e.target.value)}
-                placeholder="যেমন: 🎉 বিশেষ অফার: সকল Splashjet কালিতে আকর্ষণীয় ছাড়! • সারাদেশে দ্রুত ক্যাশ অন ডেলিভারি • হটলাইন: 01777-277740"
+                placeholder="e.g. 🎉 Special Offer: Exclusive discounts on all Splashjet inks! • Fast Cash on Delivery Nationwide • Hotline: 01777-277740"
                 className="w-full text-xs sm:text-sm px-4 py-3 bg-white border border-purple-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium text-slate-900"
               />
 
               {/* Quick Preset Message Chips */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-bold text-purple-900">
-                  ⚡ দ্রুত রেডিমেড মেসেজ সিলেক্ট করুন (ক্লিক করলেই পেস্ট হবে):
+                  ⚡ Quick Preset Messages (click to insert):
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    '🎉 বিশেষ অফার: সকল Splashjet কালিতে আকর্ষণীয় ছাড়! • সারাদেশে দ্রুত ক্যাশ অন ডেলিভারি • হটলাইন: 01777-277740',
-                    '🚚 আজই অর্ডার করুন! সারাদেশে ২৪-৪৮ ঘণ্টায় ক্যাশ অন ডেলিভারি ও লাইভ ট্র্যাকিং সুবিধা',
-                    '⭐ শতভাগ অথেনটিক Splashjet ডিজিটাল কালি ও ১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি',
-                    '📞 সরাসরি কল বা হোয়াটসঅ্যাপের মাধ্যমে অর্ডার করতে কল করুন: 01777-277740 (সকাল ১০টা - রাত ৮টা)'
+                    '🎉 Special Offer: Exclusive discounts on all Splashjet inks! • Fast Nationwide Delivery • Hotline: 01777-277740',
+                    '🚚 Order Today! 24-48 Hours Express Delivery with Live Tracking Nationwide',
+                    '⭐ 100% Authentic Splashjet Digital Inks & 1 Year Official Service Warranty',
+                    '📞 Direct Call or WhatsApp Order: 01777-277740 (10 AM - 8 PM)'
                   ].map((preset, pIdx) => (
                     <button
                       key={pIdx}
@@ -1354,13 +1354,13 @@ export default function BannersTab() {
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5 text-slate-500" />
-                <span>স্ক্রলিং গতি (Scroll Speed)</span>
+                <span>Scroll Speed</span>
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: 'slow', label: 'ধীর (Slow - 48s)' },
-                  { id: 'normal', label: 'স্বাভাবিক (30s)' },
-                  { id: 'fast', label: 'দ্রুত (Fast - 18s)' }
+                  { id: 'slow', label: 'Slow (48s)' },
+                  { id: 'normal', label: 'Normal (30s)' },
+                  { id: 'fast', label: 'Fast (18s)' }
                 ].map((sp) => (
                   <button
                     key={sp.id}
@@ -1382,7 +1382,7 @@ export default function BannersTab() {
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
                 <Play className="w-3.5 h-3.5 text-slate-500" />
-                <span>মাউস রাখলে থামবে কিনা (Pause on Hover)</span>
+                <span>Pause on Hover</span>
               </label>
               <button
                 type="button"
@@ -1393,7 +1393,7 @@ export default function BannersTab() {
                     : 'bg-white border-slate-200 text-slate-600'
                 }`}
               >
-                <span>{ticker.pauseOnHover !== false ? '✓ মাউস রাখলে থামবে (Pause Enabled)' : '✕ সবসময় চলতে থাকবে'}</span>
+                <span>{ticker.pauseOnHover !== false ? '✓ Pause on hover enabled' : '✕ Continuous scroll'}</span>
                 <span className="text-[10px] bg-white px-2 py-0.5 rounded font-black shadow-2xs">
                   {ticker.pauseOnHover !== false ? 'ON' : 'OFF'}
                 </span>
@@ -1407,10 +1407,10 @@ export default function BannersTab() {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-black text-slate-900">
-                    সুবিধা ব্যাজসমূহ তালিকা ({(ticker.items || DEFAULT_TICKER_ITEMS).length}টি আইটেম)
+                    Benefit Badges List ({(ticker.items || DEFAULT_TICKER_ITEMS).length} Items)
                   </h4>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    প্রতিটি ব্যাজের লিখা, আইকন ও কালার পরিবর্তন করুন অথবা নতুন ব্যাজ যোগ করুন।
+                    Edit text, icon, and colors for each badge or add new ones.
                   </p>
                 </div>
 
@@ -1420,7 +1420,7 @@ export default function BannersTab() {
                   className="inline-flex items-center gap-1.5 bg-[#c92127] hover:bg-[#b91c1c] text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-2xs cursor-pointer transition-all active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>নতুন সুবিধা যোগ করুন</span>
+                  <span>Add New Benefit Badge</span>
                 </button>
               </div>
 
@@ -1446,7 +1446,7 @@ export default function BannersTab() {
                             <IconComp className="w-3.5 h-3.5" />
                           </span>
                           <strong className="text-xs font-bold text-slate-800 line-clamp-1">
-                            {item.title || `সুবিধা #${idx + 1}`}
+                            {item.title || `Badge #${idx + 1}`}
                           </strong>
                         </div>
 
@@ -1486,13 +1486,13 @@ export default function BannersTab() {
                         {/* Title (Main Text) */}
                         <div className="sm:col-span-4 space-y-1">
                           <label className="block text-[11px] font-bold text-slate-700">
-                            প্রধান লিখা (Title) *
+                            Main Title *
                           </label>
                           <input
                             type="text"
                             value={item.title || ''}
                             onChange={(e) => updateTickerItem(idx, 'title', e.target.value)}
-                            placeholder="যেমন: 1 Year Service Warranty"
+                            placeholder="e.g. 1 Year Service Warranty"
                             className="w-full text-xs px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-[#c92127] font-semibold"
                           />
                         </div>
@@ -1500,13 +1500,13 @@ export default function BannersTab() {
                         {/* Subtitle / Desc (Parenthesis Text) */}
                         <div className="sm:col-span-4 space-y-1">
                           <label className="block text-[11px] font-bold text-slate-700">
-                            সংক্ষিপ্ত বিবরণ (Bracket Text)
+                            Subtitle / Details
                           </label>
                           <input
                             type="text"
                             value={item.desc || ''}
                             onChange={(e) => updateTickerItem(idx, 'desc', e.target.value)}
-                            placeholder="যেমন: Official Support & Authentic Parts"
+                            placeholder="e.g. Official Support & Authentic Parts"
                             className="w-full text-xs px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-[#c92127]"
                           />
                         </div>
@@ -1514,7 +1514,7 @@ export default function BannersTab() {
                         {/* Icon Picker */}
                         <div className="sm:col-span-2 space-y-1">
                           <label className="block text-[11px] font-bold text-slate-700">
-                            আইকন (Icon)
+                            Icon
                           </label>
                           <select
                             value={item.iconName || 'Award'}
@@ -1532,7 +1532,7 @@ export default function BannersTab() {
                         {/* Color Theme Picker */}
                         <div className="sm:col-span-2 space-y-1">
                           <label className="block text-[11px] font-bold text-slate-700">
-                            কালার (Theme)
+                            Color Theme
                           </label>
                           <select
                             value={item.badgeColor || 'red'}
@@ -1560,10 +1560,10 @@ export default function BannersTab() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Eye className="w-3.5 h-3.5 text-purple-600" />
-                <span>লাইভ স্ক্রলিং প্রিভিউ (Live Sandbox Preview)</span>
+                <span>Live Scrolling Preview</span>
               </span>
               <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                গতি: {ticker.speed === 'fast' ? '18s' : ticker.speed === 'slow' ? '48s' : '30s'}
+                Speed: {ticker.speed === 'fast' ? '18s' : ticker.speed === 'slow' ? '48s' : '30s'}
               </span>
             </div>
 

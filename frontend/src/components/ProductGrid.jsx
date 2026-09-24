@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ProductCard from './ProductCard';
 import {
   ArrowRight,
@@ -38,6 +39,7 @@ const ICON_MAP = {
 };
 
 export default function ProductGrid({ products = [], loading = false, onNavigate }) {
+  const navigate = useNavigate();
   const [settings, setSettings] = useState(DEFAULT_POPULAR_CATEGORIES_SETTINGS);
 
   // Load Popular Categories Settings from DB / Local
@@ -146,8 +148,7 @@ export default function ProductGrid({ products = [], loading = false, onNavigate
                 if (onNavigate) {
                   onNavigate(targetLink, 'Shop');
                 } else {
-                  window.history.pushState({}, '', targetLink);
-                  window.dispatchEvent(new PopStateEvent('popstate'));
+                  navigate(targetLink);
                 }
               }}
               className="inline-flex items-center gap-2.5 bg-[#c92127] hover:bg-[#b91c1c] text-white font-extrabold text-xs sm:text-sm px-8 py-3.5 rounded-full shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5 cursor-pointer"

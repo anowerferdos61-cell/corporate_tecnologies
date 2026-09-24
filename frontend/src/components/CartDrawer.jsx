@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, 
   Trash2, 
@@ -13,6 +14,7 @@ import {
 import { useCart } from '../context/CartContext';
 
 export default function CartDrawer({ onNavigate }) {
+  const navigate = useNavigate();
   const {
     isCartOpen,
     setIsCartOpen,
@@ -37,7 +39,7 @@ export default function CartDrawer({ onNavigate }) {
     if (onNavigate) {
       onNavigate('/checkout');
     } else {
-      window.location.href = '/checkout';
+      navigate('/checkout');
     }
   };
 
@@ -48,7 +50,7 @@ export default function CartDrawer({ onNavigate }) {
     if (onNavigate) {
       onNavigate('/shop', 'All Products');
     } else {
-      window.location.href = '/shop';
+      navigate('/shop');
     }
   };
 
@@ -58,7 +60,7 @@ export default function CartDrawer({ onNavigate }) {
     if (onNavigate) {
       onNavigate(targetUrl, product);
     } else {
-      window.location.href = targetUrl;
+      navigate(targetUrl);
     }
   };
 
@@ -117,73 +119,81 @@ export default function CartDrawer({ onNavigate }) {
                 </div>
 
                 <div className="space-y-3">
-                  {cartItems.map(({ product, quantity }) => (
-                    <div 
-                      key={product.id} 
-                      className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200/70 relative group"
-                    >
-                      {/* Product Thumbnail */}
-                      <img
-                        src={product.image_url}
-                        alt={product.title}
-                        onClick={() => handleProductClick(product)}
-                        className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-lg bg-white p-1 border border-slate-200 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
-                        onError={(e) => {
-                          e.target.src = '/splashjet_images/about-splashjet.jpg';
-                        }}
-                      />
-
-                      {/* Info & Quantity */}
-                      <div className="flex-1 min-w-0">
-                        <h4 
+                  {cartItems.map(({ product, quantity }) => {
+                    const itemKey = product.cart_item_key || product.id;
+                    return (
+                      <div 
+                        key={itemKey} 
+                        className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200/70 relative group"
+                      >
+                        {/* Product Thumbnail */}
+                        <img
+                          src={product.image_url}
+                          alt={product.title}
                           onClick={() => handleProductClick(product)}
-                          className="text-xs font-bold text-slate-800 line-clamp-1 leading-snug cursor-pointer hover:text-[#c92127] transition-colors"
-                        >
-                          {product.title}
-                        </h4>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
-                          ৳{(product.sale_price || product.regular_price).toLocaleString()} / ইউনিট
-                        </div>
+                          className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-lg bg-white p-1 border border-slate-200 shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                          onError={(e) => {
+                            e.target.src = '/splashjet_images/about-splashjet.jpg';
+                          }}
+                        />
 
-                        {/* Quantity Buttons & Price */}
-                        <div className="flex items-center justify-between gap-2 mt-2">
-                          <div className="flex items-center border border-slate-300 rounded-lg bg-white shadow-2xs">
-                            <button
-                              onClick={() => updateQuantity(product.id, quantity - 1)}
-                              className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
-                              aria-label="Decrease quantity"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="px-2 sm:px-2.5 text-xs font-bold text-slate-800 min-w-[20px] text-center">
-                              {quantity}
+                        {/* Info & Quantity */}
+                        <div className="flex-1 min-w-0">
+                          <h4 
+                            onClick={() => handleProductClick(product)}
+                            className="text-xs font-bold text-slate-800 line-clamp-1 leading-snug cursor-pointer hover:text-[#c92127] transition-colors"
+                          >
+                            {product.title}
+                          </h4>
+                          {product.variation_name && (
+                            <span className="inline-block text-[10px] font-bold text-[#c92127] bg-red-50 px-2 py-0.5 rounded-md border border-red-100 mt-0.5">
+                              {product.variation_name}
                             </span>
-                            <button
-                              onClick={() => updateQuantity(product.id, quantity + 1)}
-                              className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
-                              aria-label="Increase quantity"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
+                          )}
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            ৳{(product.sale_price || product.regular_price).toLocaleString()} / ইউনিট
                           </div>
 
-                          <span className="text-xs sm:text-sm font-black text-[#c92127]">
-                            ৳{((product.sale_price || product.regular_price) * quantity).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
+                          {/* Quantity Buttons & Price */}
+                          <div className="flex items-center justify-between gap-2 mt-2">
+                            <div className="flex items-center border border-slate-300 rounded-lg bg-white shadow-2xs">
+                              <button
+                                onClick={() => updateQuantity(itemKey, quantity - 1)}
+                                className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                                aria-label="Decrease quantity"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="px-2 sm:px-2.5 text-xs font-bold text-slate-800 min-w-[20px] text-center">
+                                {quantity}
+                              </span>
+                              <button
+                                onClick={() => updateQuantity(itemKey, quantity + 1)}
+                                className="p-1 sm:p-1.5 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                                aria-label="Increase quantity"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
 
-                      {/* Remove Button */}
-                      <button
-                        onClick={() => removeFromCart(product.id)}
-                        className="text-slate-400 hover:text-[#c92127] p-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
-                        title="Remove"
-                        aria-label="Remove item"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                            <span className="text-xs sm:text-sm font-black text-[#c92127]">
+                              ৳{((product.sale_price || product.regular_price) * quantity).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Remove Button */}
+                        <button
+                          onClick={() => removeFromCart(itemKey)}
+                          className="text-slate-400 hover:text-[#c92127] p-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
+                          title="Remove"
+                          aria-label="Remove item"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Delivery Area Selection */}

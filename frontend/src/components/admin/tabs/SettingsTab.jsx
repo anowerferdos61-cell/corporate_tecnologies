@@ -138,8 +138,8 @@ export default function SettingsTab({
   // Flash Sale State (Super Admin Only)
   const [flashSettings, setFlashSettings] = useState({
     is_active: true,
-    title: 'সীমিত সময়ের ফ্ল্যাশ ডিল',
-    subtitle: 'প্রিন্টার ও Splashjet কালিতে আকর্ষণীয় ছাড়!',
+    title: 'Limited Time Flash Deals',
+    subtitle: 'Exclusive discounts on Printers & Splashjet Inks!',
     discount_banner: 'UP TO 35% OFF',
     end_time: new Date(Date.now() + 48 * 3600000).toISOString(),
     featured_categories: ['Printers', 'Splashjet Inks'],
@@ -318,7 +318,7 @@ export default function SettingsTab({
   async function handleSaveTierSubmit(e) {
     e.preventDefault();
     if (!tierForm.name.trim()) {
-      alert('অনুগ্রহ করে শিপিং টিয়ারের একটি নাম দিন।');
+      alert('Please provide a name for the shipping tier.');
       return;
     }
     setTierSaveMsg('');
@@ -329,7 +329,7 @@ export default function SettingsTab({
         outside_dhaka: Number(tierForm.outside_dhaka) || 0
       });
       setShippingTiers(savedList);
-      setTierSaveMsg(`শিপিং টিয়ার "${tierForm.name}" সফলভাবে সংরক্ষিত হয়েছে!`);
+      setTierSaveMsg(`Shipping tier "${tierForm.name}" saved successfully!`);
       setTimeout(() => setTierSaveMsg(''), 4000);
       setIsTierModalOpen(false);
     } catch (err) {
@@ -339,14 +339,14 @@ export default function SettingsTab({
 
   async function handleDeleteTier(tier) {
     if (tier.is_default) {
-      alert('ডিফল্ট শিপিং টিয়ার ডিলিট করা যাবে না।');
+      alert('Default shipping tier cannot be deleted.');
       return;
     }
-    if (!window.confirm(`আপনি কি নিশ্চিত যে "${tier.name}" শিপিং টিয়ারটি মুছে ফেলতে চান?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${tier.name}" shipping tier?`)) return;
     try {
       const updatedList = await deleteShippingTier(tier.id);
       setShippingTiers(updatedList);
-      setTierSaveMsg(`শিপিং টিয়ার "${tier.name}" মুছে ফেলা হয়েছে।`);
+      setTierSaveMsg(`Shipping tier "${tier.name}" has been deleted.`);
       setTimeout(() => setTierSaveMsg(''), 4000);
     } catch (err) {
       alert('Failed to delete tier: ' + err.message);
@@ -593,7 +593,7 @@ export default function SettingsTab({
     setStaffActionMsg('');
     try {
       await createStaffUser(newStaffData);
-      setStaffActionMsg(`স্টাফ ইউজার "${newStaffData.username}" সফলভাবে তৈরি হয়েছে!`);
+      setStaffActionMsg(`Staff user "${newStaffData.username}" created successfully!`);
       setIsAddStaffOpen(false);
       setNewStaffData({ name: '', username: '', pin: '', role: 'staff' });
       loadStaffList();
@@ -607,7 +607,7 @@ export default function SettingsTab({
     try {
       await deleteStaffUser(userId, username);
       setStaffUsers((prev) => prev.filter((u) => u.username !== username));
-      setStaffActionMsg(`স্টাফ "${username}" মুছে ফেলা হয়েছে।`);
+      setStaffActionMsg(`Staff "${username}" has been removed.`);
     } catch (err) {
       alert(err.message || 'Failed to delete staff');
     }
@@ -791,9 +791,9 @@ export default function SettingsTab({
                 <Truck className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold">ক্যাটাগরি ও প্রোডাক্টভিত্তিক ডেলিভারি চার্জ (Custom Shipping Tiers)</h3>
+                <h3 className="text-sm font-bold">Category & Product Delivery Charges (Custom Shipping Tiers)</h3>
                 <p className="text-xs text-slate-500">
-                  বিভিন্ন পণ্য ও ক্যাটাগরির জন্য আলাদা ডেলিভারি চার্জ নির্ধারণ করুন (যেমন: কালি ৳৬০/১২০, ফটোকপিয়ার ৳৩০০/৫০০, ডিটিএফ ৳৫০০/১০০০)
+                  Configure custom shipping rates per product category (e.g. Inks ৳60/120, Photocopiers ৳300/500, DTF ৳500/1000)
                 </p>
               </div>
             </div>
@@ -804,7 +804,7 @@ export default function SettingsTab({
               className="bg-[#c92127] hover:bg-[#b91c1c] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ নতুন শিপিং টিয়ার যুক্ত করুন</span>
+              <span>+ Add New Shipping Tier</span>
             </button>
           </div>
 
@@ -866,11 +866,11 @@ export default function SettingsTab({
                   {/* Pricing row */}
                   <div className="grid grid-cols-2 gap-2 bg-white p-2.5 rounded-xl border border-slate-200/70 text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-500 block">ঢাকা সিটির ভেতরে:</span>
+                      <span className="text-[10px] text-slate-500 block">Inside Dhaka:</span>
                       <span className="font-bold font-mono text-[#c92127] text-sm">৳{tier.inside_dhaka}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block">ঢাকার বাইরে:</span>
+                      <span className="text-[10px] text-slate-500 block">Outside Dhaka:</span>
                       <span className="font-bold font-mono text-slate-800 text-sm">৳{tier.outside_dhaka}</span>
                     </div>
                   </div>
@@ -878,7 +878,7 @@ export default function SettingsTab({
                   {/* Assigned Categories */}
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                      অন্তর্ভুক্ত ক্যাটাগরি:
+                      Assigned Categories:
                     </span>
                     {Array.isArray(tier.categories) && tier.categories.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
@@ -893,7 +893,7 @@ export default function SettingsTab({
                       </div>
                     ) : (
                       <span className="text-[10px] text-slate-400 italic">
-                        {tier.is_default ? 'সকল আন-অ্যাসাইনড ক্যাটাগরি' : 'কোনো ক্যাটাগরি নির্বাচন করা হয়নি'}
+                        {tier.is_default ? 'All Unassigned Categories (Default)' : 'No categories selected'}
                       </span>
                     )}
                   </div>
@@ -902,7 +902,7 @@ export default function SettingsTab({
                   {Array.isArray(tier.product_ids) && tier.product_ids.length > 0 && (
                     <div className="pt-1">
                       <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                        ✓ {tier.product_ids.length}টি নির্দিষ্ট প্রোডাক্টে এসাইন করা
+                        ✓ Assigned to {tier.product_ids.length} specific product(s)
                       </span>
                     </div>
                   )}
@@ -921,7 +921,7 @@ export default function SettingsTab({
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold">Flash Sale & Countdown Deals (ফ্ল্যাশ সেল ও কাউন্টডাউন)</h3>
+                  <h3 className="text-sm font-bold">Flash Sale & Countdown Deals</h3>
                   <p className="text-xs text-slate-500">
                     Control homepage flash banner, countdown deadline, and urgency box
                   </p>
@@ -930,7 +930,7 @@ export default function SettingsTab({
 
               {/* Active Toggle */}
               <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                <span className="text-xs font-bold text-slate-700">ফ্ল্যাশ সেল স্ট্যাটাস:</span>
+                <span className="text-xs font-bold text-slate-700">Flash Sale Status:</span>
                 <input
                   type="checkbox"
                   checked={flashSettings.is_active}
@@ -938,7 +938,7 @@ export default function SettingsTab({
                   className="accent-[#c92127] w-4 h-4"
                 />
                 <span className={`text-xs font-bold ${flashSettings.is_active ? 'text-[#c92127]' : 'text-slate-400'}`}>
-                  {flashSettings.is_active ? 'Active (চালু)' : 'Paused (বন্ধ)'}
+                  {flashSettings.is_active ? 'Active' : 'Paused'}
                 </span>
               </label>
             </div>
@@ -964,10 +964,10 @@ export default function SettingsTab({
                         <Clock className="w-4 h-4 text-amber-600 mt-0.5 shrink-0 animate-bounce" />
                         <div>
                           <strong className="block text-xs font-black text-amber-900">
-                            ⚠️ অফারের নির্ধারিত সময় পার হয়ে গেছে (Expired)!
+                            ⚠️ Offer Period Has Expired!
                           </strong>
                           <p className="text-[11px] text-amber-700 mt-0.5">
-                            যেহেতু অফারের সময় শেষ, তাই হোমপেজে এটি বর্তমানে অদৃশ্য (Hidden) আছে। ওয়েবসাইটে চালু রাখতে নিচের <strong>কুইক সেট</strong> বাটন থেকে <span className="font-bold underline">+24 Hours</span> বা <span className="font-bold underline">+3 Days</span> ক্লিক করে সেভ করুন।
+                            The flash sale is currently hidden on the homepage because the timer expired. Click <span className="font-bold underline">+24 Hours</span> or <span className="font-bold underline">+3 Days</span> below and click save to reactivate it.
                           </p>
                         </div>
                       </div>
@@ -983,11 +983,11 @@ export default function SettingsTab({
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                         <strong className="text-xs font-bold text-emerald-900">
-                          🟢 ফ্ল্যাশ সেল লাইভ চলছে (হোমপেজে দৃশ্যমান)
+                          🟢 Flash Sale is Live (Visible on Homepage)
                         </strong>
                       </div>
                       <span className="text-[11px] font-mono font-black text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs">
-                        বাকি: {days > 0 ? `${days} দিন ` : ''}{hours} ঘণ্টা {minutes} মিনিট
+                        Time Left: {days > 0 ? `${days}d ` : ''}{hours}h {minutes}m
                       </span>
                     </div>
                   );
@@ -996,35 +996,35 @@ export default function SettingsTab({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">ক্যাম্পেইনের নাম (Campaign Title) *</label>
+                  <label className="block text-slate-700 font-bold mb-1">Campaign Title *</label>
                   <input
                     type="text"
                     required
                     value={flashSettings.title}
                     onChange={(e) => setFlashSettings({ ...flashSettings, title: e.target.value })}
-                    placeholder="যেমন: সীমিত সময়ের ফ্ল্যাশ ডিল"
+                    placeholder="e.g. Limited Time Flash Deals"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#c92127]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">ডিসকাউন্ট ব্যানার ট্যাগ (Discount Tag)</label>
+                  <label className="block text-slate-700 font-bold mb-1">Discount Banner Tag</label>
                   <input
                     type="text"
                     value={flashSettings.discount_banner}
                     onChange={(e) => setFlashSettings({ ...flashSettings, discount_banner: e.target.value })}
-                    placeholder="যেমন: UP TO 35% OFF"
+                    placeholder="e.g. UP TO 35% OFF"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#c92127]"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-slate-700 font-bold mb-1">সাবটাইটেল / বিবরণ (Subtitle)</label>
+                  <label className="block text-slate-700 font-bold mb-1">Subtitle / Description</label>
                   <input
                     type="text"
                     value={flashSettings.subtitle}
                     onChange={(e) => setFlashSettings({ ...flashSettings, subtitle: e.target.value })}
-                    placeholder="যেমন: প্রিন্টার ও Splashjet কালিতে আকর্ষণীয় ছাড়!"
+                    placeholder="e.g. Exclusive discounts on Printers & Splashjet Inks!"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-[#c92127]"
                   />
                 </div>
@@ -1033,12 +1033,12 @@ export default function SettingsTab({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <label className="text-slate-800 font-bold flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-[#c92127]" />
-                      <span>অফার শেষ হওয়ার সময় (End Date & Time):</span>
+                      <span>Offer End Date & Time:</span>
                     </label>
 
                     {/* Quick Preset Buttons */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] text-slate-500 font-semibold">কুইক সেট:</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">Quick Set:</span>
                       {[
                         { label: '+12 Hours', hours: 12 },
                         { label: '+24 Hours', hours: 24 },
@@ -1085,10 +1085,10 @@ export default function SettingsTab({
                     <div>
                       <label className="text-slate-800 font-bold flex items-center gap-1.5 text-xs">
                         <Layers className="w-3.5 h-3.5 text-[#c92127]" />
-                        <span>ফ্ল্যাশ ডিলের ক্যাটাগরি নির্বাচন (Featured Categories) *</span>
+                        <span>Featured Categories for Flash Deals *</span>
                       </label>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        একাধিক ক্যাটাগরি সিলেক্ট করতে পারেন। হোমপেজে শুধুমাত্র নির্বাচিত ক্যাটাগরির প্রোডাক্টগুলোই ফ্ল্যাশ ডিলে আসবে।
+                        Select one or more categories. Only products belonging to these categories will be shown in the homepage flash deals section.
                       </p>
                     </div>
 
@@ -1099,14 +1099,14 @@ export default function SettingsTab({
                         onClick={() => selectAllFlashCategories(availableFlashCategories)}
                         className="text-[10px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-lg shadow-2xs cursor-pointer transition-all active:scale-95"
                       >
-                        সকল ক্যাটাগরি (Select All)
+                        Select All
                       </button>
                       <button
                         type="button"
                         onClick={clearAllFlashCategories}
                         className="text-[10px] font-bold text-red-600 bg-white hover:bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg shadow-2xs cursor-pointer transition-all active:scale-95"
                       >
-                        ক্লিয়ার (Clear)
+                        Clear All
                       </button>
                     </div>
                   </div>
@@ -1119,17 +1119,17 @@ export default function SettingsTab({
                         type="text"
                         value={flashCatSearch}
                         onChange={(e) => setFlashCatSearch(e.target.value)}
-                        placeholder="ক্যাটাগরি ফিল্টার বা সার্চ করুন..."
+                        placeholder="Filter or search categories..."
                         className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-[#c92127]"
                       />
                     </div>
 
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-bold text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs whitespace-nowrap">
-                        সিলেক্টেড: <strong className="text-[#c92127]">{(flashSettings.featured_categories || []).length} টি</strong>
+                        Selected: <strong className="text-[#c92127]">{(flashSettings.featured_categories || []).length} categories</strong>
                       </span>
                       <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs whitespace-nowrap">
-                        ম্যাচিং প্রোডাক্ট: <strong className="text-emerald-900">{matchedFlashProductCount} টি</strong>
+                        Matching Products: <strong className="text-emerald-900">{matchedFlashProductCount} items</strong>
                       </span>
                     </div>
                   </div>
@@ -1164,7 +1164,7 @@ export default function SettingsTab({
                               <span className="text-xs font-bold truncate">{catName}</span>
                             </div>
                             <span className="text-[10px] font-semibold text-slate-400 shrink-0">
-                              {count} টি
+                              {count} items
                             </span>
                           </button>
                         );
@@ -1176,10 +1176,10 @@ export default function SettingsTab({
                 <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <div>
                     <label className="text-xs font-bold text-slate-800 block">
-                      হোমপেজে কতটি প্রোডাক্ট দেখাবে? (Display Limit)
+                      Display Limit (Homepage Products Count)
                     </label>
                     <p className="text-[11px] text-slate-500">
-                      নির্বাচিত ক্যাটাগরি থেকে সবচেয়ে বেশি ছাড় থাকা প্রোডাক্টগুলো আগে ডিসপ্লে হবে।
+                      Products with highest discounts will be prioritized for display.
                     </p>
                   </div>
 
@@ -1195,7 +1195,7 @@ export default function SettingsTab({
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        {num} টি
+                        {num} Items
                       </button>
                     ))}
                   </div>
@@ -1225,20 +1225,20 @@ export default function SettingsTab({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold flex items-center gap-2">
-                    <span>Popular This Week Settings (পপুলার দিস উইক ৩টি ক্যাটাগরি)</span>
+                    <span>Popular This Week Settings</span>
                     <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full">
                       3 Slots
                     </span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    হোমপেজের Popular This Week সেকশনে যেকোনো ৩টি ক্যাটাগরি, প্রোডাক্ট লিমিট, টাইটেল ও আইকন সিলেক্ট করুন
+                    Select 3 featured categories, product limit, titles, and icons for the homepage Popular This Week section
                   </p>
                 </div>
               </div>
 
               {/* Active Toggle */}
               <label className="flex items-center gap-2 cursor-pointer select-none bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                <span className="text-xs font-bold text-slate-700">সেকশন স্ট্যাটাস:</span>
+                <span className="text-xs font-bold text-slate-700">Section Status:</span>
                 <input
                   type="checkbox"
                   checked={popularSettings?.is_active !== false}
@@ -1246,7 +1246,7 @@ export default function SettingsTab({
                   className="accent-[#c92127] w-4 h-4"
                 />
                 <span className={`text-xs font-bold ${popularSettings?.is_active !== false ? 'text-[#c92127]' : 'text-slate-400'}`}>
-                  {popularSettings?.is_active !== false ? 'Active (চালু)' : 'Hidden (বন্ধ)'}
+                  {popularSettings?.is_active !== false ? 'Active' : 'Hidden'}
                 </span>
               </label>
             </div>
@@ -1255,7 +1255,7 @@ export default function SettingsTab({
               {popularSaved && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-2 font-bold animate-fade-in">
                   <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>✓ Popular This Week সেকশনের ৩টি ক্যাটাগরি সফলভাবে সেভ করা হয়েছে এবং ওয়েবসাইটে লাইভ হয়েছে!</span>
+                  <span>✓ Popular This Week categories have been saved and are live on the website!</span>
                 </div>
               )}
 
@@ -1263,7 +1263,7 @@ export default function SettingsTab({
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-xs font-bold text-slate-700">কুইক রেডিমেড প্রেসেট সিলেক্ট করুন:</span>
+                  <span className="text-xs font-bold text-slate-700">Quick Presets:</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -1271,21 +1271,21 @@ export default function SettingsTab({
                     onClick={() => applyPopularPreset('default')}
                     className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#c92127] text-slate-700 hover:text-[#c92127] font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
                   >
-                    💎 ডিফল্ট (Inks + Printers + Heat Press)
+                    💎 Default (Inks + Printers + Heat Press)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPopularPreset('machinery')}
                     className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#c92127] text-slate-700 hover:text-[#c92127] font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
                   >
-                    🖨️ মেশিনারি (Printers + Copiers + POS)
+                    🖨️ Machinery (Printers + Copiers + POS)
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPopularPreset('consumables')}
                     className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#c92127] text-slate-700 hover:text-[#c92127] font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
                   >
-                    🧪 কনজিউমেবলস (Inks + Toner + Sublimation)
+                    🧪 Consumables (Inks + Toner + Sublimation)
                   </button>
                 </div>
               </div>
@@ -1294,7 +1294,7 @@ export default function SettingsTab({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/70">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    সেকশন মেইন টাইটেল:
+                    Section Main Title:
                   </label>
                   <input
                     type="text"
@@ -1307,7 +1307,7 @@ export default function SettingsTab({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    সেকশন সাবটাইটেল:
+                    Section Subtitle:
                   </label>
                   <input
                     type="text"
@@ -1320,7 +1320,7 @@ export default function SettingsTab({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    ভিউ অল বাটন টেক্সট:
+                    Explore Button Text:
                   </label>
                   <input
                     type="text"
@@ -1333,7 +1333,7 @@ export default function SettingsTab({
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    ভিউ অল বাটন লিংক:
+                    Explore Button Link:
                   </label>
                   <input
                     type="text"
@@ -1349,10 +1349,10 @@ export default function SettingsTab({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                    ৩টি ক্যাটাগরি স্লট কনফিগারেশন:
+                    3 Category Slots Configuration:
                   </span>
                   <span className="text-[11px] text-slate-400 font-medium">
-                    (যে কোনো স্লটের ক্যাটাগরি বা নাম পরিবর্তন করুন)
+                    (Customize category selection or display title for each slot)
                   </span>
                 </div>
 
@@ -1378,7 +1378,7 @@ export default function SettingsTab({
                                 {slotNum}
                               </span>
                               <span className="font-extrabold text-slate-900 text-xs">
-                                ক্যাটাগরি স্লট {slotNum}
+                                Category Slot {slotNum}
                               </span>
                             </div>
 
@@ -1390,7 +1390,7 @@ export default function SettingsTab({
                                 className="accent-[#c92127] w-3.5 h-3.5"
                               />
                               <span className="text-[11px] font-bold text-slate-600">
-                                {isSlotEnabled ? 'চালু' : 'বন্ধ'}
+                                {isSlotEnabled ? 'Active' : 'Disabled'}
                               </span>
                             </label>
                           </div>
@@ -1398,7 +1398,7 @@ export default function SettingsTab({
                           {/* 1. Category Selector */}
                           <div>
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                              প্রোডাক্ট ক্যাটাগরি সিলেক্ট করুন:
+                              Select Product Category:
                             </label>
                             <select
                               value={slot.category_name || ''}
@@ -1411,10 +1411,10 @@ export default function SettingsTab({
                               }}
                               className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#c92127]"
                             >
-                              <option value="All">All (সকল প্রোডাক্ট)</option>
+                              <option value="All">All (All Products)</option>
                               {allCategoryOptionsWithCount.map((cat) => (
                                 <option key={cat.name} value={cat.name}>
-                                  {cat.name} ({cat.count} টি প্রোডাক্ট)
+                                  {cat.name} ({cat.count} products)
                                 </option>
                               ))}
                             </select>
@@ -1423,7 +1423,7 @@ export default function SettingsTab({
                           {/* 2. Custom Display Title */}
                           <div>
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                              হেডারে প্রদর্শিত টাইটেল (Display Title):
+                              Display Title:
                             </label>
                             <input
                               type="text"
@@ -1437,7 +1437,7 @@ export default function SettingsTab({
                           {/* 3. Badge Text */}
                           <div>
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                              ব্যাজ টেক্সট (Badge Text):
+                              Badge Text (Optional):
                             </label>
                             <input
                               type="text"
@@ -1451,13 +1451,13 @@ export default function SettingsTab({
                           {/* 4. Subtitle / Description */}
                           <div>
                             <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                              সাবটাইটেল / বর্ণনা (Subtitle):
+                              Subtitle / Description:
                             </label>
                             <textarea
                               rows={2}
                               value={slot.subtitle || ''}
                               onChange={(e) => updatePopularSlot(index, 'subtitle', e.target.value)}
-                              placeholder="ক্যাটাগরির বিবরণ লিখুন..."
+                              placeholder="Enter category description..."
                               className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:bg-white focus:outline-none focus:border-[#c92127] resize-none"
                             />
                           </div>
@@ -1466,41 +1466,41 @@ export default function SettingsTab({
                           <div className="grid grid-cols-2 gap-2 pt-1">
                             <div>
                               <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                                আইকন:
+                                Icon:
                               </label>
                               <select
                                 value={slot.icon || 'Sparkles'}
                                 onChange={(e) => updatePopularSlot(index, 'icon', e.target.value)}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#c92127]"
                               >
-                                <option value="Droplet">💧 Droplet (কালি)</option>
-                                <option value="Printer">🖨️ Printer (প্রিন্টার)</option>
-                                <option value="Flame">🔥 Flame (হিট প্রেস / হট)</option>
-                                <option value="Sparkles">✨ Sparkles (ফিচার্ড)</option>
-                                <option value="Zap">⚡ Zap (ফাস্ট / স্পিড)</option>
-                                <option value="Package">📦 Package (টোনা / বক্স)</option>
-                                <option value="Layers">📑 Layers (পেপার / পেজ)</option>
-                                <option value="Award">🏆 Award (টপ রেটেড)</option>
-                                <option value="Tag">🏷️ Tag (অফার)</option>
-                                <option value="Box">📦 Box (মেশিন)</option>
-                                <option value="ShieldCheck">🛡️ ShieldCheck (জেনুইন)</option>
-                                <option value="ShoppingBag">🛍️ ShoppingBag (শপ)</option>
+                                <option value="Droplet">💧 Droplet (Inks)</option>
+                                <option value="Printer">🖨️ Printer (Printers)</option>
+                                <option value="Flame">🔥 Flame (Heat Press / Hot)</option>
+                                <option value="Sparkles">✨ Sparkles (Featured)</option>
+                                <option value="Zap">⚡ Zap (Fast / Speed)</option>
+                                <option value="Package">📦 Package (Toner / Box)</option>
+                                <option value="Layers">📑 Layers (Paper / Page)</option>
+                                <option value="Award">🏆 Award (Top Rated)</option>
+                                <option value="Tag">🏷️ Tag (Offers)</option>
+                                <option value="Box">📦 Box (Machinery)</option>
+                                <option value="ShieldCheck">🛡️ ShieldCheck (Genuine)</option>
+                                <option value="ShoppingBag">🛍️ ShoppingBag (Shop)</option>
                               </select>
                             </div>
 
                             <div>
                               <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                                প্রোডাক্ট সংখ্যা:
+                                Number of Products:
                               </label>
                               <select
                                 value={Number(slot.limit) || 8}
                                 onChange={(e) => updatePopularSlot(index, 'limit', Number(e.target.value))}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#c92127]"
                               >
-                                <option value={4}>4 টি প্রোডাক্ট</option>
-                                <option value={8}>8 টি প্রোডাক্ট (Standard)</option>
-                                <option value={12}>12 টি প্রোডাক্ট</option>
-                                <option value={16}>16 টি প্রোডাক্ট</option>
+                                <option value={4}>4 Products</option>
+                                <option value={8}>8 Products (Standard)</option>
+                                <option value={12}>12 Products</option>
+                                <option value={16}>16 Products</option>
                               </select>
                             </div>
                           </div>
@@ -1508,7 +1508,7 @@ export default function SettingsTab({
 
                         {/* Slot Visual Header Preview Tag */}
                         <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400 font-medium">প্রিভিউ:</span>
+                          <span className="text-slate-400 font-medium">Preview:</span>
                           <span className="font-extrabold text-[#c92127] truncate max-w-[170px]">
                             {slot.display_title || slot.category_name}
                           </span>
@@ -1527,7 +1527,7 @@ export default function SettingsTab({
                   className="bg-[#c92127] hover:bg-[#b91c1c] active:bg-[#991b1b] text-white font-bold px-7 py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center gap-2"
                 >
                   {popularLoading ? (
-                    <span>সেভ হচ্ছে...</span>
+                    <span>Saving...</span>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
@@ -1547,7 +1547,7 @@ export default function SettingsTab({
               <div>
                 <div className="flex items-center gap-2 text-slate-900">
                   <Users className="w-5 h-5 text-[#c92127]" />
-                  <h3 className="text-sm font-bold">Staff Accounts & Permissions (মাল্টি-অ্যাডমিন রোল)</h3>
+                  <h3 className="text-sm font-bold">Staff Accounts & Permissions (Multi-Admin Roles)</h3>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Super Admin full control vs Order Dispatcher restricted operational access
@@ -1679,7 +1679,7 @@ export default function SettingsTab({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2 text-slate-900">
                 <UserPlus className="w-4 h-4 text-[#c92127]" />
-                <h3 className="text-sm font-bold">নতুন স্টাফ একাউন্ট তৈরি করুন</h3>
+                <h3 className="text-sm font-bold">Create New Staff Account</h3>
               </div>
               <button
                 onClick={() => setIsAddStaffOpen(false)}
@@ -1691,11 +1691,11 @@ export default function SettingsTab({
 
             <form onSubmit={handleAddStaff} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">স্টাফের নাম (Full Name)</label>
+                <label className="block text-slate-600 font-semibold mb-1">Full Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: Arif Rahman"
+                  placeholder="e.g. Arif Rahman"
                   value={newStaffData.name}
                   onChange={(e) => setNewStaffData({ ...newStaffData, name: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127]"
@@ -1703,11 +1703,11 @@ export default function SettingsTab({
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">ইউজারনেম (Username - Login ID) *</label>
+                <label className="block text-slate-600 font-semibold mb-1">Username (Login ID) *</label>
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: arif_staff"
+                  placeholder="e.g. arif_staff"
                   value={newStaffData.username}
                   onChange={(e) => setNewStaffData({ ...newStaffData, username: e.target.value.toLowerCase().trim() })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-[#c92127]"
@@ -1715,11 +1715,11 @@ export default function SettingsTab({
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">সিকিউরিটি পিন (PIN Code - Min 4 Digits) *</label>
+                <label className="block text-slate-600 font-semibold mb-1">Security PIN (Min 4 Digits) *</label>
                 <input
                   type="password"
                   required
-                  placeholder="যেমন: 123456"
+                  placeholder="e.g. 123456"
                   value={newStaffData.pin}
                   onChange={(e) => setNewStaffData({ ...newStaffData, pin: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-[#c92127]"
@@ -1727,17 +1727,17 @@ export default function SettingsTab({
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">রোল ও পারমিশন (Role & Permissions) *</label>
+                <label className="block text-slate-600 font-semibold mb-1">Role & Permissions *</label>
                 <select
                   value={newStaffData.role}
                   onChange={(e) => setNewStaffData({ ...newStaffData, role: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127]"
                 >
-                  <option value="staff">Order Dispatcher / Staff (শুধুমাত্র অর্ডার ও কুরিয়ার)</option>
-                  <option value="super_admin">Super Admin (সম্পূর্ণ সিস্টেম এক্সেস)</option>
+                  <option value="staff">Order Dispatcher / Staff (Orders & Courier only)</option>
+                  <option value="super_admin">Super Admin (Full system access)</option>
                 </select>
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Order Dispatcher রোল থাকলে ইউজার সেটিংস, কুপন বা প্রোডাক্ট ডিলিট করতে পারবে না।
+                  Order Dispatcher role cannot access system settings, delete coupons or products.
                 </p>
               </div>
 
@@ -1747,13 +1747,13 @@ export default function SettingsTab({
                   onClick={() => setIsAddStaffOpen(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold transition-all cursor-pointer"
                 >
-                  বাতিল
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-black hover:bg-zinc-800 text-white font-bold transition-all cursor-pointer shadow-xs"
                 >
-                  স্টাফ তৈরি করুন
+                  Create Staff
                 </button>
               </div>
             </form>
@@ -1769,7 +1769,7 @@ export default function SettingsTab({
               <div className="flex items-center gap-2 text-slate-900">
                 <Truck className="w-5 h-5 text-[#c92127]" />
                 <h3 className="text-sm font-bold">
-                  {editingTier ? 'শিপিং টিয়ার এডিট করুন' : 'নতুন শিপিং টিয়ার যোগ করুন'}
+                  {editingTier ? 'Edit Shipping Tier' : 'Add New Shipping Tier'}
                 </h3>
               </div>
               <button
@@ -1784,11 +1784,11 @@ export default function SettingsTab({
             <form onSubmit={handleSaveTierSubmit} className="space-y-4 text-xs overflow-y-auto pr-1 flex-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-slate-700 font-bold mb-1">টিয়ারের নাম (Tier Name) *</label>
+                  <label className="block text-slate-700 font-bold mb-1">Tier Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="যেমন: Heavy Machinery & Photocopier"
+                    placeholder="e.g. Heavy Machinery & Photocopier"
                     value={tierForm.name}
                     onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127] font-semibold"
@@ -1796,7 +1796,7 @@ export default function SettingsTab({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">ঢাকা সিটির ভেতরে চার্জ (৳) *</label>
+                  <label className="block text-slate-700 font-bold mb-1">Inside Dhaka Fee (৳) *</label>
                   <input
                     type="number"
                     required
@@ -1807,7 +1807,7 @@ export default function SettingsTab({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">ঢাকার বাইরে চার্জ (৳) *</label>
+                  <label className="block text-slate-700 font-bold mb-1">Outside Dhaka Fee (৳) *</label>
                   <input
                     type="number"
                     required
@@ -1818,10 +1818,10 @@ export default function SettingsTab({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">ব্যাজ বা লেবেল (Badge / Tag)</label>
+                  <label className="block text-slate-700 font-bold mb-1">Badge / Tag (Optional)</label>
                   <input
                     type="text"
-                    placeholder="যেমন: হেভি ওয়েট পার্সেল / ট্রান্সপোর্ট"
+                    placeholder="e.g. Heavy Weight Parcel / Transport"
                     value={tierForm.badge}
                     onChange={(e) => setTierForm({ ...tierForm, badge: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:border-[#c92127]"
@@ -1836,7 +1836,7 @@ export default function SettingsTab({
                       onChange={(e) => setTierForm({ ...tierForm, is_default: e.target.checked })}
                       className="accent-[#c92127] w-4 h-4"
                     />
-                    <span className="font-bold text-slate-800">ডিফল্ট শিপিং টিয়ার (Default Fallback Tier)</span>
+                    <span className="font-bold text-slate-800">Default Fallback Tier</span>
                   </label>
                 </div>
               </div>
@@ -1844,7 +1844,7 @@ export default function SettingsTab({
               {/* Category selector */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <label className="block text-slate-800 font-bold">
-                  এই টিয়ারে অন্তর্ভুক্ত ক্যাটাগরিসমূহ নির্বাচন করুন (Select Categories):
+                  Select Categories included in this Tier:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200/80 max-h-40 overflow-y-auto">
                   {categoriesList.map((cat) => {
@@ -1876,10 +1876,10 @@ export default function SettingsTab({
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between">
                     <label className="block text-slate-800 font-bold">
-                      নির্দিষ্ট প্রোডাক্ট এসাইন করুন (Optional - Specific Products):
+                      Assign Specific Products (Optional):
                     </label>
                     <span className="text-[10px] text-slate-500 font-semibold">
-                      {tierForm.product_ids.length}টি প্রোডাক্ট নির্বাচিত
+                      {tierForm.product_ids.length} product(s) selected
                     </span>
                   </div>
                   
@@ -1887,7 +1887,7 @@ export default function SettingsTab({
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                     <input
                       type="text"
-                      placeholder="প্রোডাক্ট খুঁজুন..."
+                      placeholder="Search products..."
                       value={tierProductSearch}
                       onChange={(e) => setTierProductSearch(e.target.value)}
                       className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-[#c92127]"
@@ -1934,13 +1934,13 @@ export default function SettingsTab({
                   onClick={() => setIsTierModalOpen(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold transition-all cursor-pointer"
                 >
-                  বাতিল
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-[#c92127] hover:bg-[#b91c1c] text-white font-bold transition-all cursor-pointer shadow-xs"
                 >
-                  {editingTier ? 'টিয়ার আপডেট করুন' : 'টিয়ার সেভ করুন'}
+                  {editingTier ? 'Update Tier' : 'Save Tier'}
                 </button>
               </div>
             </form>

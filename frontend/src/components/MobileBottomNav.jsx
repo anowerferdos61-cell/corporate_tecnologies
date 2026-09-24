@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   SlidersHorizontal, 
   Zap, 
@@ -13,6 +14,7 @@ import {
 import { useCart } from '../context/CartContext';
 
 export default function MobileBottomNav({ currentRoute, onNavigate, allProducts = [] }) {
+  const navigate = useNavigate();
   const { setIsAccountOpen, setAccountActiveTab, isAccountOpen } = useCart();
   const [activeModal, setActiveModal] = useState(null); // 'support' | null
   
@@ -55,10 +57,9 @@ export default function MobileBottomNav({ currentRoute, onNavigate, allProducts 
             onClick={() => {
               setActiveModal(null);
               if (onNavigate) {
-                onNavigate('/shop/', 'Shop');
+                onNavigate('/shop', 'Shop');
               } else {
-                window.history.pushState({}, '', '/shop/');
-                window.dispatchEvent(new PopStateEvent('popstate'));
+                navigate('/shop');
               }
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
@@ -82,10 +83,9 @@ export default function MobileBottomNav({ currentRoute, onNavigate, allProducts 
             onClick={() => {
               setActiveModal(null);
               if (onNavigate) {
-                onNavigate('/product-category/splashjet-ink/', 'Splashjet Ink');
+                onNavigate('/product-category/splashjet-ink', 'Splashjet Ink');
               } else {
-                window.history.pushState({}, '', '/product-category/splashjet-ink/');
-                window.dispatchEvent(new PopStateEvent('popstate'));
+                navigate('/product-category/splashjet-ink');
               }
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
@@ -120,10 +120,9 @@ export default function MobileBottomNav({ currentRoute, onNavigate, allProducts 
             onClick={() => {
               setActiveModal(null);
               if (onNavigate) {
-                onNavigate('/compare/', 'Product Compare');
+                onNavigate('/compare', 'Product Compare');
               } else {
-                window.history.pushState({}, '', '/compare/');
-                window.dispatchEvent(new PopStateEvent('popstate'));
+                navigate('/compare');
               }
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}

@@ -293,17 +293,23 @@ export default function ProductCard({ product, onNavigate }) {
         {/* Variations preview pills (Colors / Sizes) */}
         {product.variations && product.variations.length > 0 && (
           <div className="flex items-center justify-center gap-1.5 flex-wrap pt-0.5 max-w-full">
-            {product.variations.slice(0, 2).map((v, i) => (
+            {product.variations.slice(0, 3).map((v, i) => (
               <span 
                 key={i} 
-                className="text-[10px] sm:text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 font-semibold"
+                className="text-[10px] sm:text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 font-semibold flex items-center gap-1"
               >
-                {v.name}
+                {v.color_code && (
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0 border border-black/20"
+                    style={{ backgroundColor: v.color_code }}
+                  />
+                )}
+                <span>{v.name}</span>
               </span>
             ))}
-            {product.variations.length > 2 && (
+            {product.variations.length > 3 && (
               <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold">
-                +{product.variations.length - 2}
+                +{product.variations.length - 3}
               </span>
             )}
           </div>

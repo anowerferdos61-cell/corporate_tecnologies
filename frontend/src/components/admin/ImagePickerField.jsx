@@ -27,7 +27,7 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="block text-xs font-bold text-slate-700">
-          Product Image * <span className="text-[10px] text-slate-400 font-normal">(প্রধান ছবি)</span>
+          Product Image * <span className="text-[10px] text-slate-400 font-normal">(Primary Image)</span>
         </label>
         <button
           type="button"
@@ -37,12 +37,12 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
           {useUrlInput ? (
             <>
               <Upload className="w-3 h-3" />
-              <span>📁 ফাইল আপলোড মোড</span>
+              <span>📁 File Upload Mode</span>
             </>
           ) : (
             <>
               <LinkIcon className="w-3 h-3" />
-              <span>🔗 ইমেজ লিংক (Direct URL) দিন</span>
+              <span>🔗 Paste Image URL</span>
             </>
           )}
         </button>
@@ -62,7 +62,7 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
             <div className="border-2 border-dashed border-[#c92127]/40 rounded-2xl p-6 text-center bg-red-50/20 flex flex-col items-center justify-center space-y-2">
               <Loader2 className="w-8 h-8 text-[#c92127] animate-spin" />
               <span className="text-xs font-bold text-slate-700">
-                ছবি আপলোড হচ্ছে...
+                Uploading image...
               </span>
             </div>
           ) : imageUrl ? (
@@ -81,7 +81,7 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
                 <div className="min-w-0 text-left">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <p className="text-xs font-bold text-slate-800">ছবি লোড হয়েছে</p>
+                    <p className="text-xs font-bold text-slate-800">Image Loaded</p>
                   </div>
                   <p className="text-[11px] text-slate-400 truncate max-w-[180px] sm:max-w-xs mt-0.5">
                     {imageUrl}
@@ -92,7 +92,7 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
                     className="text-[11px] text-[#c92127] hover:underline font-bold mt-1 inline-flex items-center gap-1 cursor-pointer"
                   >
                     <RefreshCw className="w-2.5 h-2.5" />
-                    <span>নতুন ছবি বদলান (Replace)</span>
+                    <span>Replace Image</span>
                   </button>
                 </div>
               </div>
@@ -101,7 +101,7 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
                 type="button"
                 onClick={() => onImageChange('')}
                 className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                title="ছবি মুছে ফেলুন"
+                title="Remove Image"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -115,10 +115,10 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
                 <Upload className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-800">
-                কম্পিউটার/মোবাইল থেকে ছবি আপলোড করুন
+                Upload image from computer/mobile
               </span>
               <span className="text-[11px] text-slate-400">
-                PNG, JPG, WebP বা নিচে থেকে প্রিসেট সিলেক্ট করুন
+                PNG, JPG, WebP or choose a preset below
               </span>
             </div>
           )}
@@ -129,7 +129,7 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
             type="text"
             value={imageUrl || ''}
             onChange={(e) => onImageChange(e.target.value)}
-            placeholder="ছবির লিংক পেস্ট করুন (যেমন: https://... বা /splashjet_images/...)"
+            placeholder="Paste image URL (e.g. https://... or /splashjet_images/...)"
             className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#c92127] focus:ring-1 focus:ring-[#c92127]"
           />
           {imageUrl && (
@@ -150,7 +150,7 @@ export default function ImagePickerField({ imageUrl, onImageChange, isUploading,
       {/* Quick Category Preset Selectors */}
       <div className="pt-1">
         <span className="text-[11px] text-slate-500 font-bold block mb-2">
-          বা ক্যাটাগরির রেডি ছবি সিলেক্ট করুন:
+          Or select ready preset category image:
         </span>
         <div className="flex flex-wrap gap-1.5">
           {presets.map((preset) => {

@@ -87,6 +87,14 @@ export const CartProvider = ({ children }) => {
     }, 3200);
   };
 
+  // Helper to generate a unique key for cart items (combines product id & variation_name)
+  const getCartItemKey = (p) => {
+    if (!p) return '';
+    const id = p.id || p.product?.id || '';
+    const varName = p.variation_name || p.product?.variation_name || '';
+    return varName ? `${id}__${varName}` : String(id);
+  };
+
   // Add to cart with smooth flight animation to cart icon
   const addToCart = (product, quantity = 1, eventOrElement = null) => {
     if (product.call_for_price || (Number(product.sale_price || 0) === 0 && Number(product.regular_price || 0) === 0)) {
@@ -95,15 +103,16 @@ export const CartProvider = ({ children }) => {
     }
 
     setCartItems(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+      const targetKey = getCartItemKey(product);
+      const existing = prev.find(item => getCartItemKey(item.product || item) === targetKey);
       if (existing) {
         return prev.map(item =>
-          item.product.id === product.id
+          getCartItemKey(item.product || item) === targetKey
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prev, { product, quantity }];
+      return [...prev, { product: { ...product, cart_item_key: targetKey }, quantity }];
     });
     
     // Marketing Analytics tracking
@@ -114,21 +123,29 @@ export const CartProvider = ({ children }) => {
   };
 
   // Update quantity
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = (targetKeyOrId, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(targetKeyOrId);
       return;
     }
     setCartItems(prev =>
-      prev.map(item =>
-        (item.product?.id || item.id) === productId ? { ...item, quantity } : item
-      )
+      prev.map(item => {
+        const key = getCartItemKey(item.product || item);
+        const id = item.product?.id || item.id;
+        return (key === String(targetKeyOrId) || String(id) === String(targetKeyOrId))
+          ? { ...item, quantity }
+          : item;
+      })
     );
   };
 
   // Remove from cart
-  const removeFromCart = (productId) => {
-    setCartItems(prev => prev.filter(item => (item.product?.id || item.id) !== productId));
+  const removeFromCart = (targetKeyOrId) => {
+    setCartItems(prev => prev.filter(item => {
+      const key = getCartItemKey(item.product || item);
+      const id = item.product?.id || item.id;
+      return key !== String(targetKeyOrId) && String(id) !== String(targetKeyOrId);
+    }));
     showToast('কার্ট থেকে পণ্য সরানো হয়েছে', 'info');
   };
 

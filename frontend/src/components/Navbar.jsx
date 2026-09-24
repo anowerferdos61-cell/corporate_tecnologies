@@ -1059,7 +1059,7 @@ export default function Navbar({
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     if (onNavigate) onNavigate('/', 'Home');
-                    else window.location.href = '/';
+                    else navigate('/');
                   }}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer"
                 >
@@ -1074,8 +1074,8 @@ export default function Navbar({
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    if (onNavigate) onNavigate('/compare/', 'Product Compare');
-                    else window.location.href = '/compare/';
+                    if (onNavigate) onNavigate('/compare', 'Product Compare');
+                    else navigate('/compare');
                   }}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer"
                 >
@@ -1114,8 +1114,8 @@ export default function Navbar({
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    if (onNavigate) onNavigate('/shop/', 'Shop');
-                    else window.location.href = '/shop/';
+                    if (onNavigate) onNavigate('/shop', 'Shop');
+                    else navigate('/shop');
                   }}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer"
                 >
@@ -1130,8 +1130,8 @@ export default function Navbar({
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    if (onNavigate) onNavigate('/product-category/splashjet-ink/', 'Splashjet Ink');
-                    else window.location.href = '/product-category/splashjet-ink/';
+                    if (onNavigate) onNavigate('/product-category/splashjet-ink', 'Splashjet Ink');
+                    else navigate('/product-category/splashjet-ink');
                   }}
                   className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-black text-slate-800 hover:bg-red-50 hover:text-[#c92127] flex items-center justify-between transition-colors cursor-pointer"
                 >

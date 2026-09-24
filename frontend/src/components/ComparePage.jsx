@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   SlidersHorizontal, 
   Trash2, 
@@ -20,6 +21,7 @@ import { useCart } from '../context/CartContext';
 import { isComparableProduct } from './ProductCard';
 
 export default function ComparePage({ allProducts = [], onNavigate }) {
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const [addedId, setAddedId] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -147,8 +149,7 @@ export default function ComparePage({ allProducts = [], onNavigate }) {
     if (onNavigate) {
       onNavigate(targetUrl, product);
     } else {
-      window.history.pushState({}, '', targetUrl);
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      navigate(targetUrl);
     }
   };
 

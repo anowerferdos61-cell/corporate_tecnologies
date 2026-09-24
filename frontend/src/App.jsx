@@ -9,6 +9,7 @@ import CategoryPage from './components/CategoryPage';
 import ProductDetailPage from './components/ProductDetailPage';
 import ComparePage from './components/ComparePage';
 import BlogPage from './components/BlogPage';
+import BlogDetailPage from './components/BlogDetailPage';
 import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import AdminPanelPage from './pages/AdminPanelPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -132,6 +133,10 @@ export default function App() {
             <Route 
               path="blog" 
               element={<BlogPage />} 
+            />
+            <Route 
+              path="blog/:slug" 
+              element={<BlogDetailPage allProducts={products} />} 
             />
 
             {/* 7. Dedicated Checkout Page & Cart Redirect */}
