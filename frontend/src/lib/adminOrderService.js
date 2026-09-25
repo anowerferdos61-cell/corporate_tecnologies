@@ -32,11 +32,92 @@ export async function fetchAdminOrders({ statusFilter = 'all', searchQuery = '' 
 }
 
 /**
- * 1-Click Update Order Status (Pending -> Confirmed -> Shipped -> Delivered -> Cancelled)
+ * State Machine Allowed Transitions Map
  */
-export async function updateOrderStatus(orderId, newStatus, adminNotes = null) {
-  if (!orderId || !newStatus) throw new Error('Order ID and status are required');
+export const ALLOWED_STATUS_TRANSITIONS = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['processing', 'cancelled'],
+  processing: ['shipped'],
+  shipped: ['delivered'],
+  delivered: [],
+  cancelled: []
+};
 
+/**
+ * Check if a status transition is valid according to the state machine
+ */
+export function isValidStatusTransition(currentStatus, targetStatus) {
+  if (!currentStatus || !targetStatus) return false;
+  if (currentStatus === targetStatus) return true;
+  const allowed = ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
+  return allowed.includes(targetStatus);
+}
+
+/**
+ * Secure Database/RPC Enforced Order Status Update (Strict State Machine)
+ */
+export async function updateOrderStatus(orderIdOrNumber, newStatus, adminNotes = null) {
+  if (!orderIdOrNumber || !newStatus) throw new Error('Order ID and status are required');
+
+  let orderId = orderIdOrNumber;
+  const isUuid = typeof orderIdOrNumber === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderIdOrNumber);
+
+  // If provided an order_number rather than UUID, resolve the UUID first
+  if (!isUuid) {
+    try {
+      const { data: matched } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('order_number', orderIdOrNumber)
+        .maybeSingle();
+      if (matched?.id) {
+        orderId = matched.id;
+      }
+    } catch (e) {
+      console.warn('Could not resolve order UUID by order_number:', e);
+    }
+  }
+
+  // 1. First attempt authoritative RPC execution
+  try {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('update_order_status', {
+      p_order_id: orderId,
+      p_new_status: newStatus,
+      p_admin_notes: adminNotes
+    });
+
+    if (!rpcError && rpcData) {
+      // Ensure order_items are loaded with the order
+      if (!rpcData.order_items || rpcData.order_items.length === 0) {
+        const { data: items } = await supabase
+          .from('order_items')
+          .select('*')
+          .eq('order_id', orderId);
+        rpcData.order_items = items || [];
+      }
+      return rpcData;
+    }
+
+    if (rpcError) {
+      // If error is from DB state machine violation or auth, surface immediately
+      if (rpcError.message && (
+        rpcError.message.includes('Illegal order status transition') || 
+        rpcError.message.includes('Unauthorized') ||
+        rpcError.message.includes('Terminal states') ||
+        rpcError.code === '23514' ||
+        rpcError.code === '42501'
+      )) {
+        throw new Error(rpcError.message);
+      }
+      console.warn('RPC update_order_status notice, checking direct update fallback:', rpcError.message);
+    }
+  } catch (err) {
+    if (err.message && (err.message.includes('Illegal order status transition') || err.message.includes('Unauthorized') || err.message.includes('Terminal states'))) {
+      throw err;
+    }
+  }
+
+  // 2. Fallback to direct UPDATE (Trigger will enforce transition validity at DB level)
   const payload = {
     order_status: newStatus,
     updated_at: new Date().toISOString()
@@ -50,18 +131,51 @@ export async function updateOrderStatus(orderId, newStatus, adminNotes = null) {
     payload.admin_notes = adminNotes;
   }
 
-  const { data, error } = await supabase
+  const query = supabase
     .from('orders')
-    .update(payload)
-    .eq('id', orderId)
-    .select(`*, order_items (*)`)
-    .single();
+    .update(payload);
+
+  const { data, error } = isUuid
+    ? await query.eq('id', orderId).select(`*, order_items (*)`).single()
+    : await query.or(`id.eq.${orderId},order_number.eq.${orderIdOrNumber}`).select(`*, order_items (*)`).single();
 
   if (error) {
     console.error('Failed to update order status:', error);
-    throw error;
+    throw new Error(error.message || 'Database rejected status update');
   }
   return data;
+}
+
+/**
+ * Fetch Order Status Transition Audit History
+ */
+export async function fetchOrderStatusHistory(orderId) {
+  if (!orderId) return [];
+
+  // Try RPC first
+  try {
+    const { data, error } = await supabase.rpc('get_order_status_history', {
+      p_order_id: orderId
+    });
+    if (!error && Array.isArray(data)) return data;
+  } catch (e) {
+    console.warn('get_order_status_history RPC note:', e.message);
+  }
+
+  // Fallback to direct SELECT on order_status_history table
+  try {
+    const { data, error } = await supabase
+      .from('order_status_history')
+      .select('*')
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: true });
+
+    if (!error && data) return data;
+  } catch (e) {
+    console.warn('Direct order_status_history fetch note:', e.message);
+  }
+
+  return [];
 }
 
 /**
@@ -71,7 +185,8 @@ export async function updateCourierDispatch(orderId, {
   courierName,
   trackingCode,
   consignmentId,
-  courierStatus
+  courierStatus,
+  currentStatus = null
 }) {
   if (!orderId) throw new Error('Order ID is required');
 
@@ -83,8 +198,9 @@ export async function updateCourierDispatch(orderId, {
     updated_at: new Date().toISOString()
   };
 
-  // If assigning courier, automatically move status to 'shipped' if currently pending/confirmed
-  if (courierName && trackingCode) {
+  // Only advance status to 'shipped' if currently in 'processing' state
+  // (State machine forbids jumping directly from pending/confirmed to shipped)
+  if (currentStatus === 'processing' && courierName && trackingCode) {
     payload.order_status = 'shipped';
   }
 

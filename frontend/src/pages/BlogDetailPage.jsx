@@ -24,7 +24,7 @@ import {
   fetchBlogPosts,
   incrementBlogViews
 } from '../lib/blogService';
-import ProductCard from './ProductCard';
+import ProductCard from '../components/ProductCard';
 
 export default function BlogDetailPage({ allProducts = [] }) {
   const { slug } = useParams();

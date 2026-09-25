@@ -21,8 +21,8 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import ProductCard, { isComparableProduct, triggerFlyToCompareAnimation } from './ProductCard';
-import FlashSaleUrgencyBox from './FlashSaleUrgencyBox';
+import ProductCard, { isComparableProduct, triggerFlyToCompareAnimation } from '../components/ProductCard';
+import FlashSaleUrgencyBox from '../components/FlashSaleUrgencyBox';
 
 export default function ProductDetailPage({
   productSlug: propProductSlug,

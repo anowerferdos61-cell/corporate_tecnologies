@@ -18,7 +18,7 @@ import {
   Search
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { isComparableProduct } from './ProductCard';
+import { isComparableProduct } from '../components/ProductCard';
 
 export default function ComparePage({ allProducts = [], onNavigate }) {
   const navigate = useNavigate();

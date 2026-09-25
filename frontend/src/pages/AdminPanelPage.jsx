@@ -40,9 +40,56 @@ import OrderInvoiceModal from '../components/OrderInvoiceModal';
 const VALID_TABS = ['overview', 'orders', 'products', 'categories', 'customers', 'analytics', 'banners', 'navbar', 'blogs', 'settings'];
 
 export default function AdminPanelPage({ products = [], onProductsUpdate = () => {} }) {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => isAdminAuthenticated());
-  const [adminSession, setAdminSession] = useState(() => getAdminSession());
+  // Authentication State via Supabase Auth
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminSession, setAdminSession] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function verifySession() {
+      try {
+        const session = await getAdminSession();
+        if (isMounted) {
+          if (session) {
+            setIsAuthenticated(true);
+            setAdminSession(session);
+          } else {
+            setIsAuthenticated(false);
+            setAdminSession(null);
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setAdminSession(null);
+        }
+      } finally {
+        if (isMounted) {
+          setAuthLoading(false);
+        }
+      }
+    }
+
+    verifySession();
+
+    const handleAuthChange = (e) => {
+      if (e?.detail) {
+        setIsAuthenticated(true);
+        setAdminSession(e.detail);
+      } else {
+        setIsAuthenticated(false);
+        setAdminSession(null);
+      }
+    };
+
+    window.addEventListener('ct_admin_auth_changed', handleAuthChange);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('ct_admin_auth_changed', handleAuthChange);
+    };
+  }, []);
 
   const adminRole = adminSession?.role || 'super_admin';
   const isSuperAdmin = adminRole === 'super_admin';
@@ -136,8 +183,16 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
       try {
         localImported = JSON.parse(localStorage.getItem('corp_tech_local_orders') || '[]');
       } catch (e) {}
+      // Clean up corrupt/dummy rows that don't have id, created_at, or valid grand_total
+      const validLocal = localImported.filter(o => o && (o.id || o.order_number) && o.created_at && !isNaN(o.grand_total));
+      // Overwrite storage if there was corrupt data
+      if (validLocal.length !== localImported.length) {
+        try {
+          localStorage.setItem('corp_tech_local_orders', JSON.stringify(validLocal));
+        } catch (e) {}
+      }
       const existingIds = new Set((data || []).map(o => o.id || o.order_number));
-      const newLocal = localImported.filter(o => !existingIds.has(o.id || o.order_number));
+      const newLocal = validLocal.filter(o => !existingIds.has(o.id || o.order_number));
       setOrders([...newLocal, ...(data || [])]);
     } catch (err) {
       console.error('Failed to load orders:', err);
@@ -185,10 +240,15 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
   // Order Handlers
   async function handleStatusChange(orderId, newStatus) {
     try {
-      const updated = await updateOrderStatus(orderId, newStatus);
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder(updated);
+      const targetId = orderId || selectedOrder?.id || selectedOrder?.order_number;
+      if (!targetId) {
+        alert('অর্ডারের রেফারেন্স পাওয়া যায়নি।');
+        return;
+      }
+      const updated = await updateOrderStatus(targetId, newStatus);
+      setOrders((prev) => prev.map((o) => (o.id === targetId || o.order_number === targetId || o.id === updated.id ? { ...o, ...updated } : o)));
+      if (selectedOrder && (selectedOrder.id === targetId || selectedOrder.order_number === targetId || selectedOrder.id === updated.id)) {
+        setSelectedOrder((prev) => ({ ...prev, ...updated }));
       }
     } catch (err) {
       alert('Failed to update status: ' + err.message);
@@ -276,6 +336,18 @@ export default function AdminPanelPage({ products = [], onProductsUpdate = () =>
       }
     }
     onProductsUpdate((prev) => [...newProds, ...prev]);
+  }
+
+  // Loading state while verifying Supabase Auth session
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="w-10 h-10 border-4 border-[#c92127] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-white text-xs font-semibold uppercase tracking-wider">
+          Verifying Admin Access...
+        </p>
+      </div>
+    );
   }
 
   // If not authenticated, render Login View

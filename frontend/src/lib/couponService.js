@@ -5,39 +5,39 @@ const LOCAL_COUPONS_KEY = 'corporate_tech_coupons_v1';
 // Seed initial default coupons for immediate use
 const DEFAULT_COUPONS = [
   {
-    id: 'cpn-eid2026',
-    code: 'EID2026',
-    discount_type: 'fixed', // 'fixed' | 'percentage'
-    discount_value: 500,
-    min_order_amount: 3000,
-    max_discount_limit: null,
-    expiry_date: '2026-12-31T23:59:59.000Z',
-    is_active: true,
-    usage_count: 8,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'cpn-splash10',
-    code: 'SPLASH10',
+    id: 'c1-welcome10',
+    code: 'WELCOME10',
     discount_type: 'percentage',
     discount_value: 10,
-    min_order_amount: 1500,
-    max_discount_limit: 1000,
-    expiry_date: '2026-12-31T23:59:59.000Z',
+    min_order_amount: 1000,
+    max_discount_limit: 500,
+    usage_limit: 500,
+    per_customer_limit: 1,
     is_active: true,
-    usage_count: 14,
     created_at: new Date().toISOString()
   },
   {
-    id: 'cpn-flat200',
-    code: 'FLAT200',
+    id: 'c2-inksave50',
+    code: 'INKSAVE50',
     discount_type: 'fixed',
-    discount_value: 200,
-    min_order_amount: 1000,
+    discount_value: 50,
+    min_order_amount: 500,
     max_discount_limit: null,
-    expiry_date: '2026-12-31T23:59:59.000Z',
+    usage_limit: 1000,
+    per_customer_limit: 2,
     is_active: true,
-    usage_count: 22,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'c3-techcombo100',
+    code: 'TECHCOMBO100',
+    discount_type: 'fixed',
+    discount_value: 100,
+    min_order_amount: 3000,
+    max_discount_limit: null,
+    usage_limit: 200,
+    per_customer_limit: 1,
+    is_active: true,
     created_at: new Date().toISOString()
   }
 ];
@@ -65,7 +65,7 @@ function saveLocalCoupons(coupons) {
 }
 
 /**
- * Fetch all coupons (Supabase + Local fallback)
+ * Fetch all coupons for Admin Panel (Supabase + Local fallback)
  */
 export async function fetchCoupons() {
   try {
@@ -109,7 +109,7 @@ export async function fetchActiveCoupons() {
 }
 
 /**
- * Create a new coupon
+ * Create a new coupon (Admin Panel)
  */
 export async function createCoupon({
   code,
@@ -117,7 +117,10 @@ export async function createCoupon({
   discountValue = 0,
   minOrderAmount = 0,
   maxDiscountLimit = null,
+  startDate = null,
   expiryDate = null,
+  usageLimit = null,
+  perCustomerLimit = 1,
   isActive = true
 }) {
   const cleanCode = (code || '').trim().toUpperCase();
@@ -129,7 +132,10 @@ export async function createCoupon({
     discount_value: Number(discountValue) || 0,
     min_order_amount: Number(minOrderAmount) || 0,
     max_discount_limit: maxDiscountLimit ? Number(maxDiscountLimit) : null,
+    start_date: startDate || new Date().toISOString(),
     expiry_date: expiryDate || null,
+    usage_limit: usageLimit ? parseInt(usageLimit, 10) : null,
+    per_customer_limit: perCustomerLimit ? parseInt(perCustomerLimit, 10) : 1,
     is_active: Boolean(isActive),
     usage_count: 0
   };
@@ -150,35 +156,21 @@ export async function createCoupon({
     console.warn('Supabase create coupon fallback:', err.message);
   }
 
-  // Local fallback
-  const newCoupon = {
-    ...payload,
-    id: `cpn-${Date.now()}`,
-    created_at: new Date().toISOString()
-  };
+  const localNew = { ...payload, id: `local_${Date.now()}`, created_at: new Date().toISOString() };
   const local = getLocalCoupons();
-  const updated = [newCoupon, ...local.filter(c => c.code !== cleanCode)];
-  saveLocalCoupons(updated);
-  return newCoupon;
+  saveLocalCoupons([localNew, ...local]);
+  return localNew;
 }
 
 /**
- * Toggle coupon active/inactive status
+ * Toggle Coupon Active Status (Admin Panel)
  */
 export async function toggleCouponStatus(id, isActive) {
   try {
-    const { data, error } = await supabase
+    await supabase
       .from('coupons')
-      .update({ is_active: isActive })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (!error && data) {
-      const local = getLocalCoupons();
-      saveLocalCoupons(local.map(c => c.id === id ? data : c));
-      return data;
-    }
+      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .eq('id', id);
   } catch (err) {
     console.warn('Supabase toggle coupon fallback:', err.message);
   }
@@ -186,11 +178,11 @@ export async function toggleCouponStatus(id, isActive) {
   const local = getLocalCoupons();
   const updated = local.map(c => c.id === id ? { ...c, is_active: isActive } : c);
   saveLocalCoupons(updated);
-  return updated.find(c => c.id === id);
+  return true;
 }
 
 /**
- * Delete a coupon
+ * Delete a coupon (Admin Panel)
  */
 export async function deleteCoupon(id) {
   try {
@@ -206,63 +198,63 @@ export async function deleteCoupon(id) {
 }
 
 /**
- * Validate a coupon code for customer checkout
- * Returns { valid: true, discountAmount, coupon, message } or { valid: false, message }
+ * Secure Server-Side Coupon Validation for Customer Checkout
+ * Calls Supabase RPC validate_coupon_code for authoritative verification
  */
-export async function validateCoupon(code, subtotal = 0) {
+export async function validateCoupon(code, subtotal = 0, phone = '') {
   const cleanCode = (code || '').trim().toUpperCase();
   if (!cleanCode) {
     return { valid: false, message: 'দয়া করে একটি কুপন কোড লিখুন।' };
   }
 
-  const coupons = await fetchCoupons();
-  const coupon = coupons.find(c => c.code.toUpperCase() === cleanCode);
+  try {
+    const { data, error } = await supabase.rpc('validate_coupon_code', {
+      coupon_code: cleanCode,
+      order_subtotal: Number(subtotal) || 0,
+      p_phone: phone || ''
+    });
 
-  if (!coupon) {
-    return { valid: false, message: `"${cleanCode}" কুপনটি সঠিক নয়।` };
-  }
-
-  if (!coupon.is_active) {
-    return { valid: false, message: `"${cleanCode}" কুপনটি বর্তমানে নিষ্ক্রিয় রয়েছে।` };
-  }
-
-  // Check Expiry Date
-  if (coupon.expiry_date) {
-    let expiry;
-    if (typeof coupon.expiry_date === 'string' && coupon.expiry_date.length === 10) {
-      expiry = new Date(`${coupon.expiry_date}T23:59:59.999`);
-    } else {
-      expiry = new Date(coupon.expiry_date);
-      if (expiry.getUTCHours() === 0 && expiry.getUTCMinutes() === 0 && expiry.getUTCSeconds() === 0) {
-        expiry.setUTCHours(23, 59, 59, 999);
+    if (!error && data) {
+      if (data.valid) {
+        return {
+          valid: true,
+          discountAmount: Math.round(data.calculated_discount),
+          coupon: {
+            code: data.code,
+            discount_type: data.discount_type,
+            discount_value: data.discount_value
+          },
+          message: `🎉 "${cleanCode}" কুপন সফলভাবে যুক্ত হয়েছে! (-৳${Math.round(data.calculated_discount).toLocaleString()})`
+        };
       }
+      return {
+        valid: false,
+        message: data.message || `"${cleanCode}" কুপনটি প্রযোজ্য নয়।`
+      };
     }
-    if (new Date() > expiry) {
-      return { valid: false, message: `"${cleanCode}" কুপনের মেয়াদের তারিখ উত্তীর্ণ হয়ে গেছে।` };
-    }
+  } catch (err) {
+    console.warn('RPC coupon validation notice:', err.message);
   }
 
-  // Check Minimum Order Amount
+  // Fallback local calculation only if offline
+  const coupons = getLocalCoupons();
+  const coupon = coupons.find(c => c.code.toUpperCase() === cleanCode);
+  if (!coupon || !coupon.is_active) {
+    return { valid: false, message: `"${cleanCode}" কুপনটি সঠিক নয় বা নিষ্ক্রিয়।` };
+  }
   const minAmount = Number(coupon.min_order_amount) || 0;
   if (subtotal < minAmount) {
-    return {
-      valid: false,
-      message: `এই কুপন ব্যবহার করতে ন্যূনতম ৳${minAmount.toLocaleString()} টাকার পণ্য অর্ডার করতে হবে।`
-    };
+    return { valid: false, message: `এই কুপন ব্যবহার করতে ন্যূনতম ৳${minAmount.toLocaleString()} টাকার অর্ডার প্রয়োজন।` };
   }
 
-  // Calculate Discount Amount
-  let discount = 0;
-  if (coupon.discount_type === 'percentage') {
-    discount = (subtotal * Number(coupon.discount_value)) / 100;
-    if (coupon.max_discount_limit && discount > Number(coupon.max_discount_limit)) {
-      discount = Number(coupon.max_discount_limit);
-    }
-  } else {
-    discount = Number(coupon.discount_value) || 0;
-  }
+  let discount = coupon.discount_type === 'percentage' 
+    ? (subtotal * Number(coupon.discount_value)) / 100 
+    : Number(coupon.discount_value) || 0;
 
-  discount = Math.min(discount, subtotal); // cannot exceed subtotal
+  if (coupon.max_discount_limit && discount > Number(coupon.max_discount_limit)) {
+    discount = Number(coupon.max_discount_limit);
+  }
+  discount = Math.min(discount, subtotal);
 
   return {
     valid: true,

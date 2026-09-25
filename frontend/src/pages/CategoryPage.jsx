@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import ProductCard from './ProductCard';
+import ProductCard from '../components/ProductCard';
 import { useCart } from '../context/CartContext';
 import { 
   CATEGORIES_TREE, 

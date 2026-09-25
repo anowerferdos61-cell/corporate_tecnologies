@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Phone,
@@ -9,9 +9,22 @@ import {
   Send,
   Loader2,
   Printer,
-  MessageSquare
+  MessageSquare,
+  ShieldCheck,
+  History,
+  Lock,
+  ArrowRight,
+  AlertCircle,
+  Pencil,
+  Save
 } from 'lucide-react';
 import { CATEGORY_DEFAULT_IMAGES } from '../adminConstants';
+import { supabase } from '../../../lib/supabaseClient';
+import { 
+  ALLOWED_STATUS_TRANSITIONS, 
+  isValidStatusTransition,
+  fetchOrderStatusHistory 
+} from '../../../lib/adminOrderService';
 
 export default function OrderDetailsDrawer({
   order,
@@ -28,6 +41,80 @@ export default function OrderDetailsDrawer({
   const [courierStatus, setCourierStatus] = useState(order.courier_status || 'In Transit');
   const [adminNotes, setAdminNotes] = useState(order.admin_notes || '');
   const [isUpdatingCourier, setIsUpdatingCourier] = useState(false);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
+  const [statusHistory, setStatusHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [statusError, setStatusError] = useState(null);
+
+  // Recipient Edit States
+  const [isEditingRecipient, setIsEditingRecipient] = useState(false);
+  const [editName, setEditName] = useState(order.customer_name || '');
+  const [editPhone, setEditPhone] = useState(order.phone || '');
+  const [editAddress, setEditAddress] = useState(order.delivery_address || '');
+  const [editCity, setEditCity] = useState(order.city || 'Dhaka');
+  const [isSavingRecipient, setIsSavingRecipient] = useState(false);
+
+  useEffect(() => {
+    setEditName(order.customer_name || '');
+    setEditPhone(order.phone || '');
+    setEditAddress(order.delivery_address || '');
+    setEditCity(order.city || 'Dhaka');
+  }, [order]);
+
+  async function handleSaveRecipient(e) {
+    e.preventDefault();
+    if (!editPhone || editPhone.trim().length < 11) {
+      alert('দয়া করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন');
+      return;
+    }
+    setIsSavingRecipient(true);
+    try {
+      const payload = {
+        customer_name: editName.trim(),
+        phone: editPhone.trim(),
+        delivery_address: editAddress.trim(),
+        city: editCity.trim(),
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase
+        .from('orders')
+        .update(payload)
+        .eq('id', order.id);
+      
+      if (error) throw error;
+      
+      Object.assign(order, payload);
+      setIsEditingRecipient(false);
+      alert('গ্রাহকের তথ্য সফলভাবে আপডেট হয়েছে!');
+    } catch (err) {
+      alert('তথ্য আপডেট করতে ব্যর্থ হয়েছে: ' + err.message);
+    } finally {
+      setIsSavingRecipient(false);
+    }
+  }
+
+  const currentStatus = order.order_status || 'pending';
+  const allowedNextStatuses = ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
+  const isTerminalState = ['delivered', 'cancelled'].includes(currentStatus);
+
+  // Load status transition audit history
+  useEffect(() => {
+    let isMounted = true;
+    async function loadHistory() {
+      if (!order.id) return;
+      setHistoryLoading(true);
+      try {
+        const hist = await fetchOrderStatusHistory(order.id);
+        if (isMounted) setStatusHistory(hist || []);
+      } catch (e) {
+        console.warn('Failed to load status history:', e);
+      } finally {
+        if (isMounted) setHistoryLoading(false);
+      }
+    }
+    loadHistory();
+    return () => { isMounted = false; };
+  }, [order.id, order.order_status]);
 
   function copyToClipboard(text, id) {
     navigator.clipboard.writeText(text);
@@ -35,20 +122,44 @@ export default function OrderDetailsDrawer({
     setTimeout(() => setCopiedText(null), 2000);
   }
 
+  async function handleStatusClick(targetStatus) {
+    if (targetStatus === currentStatus) return;
+    setStatusError(null);
+
+    if (!isValidStatusTransition(currentStatus, targetStatus)) {
+      setStatusError(`Illegal Transition: Cannot change status directly from "${currentStatus}" to "${targetStatus}". Allowed next statuses: ${allowedNextStatuses.length > 0 ? allowedNextStatuses.join(', ') : 'None (Terminal state)'}`);
+      return;
+    }
+
+    setIsChangingStatus(true);
+    try {
+      await onStatusChange(order.id, targetStatus);
+      // Refresh status history
+      const hist = await fetchOrderStatusHistory(order.id);
+      setStatusHistory(hist || []);
+    } catch (err) {
+      setStatusError(err.message || 'Failed to update order status');
+    } finally {
+      setIsChangingStatus(false);
+    }
+  }
+
   async function handleCourierSubmit(e) {
     e.preventDefault();
     setIsUpdatingCourier(true);
+    setStatusError(null);
     try {
       await onCourierUpdate(order.id, {
         courierName,
         trackingCode,
         consignmentId,
         courierStatus,
-        adminNotes
+        adminNotes,
+        currentStatus: order.order_status
       });
       alert('Courier dispatch details updated successfully!');
     } catch (err) {
-      alert('Failed to update courier dispatch: ' + err.message);
+      setStatusError('Failed to update courier dispatch: ' + err.message);
     } finally {
       setIsUpdatingCourier(false);
     }
@@ -66,9 +177,15 @@ export default function OrderDetailsDrawer({
           {/* Drawer Top Bar */}
           <div className="p-4 sm:p-6 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
             <div>
-              <span className="text-[10px] uppercase font-bold text-[#c92127] tracking-wider block">
-                Order Details
-              </span>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] uppercase font-bold text-[#c92127] tracking-wider block">
+                  Order Details
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-slate-300 font-mono">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  DB-Secured State Machine
+                </span>
+              </div>
               <h3 className="font-mono font-bold text-lg">{order.order_number}</h3>
               <p className="text-xs text-slate-400">
                 Placed on {new Date(order.created_at).toLocaleDateString('en-US', {
@@ -91,78 +208,216 @@ export default function OrderDetailsDrawer({
           {/* Drawer Scrollable Content */}
           <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 text-xs">
             
-            {/* 1. Quick Status Switcher */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block">
-                Update Order Status
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => onStatusChange(order.id, st)}
-                    className={`text-xs px-2.5 py-1 rounded-lg font-bold capitalize transition-all cursor-pointer ${
-                      order.order_status === st
-                        ? 'bg-[#c92127] text-white shadow-xs'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-400'
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
+            {/* 1. Strict State Machine Status Switcher */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-700 block">
+                    Order Status State Machine
+                  </span>
+                  {isTerminalState && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md">
+                      <Lock className="w-2.5 h-2.5" />
+                      Terminal State
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-mono text-slate-500 capitalize">
+                  Current: <strong className="text-slate-900">{currentStatus}</strong>
+                </span>
+              </div>
+
+              {/* Status Buttons Grid with State Machine Indicators */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'pending', label: '1. Pending' },
+                  { id: 'confirmed', label: '2. Confirmed' },
+                  { id: 'processing', label: '3. Processing' },
+                  { id: 'shipped', label: '4. Shipped' },
+                  { id: 'delivered', label: '5. Delivered' },
+                  { id: 'cancelled', label: 'Cancelled' },
+                ].map((st) => {
+                  const isCurrent = currentStatus === st.id;
+                  const isAllowed = allowedNextStatuses.includes(st.id);
+                  const isForbidden = !isCurrent && !isAllowed;
+
+                  let btnStyle = 'bg-white border border-slate-200 text-slate-400 opacity-60 cursor-not-allowed';
+                  if (isCurrent) {
+                    btnStyle = 'bg-[#c92127] text-white font-black shadow-xs ring-2 ring-[#c92127]/20';
+                  } else if (isAllowed) {
+                    btnStyle = 'bg-emerald-50 border border-emerald-300 text-emerald-800 font-bold hover:bg-emerald-100 hover:border-emerald-400 cursor-pointer animate-pulse';
+                  }
+
+                  return (
+                    <button
+                      key={st.id}
+                      onClick={() => handleStatusClick(st.id)}
+                      disabled={isChangingStatus || isForbidden}
+                      title={
+                        isCurrent
+                          ? `Current Status: ${st.id}`
+                          : isAllowed
+                          ? `Valid Next Step: Move from ${currentStatus} -> ${st.id}`
+                          : `Forbidden: Cannot transition from ${currentStatus} to ${st.id}`
+                      }
+                      className={`text-xs py-2 px-2 rounded-lg text-center transition-all flex flex-col items-center justify-center gap-0.5 ${btnStyle}`}
+                    >
+                      <span className="capitalize">{st.label}</span>
+                      {isAllowed && (
+                        <span className="text-[9px] text-emerald-600 font-mono font-medium flex items-center gap-0.5">
+                          Allowed <ArrowRight className="w-2.5 h-2.5" />
+                        </span>
+                      )}
+                      {isForbidden && (
+                        <span className="text-[9px] text-slate-400 font-mono">
+                          Locked
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Status Error Alert if attempted invalid transition */}
+              {statusError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-rose-700 text-[11px]">
+                  <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">State Machine Validation Notice</strong>
+                    <span>{statusError}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* State Machine Flow Guide */}
+              <div className="p-2.5 bg-white rounded-lg border border-slate-200 text-[10px] text-slate-500 font-mono space-y-0.5">
+                <span className="font-bold text-slate-700 block uppercase">Enforced Transition Rules:</span>
+                <div>• Pending → Confirmed | Cancelled</div>
+                <div>• Confirmed → Processing | Cancelled</div>
+                <div>• Processing → Shipped</div>
+                <div>• Shipped → Delivered</div>
+                <div>• Delivered & Cancelled → Terminal (Cannot be changed)</div>
               </div>
             </div>
 
-            {/* 2. Customer & Delivery Address */}
+            {/* 2. Recipient / Customer Details */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                Recipient Information
-              </span>
-              <h4 className="font-bold text-sm text-slate-900">{order.customer_name}</h4>
-              <div className="flex flex-wrap items-center gap-2 font-mono text-slate-800">
-                <span className="flex items-center gap-1.5 font-bold">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
-                  {order.phone}
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                  Recipient Information
                 </span>
-
                 <button
-                  onClick={() => copyToClipboard(order.phone, 'phone')}
-                  className="text-slate-400 hover:text-black cursor-pointer p-0.5"
-                  title="Copy Phone Number"
+                  type="button"
+                  onClick={() => setIsEditingRecipient(!isEditingRecipient)}
+                  className="text-xs font-bold text-[#c92127] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  {copiedText === 'phone' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <Pencil className="w-3 h-3" />
+                  <span>{isEditingRecipient ? 'বাতিল' : 'তথ্য সংশোধন করুন'}</span>
                 </button>
-
-                {/* WhatsApp Button */}
-                <button
-                  onClick={() => {
-                    let p = (order.phone || '').replace(/\D/g, '');
-                    if (p.startsWith('880')) {}
-                    else if (p.startsWith('0')) { p = '88' + p; }
-                    else if (p.length === 10) { p = '880' + p; }
-                    const itemsText = order.order_items?.map(i => `${i.product_title} (x${i.quantity})`).join(', ') || 'Your order';
-                    const text = `Hello ${order.customer_name},\nThis is Corporate Technologies regarding your Order #${order.order_number}.\n\nItems: ${itemsText}\nTotal Due: ৳${Number(order.grand_total).toLocaleString()} (COD)\nDelivery Address: ${order.delivery_address}, ${order.city}\n\nPlease confirm if your delivery address is correct. Thank you!`;
-                    window.open(`https://wa.me/${p}?text=${encodeURIComponent(text)}`, '_blank');
-                  }}
-                  className="px-2.5 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] flex items-center gap-1 border border-emerald-200 transition-colors cursor-pointer"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Chat on WhatsApp</span>
-                </button>
-
-                {/* Call Button */}
-                <a
-                  href={`tel:${order.phone}`}
-                  className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] flex items-center gap-1 border border-slate-200 transition-colors"
-                >
-                  <Phone className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Call Customer</span>
-                </a>
               </div>
-              <p className="text-slate-600 flex items-start gap-1.5 pt-1">
-                <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
-                <span>{order.delivery_address}, {order.city}</span>
-              </p>
+
+              {isEditingRecipient ? (
+                <form onSubmit={handleSaveRecipient} className="space-y-3 pt-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">গ্রাহকের নাম</label>
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full text-xs font-bold p-2 bg-white border border-slate-300 rounded-lg outline-none focus:border-[#c92127]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">মোবাইল নম্বর</label>
+                    <input
+                      type="tel"
+                      required
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      className="w-full text-xs font-mono font-bold p-2 bg-white border border-slate-300 rounded-lg outline-none focus:border-[#c92127]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">শহর / জেলা</label>
+                      <input
+                        type="text"
+                        required
+                        value={editCity}
+                        onChange={(e) => setEditCity(e.target.value)}
+                        className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none focus:border-[#c92127]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase">ঠিকানা</label>
+                      <input
+                        type="text"
+                        required
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg outline-none focus:border-[#c92127]"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSavingRecipient}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    {isSavingRecipient ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>সংশোধিত তথ্য সেভ করুন</span>
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <h4 className="font-bold text-sm text-slate-900">{order.customer_name}</h4>
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-slate-800">
+                    <span className="flex items-center gap-1.5 font-bold">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      {order.phone}
+                    </span>
+
+                    <button
+                      onClick={() => copyToClipboard(order.phone, 'phone')}
+                      className="text-slate-400 hover:text-black cursor-pointer p-0.5"
+                      title="Copy Phone Number"
+                    >
+                      {copiedText === 'phone' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+
+                    {/* WhatsApp Button */}
+                    <button
+                      onClick={() => {
+                        let p = (order.phone || '').replace(/\D/g, '');
+                        if (p.startsWith('880')) {}
+                        else if (p.startsWith('0')) { p = '88' + p; }
+                        else if (p.length === 10) { p = '880' + p; }
+                        const itemsText = order.order_items?.map(i => `${i.product_title} (x${i.quantity})`).join(', ') || 'Your order';
+                        const text = `Hello ${order.customer_name},\nThis is Corporate Technologies regarding your Order #${order.order_number}.\n\nItems: ${itemsText}\nTotal Due: ৳${Number(order.grand_total).toLocaleString()} (COD)\nDelivery Address: ${order.delivery_address}, ${order.city}\n\nPlease confirm if your delivery address is correct. Thank you!`;
+                        window.open(`https://wa.me/${p}?text=${encodeURIComponent(text)}`, '_blank');
+                      }}
+                      className="px-2.5 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] flex items-center gap-1 border border-emerald-200 transition-colors cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Chat on WhatsApp</span>
+                    </button>
+
+                    {/* Call Button */}
+                    <a
+                      href={`tel:${order.phone}`}
+                      className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] flex items-center gap-1 border border-slate-200 transition-colors"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Call Customer</span>
+                    </a>
+                  </div>
+                  <p className="text-slate-600 flex items-start gap-1.5 pt-1 text-xs">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+                    <span>{order.delivery_address}, {order.city}</span>
+                  </p>
+                </>
+              )}
             </div>
 
             {/* 3. Products List */}
@@ -283,6 +538,60 @@ export default function OrderDetailsDrawer({
                 <span>Save Courier & Dispatch Info</span>
               </button>
             </form>
+
+            {/* 5. Status Transition Audit Trail (History) */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-500 flex items-center gap-1.5">
+                  <History className="w-3.5 h-3.5 text-slate-400" />
+                  Status Transition Audit Trail
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {statusHistory.length} event{statusHistory.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {historyLoading ? (
+                <div className="py-4 text-center text-slate-400 text-[11px] flex items-center justify-center gap-1.5">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Loading audit log...</span>
+                </div>
+              ) : statusHistory.length === 0 ? (
+                <p className="text-[11px] text-slate-400 italic py-1">
+                  No status transition events logged yet for this order.
+                </p>
+              ) : (
+                <div className="space-y-2 border-l-2 border-slate-200 pl-3 ml-1">
+                  {statusHistory.map((item, idx) => (
+                    <div key={item.id || idx} className="space-y-0.5 text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-700 capitalize">
+                          {item.old_status} → <span className="text-[#c92127]">{item.new_status}</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(item.created_at).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      {item.changed_by_email && (
+                        <p className="text-[10px] text-slate-500 font-mono">
+                          By: {item.changed_by_email}
+                        </p>
+                      )}
+                      {item.notes && (
+                        <p className="text-[10px] text-slate-600 bg-slate-50 p-1 rounded border border-slate-100 italic">
+                          "{item.notes}"
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
           </div>
 

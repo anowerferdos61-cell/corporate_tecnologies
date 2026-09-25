@@ -196,7 +196,7 @@ export default function CustomerDashboardPage({ products = [] }) {
     setTrackError('');
     setTrackResults(null);
     try {
-      const res = await trackOrder(trackQuery);
+      const res = await trackOrder(trackQuery, customer?.phone || '');
       if (!res || res.length === 0) {
         setTrackError('কোনো অর্ডার পাওয়া যায়নি। সঠিক অর্ডার নম্বর বা মোবাইল নম্বর দিন।');
       } else {
@@ -825,7 +825,7 @@ export default function CustomerDashboardPage({ products = [] }) {
                                 onClick={() => {
                                   setTrackQuery(ord.order_number);
                                   handleTabChange('track');
-                                  trackOrder(ord.order_number).then(res => setTrackResults(res));
+                                  trackOrder(ord.order_number, customer?.phone || '').then(res => setTrackResults(res));
                                 }}
                                 className="text-xs font-bold text-[#c92127] hover:underline cursor-pointer flex-shrink-0"
                               >
@@ -896,11 +896,18 @@ export default function CustomerDashboardPage({ products = [] }) {
                           
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
                             <div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-mono font-black text-base text-slate-900">{ord.order_number}</span>
                                 {getStatusBadge(ord.order_status)}
+                                {ord.is_masked && (
+                                  <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full font-bold">
+                                    🔒 প্রাইভেসি সুরক্ষিত (মাস্কড)
+                                  </span>
+                                )}
                               </div>
-                              <p className="text-xs text-slate-500 mt-0.5">গ্রাহক: {ord.customer_name} ({ord.phone})</p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                গ্রাহক: <span className="font-semibold text-slate-700">{ord.customer_name}</span> ({ord.phone}) • {ord.delivery_address}
+                              </p>
                             </div>
                             <div className="sm:text-right">
                               <span className="text-base font-black text-[#c92127]">৳{Number(ord.grand_total).toLocaleString()}</span>

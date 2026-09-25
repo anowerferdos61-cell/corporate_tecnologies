@@ -90,41 +90,25 @@ export default function AdminSidebar({
       id: 'analytics',
       label: 'Analytics',
       icon: BarChart3,
-      badge: (
-        <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md">
-          Pro
-        </span>
-      )
+      badge: null
     },
     {
       id: 'banners',
       label: 'Hero Banners',
       icon: Sparkles,
-      badge: (
-        <span className="text-[9px] font-bold bg-red-100 text-[#c92127] px-1.5 py-0.5 rounded-md">
-          Live
-        </span>
-      )
+      badge: null
     },
     {
       id: 'navbar',
       label: 'Navbar & Menus',
       icon: Menu,
-      badge: (
-        <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md">
-          Custom
-        </span>
-      )
+      badge: null
     },
     {
       id: 'blogs',
       label: 'Blogs & Articles',
       icon: BookOpen,
-      badge: (
-        <span className="text-[9px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-md">
-          CMS
-        </span>
-      )
+      badge: null
     },
     {
       id: 'settings',

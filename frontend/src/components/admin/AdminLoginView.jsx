@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Users, KeyRound, Lock, Loader2, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { loginAdmin } from '../../lib/adminAuth';
 
 export default function AdminLoginView({ onLoginSuccess }) {
-  const [loginUsername, setLoginUsername] = useState('');
-  const [loginPin, setLoginPin] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginRememberMe, setLoginRememberMe] = useState(true);
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
@@ -16,8 +16,8 @@ export default function AdminLoginView({ onLoginSuccess }) {
 
     try {
       const session = await loginAdmin({
-        username: loginUsername,
-        pinOrPassword: loginPin,
+        email: loginEmail,
+        password: loginPassword,
         rememberMe: loginRememberMe
       });
       onLoginSuccess(session);
@@ -40,7 +40,7 @@ export default function AdminLoginView({ onLoginSuccess }) {
             CORPORATE <span className="text-[#c92127]">TECH</span>
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
-            Management Portal
+            Admin Management Portal
           </p>
         </div>
 
@@ -55,17 +55,17 @@ export default function AdminLoginView({ onLoginSuccess }) {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Username
+              Admin Email
             </label>
             <div className="relative">
-              <Users className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="text"
+                type="email"
                 required
-                autoComplete="username"
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="Enter your username"
+                autoComplete="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="admin@corporatetechbd.com"
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#c92127] focus:ring-1 focus:ring-[#c92127]"
               />
             </div>
@@ -73,17 +73,17 @@ export default function AdminLoginView({ onLoginSuccess }) {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-              Password / PIN
+              Password
             </label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
                 autoComplete="current-password"
-                value={loginPin}
-                onChange={(e) => setLoginPin(e.target.value)}
-                placeholder="Enter your password or PIN"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="Enter your password"
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#c92127] focus:ring-1 focus:ring-[#c92127]"
               />
             </div>
@@ -109,7 +109,7 @@ export default function AdminLoginView({ onLoginSuccess }) {
             {loginLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-[#c92127]" />
-                <span>Verifying Credentials...</span>
+                <span>Authenticating with Supabase...</span>
               </>
             ) : (
               <>
@@ -123,7 +123,7 @@ export default function AdminLoginView({ onLoginSuccess }) {
         {/* Bottom Security Note */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
           <span className="text-[11px] text-slate-400 font-medium">
-            🔒 256-bit Encrypted Session • Corporate Technologies BD
+            🔒 Supabase Auth Verified • 256-bit Encrypted Session
           </span>
         </div>
       </div>

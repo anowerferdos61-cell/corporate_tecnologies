@@ -1,10 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase Credentials from Environment Variables with project fallback
+// Supabase Credentials from Environment Variables
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://vhilsjzpmbcirijhhouc.supabase.co";
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoaWxzanpwbWJjaXJpamhob3VjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODU3MzkyNSwiZXhwIjoyMTA0MTQ5OTI1fQ.dLD3rSdQmHoyf5NIr4l4793jo1kmzx6yrmC5CShsfG8";
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 // Fallback products data (self-contained within frontend)
 import fallbackProductsData from '../data/fallbackProducts.json';
@@ -235,6 +241,7 @@ export async function createProductOnSupabase(productData) {
   let savedProduct = null;
 
   try {
+    // 1. Try insert with full payload
     const { data, error } = await supabase
       .from('products')
       .insert([cleanPayload])
@@ -243,10 +250,48 @@ export async function createProductOnSupabase(productData) {
     if (!error && data && data.length > 0) {
       savedProduct = data[0];
     } else if (error) {
-      console.warn('Supabase insert notice:', error.message);
+      console.warn('Supabase insert notice with full payload:', error.message);
+      // 2. Retry with standard core columns if schema does not have custom columns yet
+      const corePayload = {
+        title: cleanPayload.title,
+        slug: cleanPayload.slug,
+        brand: cleanPayload.brand,
+        category: cleanPayload.category,
+        sub_category: cleanPayload.sub_category,
+        regular_price: cleanPayload.regular_price,
+        sale_price: cleanPayload.sale_price,
+        stock_quantity: cleanPayload.stock_quantity,
+        sku: cleanPayload.sku,
+        image_url: cleanPayload.image_url,
+        gallery_images: cleanPayload.gallery_images,
+        short_description: cleanPayload.short_description,
+        description: cleanPayload.description,
+        specifications: {
+          ...cleanPayload.specifications,
+          badge_text: cleanPayload.badge_text,
+          warranty_badge: cleanPayload.warranty_badge,
+          call_for_price: cleanPayload.call_for_price
+        },
+        variations: cleanPayload.variations,
+        key_features: cleanPayload.key_features,
+        is_featured: cleanPayload.is_featured,
+        rating: cleanPayload.rating,
+        reviews_count: cleanPayload.reviews_count
+      };
+
+      const { data: retryData, error: retryError } = await supabase
+        .from('products')
+        .insert([corePayload])
+        .select();
+
+      if (!retryError && retryData && retryData.length > 0) {
+        savedProduct = retryData[0];
+      } else if (retryError) {
+        console.error('Supabase product insert retry failed:', retryError.message);
+      }
     }
   } catch (e) {
-    console.warn('Could not insert to Supabase, fallback:', e.message);
+    console.warn('Could not insert to Supabase:', e.message);
   }
 
   const finalProduct = {

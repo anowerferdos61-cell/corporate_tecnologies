@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import { getCurrentCustomer, normalizePhone, registerCustomer, updateCustomerProfile } from './customerAuth';
 
 /**
- * Generate human-readable Unique Order Number (e.g. CT-2609-4821)
+ * Generate human-readable Unique Order Number format (fallback / helper)
  */
 export function generateOrderNumber() {
   const d = new Date();
@@ -13,7 +13,8 @@ export function generateOrderNumber() {
 }
 
 /**
- * Place a real order into Supabase orders & order_items tables
+ * Place an Authoritative & Tamper-Proof Order via Supabase Checkout RPC
+ * Includes Idempotency Key protection to prevent duplicate orders on network retry/double-click.
  */
 export async function placeOrder({
   customerName,
@@ -21,16 +22,14 @@ export async function placeOrder({
   address,
   city = 'Dhaka',
   cartItems = [],
-  subtotal = 0,
-  deliveryFee = 60,
-  grandTotal = 0,
+  couponCode = null,
   paymentMethod = 'cod',
   notes = '',
-  autoRegisterPassword = ''
+  idempotencyKey = null
 }) {
   const cleanPhone = normalizePhone(phone);
   if (!cleanPhone || cleanPhone.length !== 11) {
-    throw new Error('দয়া করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন');
+    throw new Error('দয়া করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)');
   }
   if (!customerName || customerName.trim().length < 2) {
     throw new Error('দয়া করে আপনার নাম দিন');
@@ -42,10 +41,13 @@ export async function placeOrder({
     throw new Error('আপনার কার্ট খালি! কোনো প্রোডাক্ট সিলেক্ট করুন।');
   }
 
+  // Generate unique idempotency key for this order attempt to prevent duplicates
+  const finalIdempotencyKey = idempotencyKey || (`idem_${cleanPhone}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`);
+
   // 1. Check if user is logged in
   let currentCustomer = getCurrentCustomer();
 
-  // 2. Always auto-register or sync customer using Phone, Name & Courier Address!
+  // 2. Auto-sync customer profile locally
   if (!currentCustomer) {
     try {
       currentCustomer = await registerCustomer({
@@ -59,81 +61,68 @@ export async function placeOrder({
       console.warn('Auto-registration notice:', regErr.message);
     }
   } else if (currentCustomer && (!currentCustomer.address || currentCustomer.address !== address)) {
-    // If logged in, update default courier address for future orders
     updateCustomerProfile({ address, city }).catch(() => {});
   }
 
-  const orderNumber = generateOrderNumber();
-
-  // 3. Insert order record into `orders` table
-  const orderPayload = {
-    order_number: orderNumber,
-    customer_id: currentCustomer?.id || null,
-    customer_name: customerName.trim(),
-    phone: cleanPhone,
-    delivery_address: address.trim(),
-    city: city.trim() || 'Dhaka',
-    subtotal: Number(subtotal) || 0,
-    delivery_fee: Number(deliveryFee) || 0,
-    grand_total: Number(grandTotal) || 0,
-    payment_method: paymentMethod || 'cod',
-    payment_status: 'unpaid',
-    order_status: 'pending',
-    notes: notes.trim()
-  };
-
-  const { data: orderData, error: orderErr } = await supabase
-    .from('orders')
-    .insert([orderPayload])
-    .select()
-    .single();
-
-  if (orderErr || !orderData) {
-    console.error('Order creation error on Supabase:', orderErr);
-    throw new Error(orderErr?.message || 'অর্ডার করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
-  }
-
-  // 4. Insert items into `order_items` table
+  // 3. Format items payload: Send rich identifiers & quantities for authoritative calculation & fallback
   const itemsPayload = cartItems.map(item => {
     const p = item.product || item;
-    const unitPrice = Number(p.sale_price ?? p.unit_price ?? p.regular_price ?? 0);
-    const qty = Number(item.quantity || 1);
     return {
-      order_id: orderData.id,
       product_id: String(p.id || p.product_id || ''),
-      product_title: p.title || p.product_title || 'Product',
-      product_image: p.image_url || p.product_image || '',
-      unit_price: unitPrice,
-      quantity: qty,
-      total_price: unitPrice * qty
+      slug: String(p.slug || ''),
+      variation_id: String(item.variation_id || p.variation_id || ''),
+      variation_name: String(item.variation_name || p.variation_name || item.selectedVariation?.name || ''),
+      product_title: String(p.title || p.product_title || ''),
+      unit_price: Number(item.price || p.sale_price || p.regular_price || 0),
+      image_url: String(item.image || p.image_url || ''),
+      quantity: Math.max(1, parseInt(item.quantity || 1, 10))
     };
   });
 
-  const { error: itemsErr } = await supabase
-    .from('order_items')
-    .insert(itemsPayload);
+  // 4. Call authoritative database RPC (create_checkout_order) with Idempotency Key
+  const { data: orderResult, error: orderErr } = await supabase.rpc('create_checkout_order', {
+    p_customer_name: customerName.trim(),
+    p_phone: cleanPhone,
+    p_delivery_address: address.trim(),
+    p_city: city.trim() || 'Dhaka',
+    p_items: itemsPayload,
+    p_coupon_code: couponCode ? couponCode.trim() : null,
+    p_payment_method: paymentMethod || 'cod',
+    p_notes: notes ? notes.trim() : null,
+    p_idempotency_key: finalIdempotencyKey
+  });
 
-  if (itemsErr) {
-    console.warn('Items insert notice (order was created):', itemsErr);
+  if (orderErr) {
+    console.error('Order creation failed via RPC:', orderErr);
+    throw new Error(orderErr.message || 'অর্ডার করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+  }
+
+  if (!orderResult || !orderResult.success) {
+    throw new Error('অর্ডার সম্পন্ন করা সম্ভব হয়নি।');
   }
 
   // 5. Store order locally in customer recent order history
   try {
     const recentOrders = JSON.parse(localStorage.getItem('ct_recent_orders') || '[]');
-    recentOrders.unshift({
-      id: orderData.id,
-      order_number: orderData.order_number,
-      grand_total: orderData.grand_total,
-      order_status: orderData.order_status,
-      created_at: orderData.created_at,
-      items_count: cartItems.length
-    });
-    localStorage.setItem('ct_recent_orders', JSON.stringify(recentOrders.slice(0, 10)));
-  } catch {}
+    const existingIndex = recentOrders.findIndex(o => o.order_number === orderResult.order_number);
+    if (existingIndex === -1) {
+      recentOrders.unshift({
+        id: orderResult.order_id,
+        order_number: orderResult.order_number,
+        grand_total: orderResult.grand_total,
+        order_status: orderResult.order_status,
+        created_at: new Date().toISOString(),
+        items_count: cartItems.length
+      });
+      localStorage.setItem('ct_recent_orders', JSON.stringify(recentOrders.slice(0, 10)));
+    }
+  } catch (e) {
+    console.warn('Failed to cache order locally:', e);
+  }
 
   return {
-    ...orderData,
-    items: itemsPayload
+    ...orderResult,
+    items: cartItems
   };
 }
 
@@ -146,6 +135,21 @@ export async function getCustomerOrders(phoneOrCustomerId) {
   const cleanPhone = normalizePhone(phoneOrCustomerId);
   const isUuid = typeof phoneOrCustomerId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(phoneOrCustomerId);
 
+  // 1. Try secure DEFINER RPC (bypasses RLS safely for customer phone)
+  if (cleanPhone && cleanPhone.length === 11) {
+    try {
+      const { data: rpcOrders, error: rpcErr } = await supabase.rpc('get_customer_orders', {
+        p_phone: cleanPhone
+      });
+      if (!rpcErr && Array.isArray(rpcOrders) && rpcOrders.length > 0) {
+        return rpcOrders;
+      }
+    } catch (e) {
+      console.warn('get_customer_orders RPC attempt:', e);
+    }
+  }
+
+  // 2. Direct Query Fallback
   let query = supabase
     .from('orders')
     .select(`
@@ -171,35 +175,30 @@ export async function getCustomerOrders(phoneOrCustomerId) {
 }
 
 /**
- * Track Order by Order Number (e.g. CT-2609-4821) or Phone
+ * Track Order Authoritatively by Order Number & Phone via Secure RPC
  */
-export async function trackOrder(queryStr) {
+export async function trackOrder(queryStr, phoneQuery = '') {
   if (!queryStr || !queryStr.trim()) return null;
 
   const trimmed = queryStr.trim();
-  const cleanPhone = normalizePhone(trimmed);
+  const phoneOnly = phoneQuery ? normalizePhone(phoneQuery) : (trimmed.startsWith('01') ? normalizePhone(trimmed) : null);
+  const orderNumOnly = trimmed.toUpperCase().startsWith('CT-') ? trimmed.toUpperCase() : (phoneOnly ? '' : trimmed.toUpperCase());
 
-  let query = supabase
-    .from('orders')
-    .select(`
-      *,
-      order_items (*)
-    `)
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase.rpc('track_guest_order', {
+      p_order_number: orderNumOnly || trimmed.toUpperCase(),
+      p_phone: phoneOnly || null
+    });
 
-  if (trimmed.toUpperCase().startsWith('CT-')) {
-    query = query.eq('order_number', trimmed.toUpperCase());
-  } else if (cleanPhone && cleanPhone.length === 11) {
-    query = query.eq('phone', cleanPhone);
-  } else {
-    query = query.ilike('order_number', `%${trimmed}%`);
+    if (error) {
+      console.warn('track_guest_order RPC error:', error);
+    } else if (data && data.found) {
+      return [data];
+    }
+  } catch (err) {
+    console.error('Track order failed:', err);
   }
 
-  const { data, error } = await query.limit(5);
-
-  if (error || !data || data.length === 0) {
-    return null;
-  }
-
-  return data;
+  return null;
 }
+

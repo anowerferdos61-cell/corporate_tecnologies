@@ -59,6 +59,7 @@ export default function CheckoutPage() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    altPhone: '',
     address: '',
     city: 'Dhaka',
     notes: '',
@@ -192,9 +193,13 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
     try {
+      let finalNotes = formData.notes || '';
+      if (formData.altPhone && formData.altPhone.trim()) {
+        finalNotes = `[বিকল্প নম্বর: ${formData.altPhone.trim()}] ${finalNotes}`.trim();
+      }
       const notesWithCoupon = appliedCoupon
-        ? `[কুপন: ${appliedCoupon.code} (-৳${couponDiscount})] ${formData.notes}`.trim()
-        : formData.notes;
+        ? `[কুপন: ${appliedCoupon.code} (-৳${couponDiscount})] ${finalNotes}`.trim()
+        : finalNotes;
 
       const createdOrder = await placeOrder({
         customerName: formData.name,
@@ -202,6 +207,7 @@ export default function CheckoutPage() {
         address: formData.address,
         city: formData.city,
         cartItems,
+        couponCode: appliedCoupon?.code || null,
         subtotal,
         deliveryFee: activeDeliveryFee,
         grandTotal: effectiveGrandTotal,
@@ -320,6 +326,26 @@ export default function CheckoutPage() {
                 <span className="text-slate-400 block font-medium">ঠিকানা</span>
                 <span className="font-medium text-slate-700">{orderSuccessData.delivery_address}</span>
               </div>
+            </div>
+
+            {/* WhatsApp Direct Help & Correction Box */}
+            <div className="bg-emerald-50/90 border-2 border-emerald-200 rounded-2xl p-4 text-left max-w-lg mx-auto space-y-2.5">
+              <div className="flex items-center gap-2 text-emerald-950 font-bold text-xs sm:text-sm">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                <span>অর্ডারে কোনো ভুল বা নম্বর পরিবর্তন করতে চান?</span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-emerald-800/90 leading-relaxed">
+                ভুলবশত নম্বর বা ঠিকানায় ভুল হয়ে থাকলে চিন্তার কিছু নেই! এখনই নিচের বাটনে ক্লিক করে সরাসরি আমাদের অফিশিয়াল WhatsApp-এ আপনার সঠিক তথ্য পাঠিয়ে দিন:
+              </p>
+              <a
+                href={`https://wa.me/8801777277740?text=${encodeURIComponent(`হ্যালো Corporate Technologies BD, আমি এইমাত্র অর্ডার করেছি (অর্ডার ট্র্যাকিং আইডি: ${orderSuccessData.order_number})। আমার অর্ডারের তথ্যে একটি সংশোধন রয়েছে:`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-4 rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer"
+              >
+                <span>WhatsApp-এ তথ্য সংশোধন করুন</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
             </div>
 
             {/* Quick Courier Notice */}
@@ -486,6 +512,24 @@ export default function CheckoutPage() {
                   <span className="text-[10px] text-slate-400 mt-1 block">
                     কুরিয়ার ডেলিভারির সময় এই নম্বরে ফোন করা হবে
                   </span>
+                </div>
+              </div>
+
+              {/* Alternative Phone (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>বিকল্প মোবাইল নম্বর <span className="text-slate-400 font-normal">(ঐচ্ছিক)</span></span>
+                  <span className="text-[10px] text-emerald-600 font-medium">জরুরি প্রয়োজনে যোগাযোগের জন্য</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    placeholder="যেমন: 018XXXXXXXX (যদি অন্য কোনো নম্বর থাকে)"
+                    value={formData.altPhone}
+                    onChange={(e) => setFormData({ ...formData, altPhone: e.target.value })}
+                    className="w-full pl-10 pr-3.5 py-2 bg-slate-50/50 border border-slate-300 rounded-2xl text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-mono"
+                  />
+                  <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 </div>
               </div>
 

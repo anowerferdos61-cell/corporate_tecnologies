@@ -1,14 +1,11 @@
 -- ==============================================================================
--- CORPORATE TECHNOLOGIES BD - PRODUCTION SUPABASE DATABASE SCHEMA
--- Features: Hardened RLS, admin_profiles, admin_private_settings, Authoritative Checkout RPC
+-- PRODUCTION HARDENED RLS POLICIES & AUTHORITATIVE CHECKOUT ENGINE (v5.0)
+-- Features: Authoritative Server Pricing, Row-Locking Stock Engine, Idempotent Duplicate Order Protection
+-- Corporate Technologies BD
+-- Run this script directly in Supabase SQL Editor
 -- ==============================================================================
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- ------------------------------------------------------------------------------
--- 1. AUTO-UPDATE TRIGGER FUNCTION (SECURITY DEFINER WITH SEARCH_PATH)
--- ------------------------------------------------------------------------------
+-- 1. SECURITY DEFINER HELPER FUNCTIONS WITH PINNED SEARCH_PATH
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -21,31 +18,48 @@ BEGIN
 END;
 $$;
 
--- ------------------------------------------------------------------------------
--- 2. CUSTOMERS TABLE
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.customers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    phone VARCHAR(20) UNIQUE NOT NULL,       -- মোবাইল নম্বর
-    full_name VARCHAR(150) NOT NULL,         -- নাম
-    password_hash TEXT,                      -- ঐচ্ছিক
-    address TEXT,                            -- কুরিয়ার ডেলিভারি ঠিকানা
-    city VARCHAR(100) DEFAULT 'Dhaka',       -- জেলা / শহর
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.admin_profiles
+    WHERE id = auth.uid() AND is_active = true
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.admin_profiles
+    WHERE id = auth.uid() AND role = 'super_admin' AND is_active = true
+  );
+$$;
+
+-- 2. PRIVATE SECRETS TABLE (FOR COURIER & SENSITIVE KEYS)
+CREATE TABLE IF NOT EXISTS public.admin_private_settings (
+    key VARCHAR(100) PRIMARY KEY,
+    secret_value JSONB NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_customers_phone ON public.customers(phone);
+ALTER TABLE public.admin_private_settings ENABLE ROW LEVEL SECURITY;
 
-DROP TRIGGER IF EXISTS trg_customers_updated_at ON public.customers;
-CREATE TRIGGER trg_customers_updated_at
-    BEFORE UPDATE ON public.customers
-    FOR EACH ROW
-    EXECUTE FUNCTION public.update_updated_at_column();
+DROP POLICY IF EXISTS "Admin only access to private secrets" ON public.admin_private_settings;
+CREATE POLICY "Admin only access to private secrets" ON public.admin_private_settings
+    FOR ALL TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
--- ------------------------------------------------------------------------------
--- 3. ORDERS TABLE (WITH IDEMPOTENCY KEY SUPPORT)
--- ------------------------------------------------------------------------------
+-- 3. ENSURE IDEMPOTENCY KEY ON ORDERS & STOCK INTEGRITY ON PRODUCTS
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_number VARCHAR(50) UNIQUE NOT NULL,
@@ -58,13 +72,13 @@ CREATE TABLE IF NOT EXISTS public.orders (
     subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0,
     delivery_fee NUMERIC(10, 2) NOT NULL DEFAULT 60,
     grand_total NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    payment_method VARCHAR(50) DEFAULT 'cod', -- 'cod' | 'bkash' | 'nagad'
-    payment_status VARCHAR(50) DEFAULT 'unpaid', -- 'unpaid' | 'paid'
-    order_status VARCHAR(50) DEFAULT 'pending', -- 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
-    courier_name VARCHAR(50), -- e.g. 'Steadfast' | 'Pathao'
-    tracking_code VARCHAR(100), -- Tracking code given by courier
-    consignment_id VARCHAR(100), -- Consignment ID given by courier API
-    courier_status VARCHAR(100), -- Latest status returned from courier
+    payment_method VARCHAR(50) DEFAULT 'cod',
+    payment_status VARCHAR(50) DEFAULT 'unpaid',
+    order_status VARCHAR(50) DEFAULT 'pending',
+    courier_name VARCHAR(50),
+    tracking_code VARCHAR(100),
+    consignment_id VARCHAR(100),
+    courier_status VARCHAR(100),
     notes TEXT,
     admin_notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -72,39 +86,21 @@ CREATE TABLE IF NOT EXISTS public.orders (
 );
 
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(100) UNIQUE;
-CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON public.orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_phone ON public.orders(phone);
-CREATE INDEX IF NOT EXISTS idx_orders_order_number ON public.orders(order_number);
 CREATE INDEX IF NOT EXISTS idx_orders_idempotency_key ON public.orders(idempotency_key);
-CREATE INDEX IF NOT EXISTS idx_orders_order_status ON public.orders(order_status);
-CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
 
-DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;
-CREATE TRIGGER trg_orders_updated_at
-    BEFORE UPDATE ON public.orders
-    FOR EACH ROW
-    EXECUTE FUNCTION public.update_updated_at_column();
+-- Ensure non-negative stock invariant
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'check_products_stock_non_negative'
+    ) THEN
+        ALTER TABLE public.products ADD CONSTRAINT check_products_stock_non_negative CHECK (stock_quantity >= 0);
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
 
--- ------------------------------------------------------------------------------
--- 4. ORDER_ITEMS TABLE
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.order_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-    product_id TEXT,
-    product_title VARCHAR(255) NOT NULL,
-    product_image TEXT,
-    unit_price NUMERIC(10, 2) NOT NULL DEFAULT 0,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    total_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
-
--- ------------------------------------------------------------------------------
--- 4.1 ORDER_STATUS_HISTORY TABLE (AUDIT TRAIL)
--- ------------------------------------------------------------------------------
+-- 3.1 ORDER_STATUS_HISTORY TABLE (AUDIT TRAIL)
 CREATE TABLE IF NOT EXISTS public.order_status_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -133,159 +129,8 @@ EXCEPTION
     WHEN OTHERS THEN NULL;
 END $$;
 
--- ------------------------------------------------------------------------------
--- 5. ADMIN PROFILES TABLE (Supabase Auth Mapping)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.admin_profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    full_name VARCHAR(150),
-    role VARCHAR(30) NOT NULL DEFAULT 'staff' CHECK (role IN ('super_admin', 'staff')),
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-DROP TRIGGER IF EXISTS trg_admin_profiles_updated_at ON public.admin_profiles;
-CREATE TRIGGER trg_admin_profiles_updated_at
-    BEFORE UPDATE ON public.admin_profiles
-    FOR EACH ROW
-    EXECUTE FUNCTION public.update_updated_at_column();
-
--- ------------------------------------------------------------------------------
--- 6. SECURITY HELPER FUNCTIONS (WITH SEARCH_PATH)
--- ------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN
-LANGUAGE sql
-SECURITY DEFINER
-STABLE
-SET search_path = public, pg_temp
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.admin_profiles
-    WHERE id = auth.uid() AND is_active = true
-  );
-$$;
-
-CREATE OR REPLACE FUNCTION public.is_super_admin()
-RETURNS BOOLEAN
-LANGUAGE sql
-SECURITY DEFINER
-STABLE
-SET search_path = public, pg_temp
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.admin_profiles
-    WHERE id = auth.uid() AND role = 'super_admin' AND is_active = true
-  );
-$$;
-
--- ------------------------------------------------------------------------------
--- 7. DEDICATED PRIVATE SECRETS TABLE (COURIER & INTEGRATIONS)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.admin_private_settings (
-    key VARCHAR(100) PRIMARY KEY,
-    secret_value JSONB NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ------------------------------------------------------------------------------
--- 8. STORE SETTINGS TABLE (PUBLIC NON-SENSITIVE DATA)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.store_settings (
-    key VARCHAR(100) PRIMARY KEY,
-    value JSONB NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-INSERT INTO public.store_settings (key, value) VALUES
-('delivery_charges', '{"inside_dhaka": 60, "outside_dhaka": 120}'),
-('contact_info', '{"hotline": "01777-277740", "email": "info@corporatetechbd.com"}'),
-('flash_sale_settings', '{"is_active": true, "title": "সীমিত সময়ের ফ্ল্যাশ ডিল", "subtitle": "প্রিন্টার ও Splashjet কালিতে আকর্ষণীয় ছাড়!", "end_time": "2026-12-31T23:59:59.000Z", "discount_banner": "UP TO 35% OFF"}')
-ON CONFLICT (key) DO NOTHING;
-
--- ------------------------------------------------------------------------------
--- 9. COUPONS TABLE (ADVANCED RULES & LIMITS)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.coupons (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code VARCHAR(50) UNIQUE NOT NULL,
-    discount_type VARCHAR(20) DEFAULT 'fixed', -- 'fixed' | 'percentage'
-    discount_value NUMERIC(10, 2) NOT NULL DEFAULT 0,
-    min_order_amount NUMERIC(10, 2) DEFAULT 0,
-    max_discount_limit NUMERIC(10, 2),
-    start_date TIMESTAMPTZ DEFAULT NOW(),
-    expiry_date TIMESTAMPTZ,
-    usage_limit INTEGER,                      -- Total max times this coupon can be redeemed
-    per_customer_limit INTEGER DEFAULT 1,     -- Max times a single phone number can use this coupon
-    is_active BOOLEAN DEFAULT true,
-    usage_count INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_coupons_code ON public.coupons(code);
-
--- ------------------------------------------------------------------------------
--- 10. PRODUCTS TABLE (WITH INVENTORY CONSTRAINTS)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.products (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
-    brand VARCHAR(100) DEFAULT 'Corporate Tech',
-    category VARCHAR(100) NOT NULL DEFAULT 'Printers',
-    sub_category VARCHAR(100) DEFAULT '',
-    regular_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    sale_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    stock_quantity INTEGER NOT NULL DEFAULT 20,
-    sku VARCHAR(100),
-    image_url TEXT,
-    gallery_images JSONB DEFAULT '[]'::jsonb,
-    short_description TEXT,
-    description TEXT,
-    specifications JSONB DEFAULT '{}'::jsonb,
-    variations JSONB DEFAULT '[]'::jsonb,
-    key_features JSONB DEFAULT '[]'::jsonb,
-    is_featured BOOLEAN DEFAULT false,
-    rating NUMERIC(3, 2) DEFAULT 4.9,
-    reviews_count INTEGER DEFAULT 1,
-    shipping_tier_id VARCHAR(100),
-    is_free_delivery BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_products_slug ON public.products(slug);
-CREATE INDEX IF NOT EXISTS idx_products_category ON public.products(category);
-CREATE INDEX IF NOT EXISTS idx_products_brand ON public.products(brand);
-
--- Ensure all extended display columns exist
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS call_for_price BOOLEAN DEFAULT false;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS price_range_label TEXT;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge_text TEXT;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge_color TEXT DEFAULT 'red';
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge_position TEXT DEFAULT 'left';
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS badge_mode TEXT DEFAULT 'custom';
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS card_border TEXT DEFAULT 'default';
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS card_btn_text TEXT DEFAULT 'View Details';
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS show_brand_badge BOOLEAN DEFAULT true;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS show_rating BOOLEAN DEFAULT false;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS rating_score TEXT DEFAULT '4.9';
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS show_stock_badge BOOLEAN DEFAULT false;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS warranty_badge TEXT DEFAULT '১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি';
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS discount_label TEXT;
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS shipping_tier_id VARCHAR(100);
-ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_free_delivery BOOLEAN DEFAULT false;
-
--- ------------------------------------------------------------------------------
--- 11. ROW LEVEL SECURITY (RLS) POLICIES
--- ------------------------------------------------------------------------------
-
--- Enable RLS on all tables
+-- 4. ENABLE RLS ON ALL CORE TABLES
 ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_private_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
@@ -294,7 +139,11 @@ ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 
--- 11.1 Admin Profiles Policies
+-- ------------------------------------------------------------------------------
+-- 5. HARDENED ROW LEVEL SECURITY POLICIES
+-- ------------------------------------------------------------------------------
+
+-- 5.1 Admin Profiles Policies
 DROP POLICY IF EXISTS "Admin view profiles" ON public.admin_profiles;
 CREATE POLICY "Admin view profiles" ON public.admin_profiles
     FOR SELECT TO authenticated
@@ -306,14 +155,7 @@ CREATE POLICY "Super admin manage profiles" ON public.admin_profiles
     USING (public.is_super_admin())
     WITH CHECK (public.is_super_admin());
 
--- 11.2 Admin Private Settings Policies (Completely blocked from public)
-DROP POLICY IF EXISTS "Admin only access to private secrets" ON public.admin_private_settings;
-CREATE POLICY "Admin only access to private secrets" ON public.admin_private_settings
-    FOR ALL TO authenticated
-    USING (public.is_admin())
-    WITH CHECK (public.is_admin());
-
--- 11.3 Products Policies (Public can read, only verified admins can modify)
+-- 5.2 Products Policies (Public read, Admin modify)
 DROP POLICY IF EXISTS "Public read products" ON public.products;
 CREATE POLICY "Public read products" ON public.products
     FOR SELECT
@@ -335,7 +177,7 @@ CREATE POLICY "Super admin delete products" ON public.products
     FOR DELETE TO authenticated
     USING (public.is_super_admin());
 
--- 11.4 Store Settings Policies (Public reads non-sensitive only; Admins manage)
+-- 5.3 Store Settings Policies (Public non-sensitive only)
 DROP POLICY IF EXISTS "Public read store settings" ON public.store_settings;
 DROP POLICY IF EXISTS "Public read non-sensitive store settings" ON public.store_settings;
 CREATE POLICY "Public read non-sensitive store settings" ON public.store_settings
@@ -351,7 +193,7 @@ CREATE POLICY "Admin manage store settings" ON public.store_settings
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
 
--- 11.5 Coupons Policies (Admin only direct access; validation via RPC)
+-- 5.4 Coupons Policies (Admin direct access; public uses RPC)
 DROP POLICY IF EXISTS "Public read active coupons" ON public.coupons;
 DROP POLICY IF EXISTS "Admin manage coupons" ON public.coupons;
 CREATE POLICY "Admin manage coupons" ON public.coupons
@@ -359,7 +201,7 @@ CREATE POLICY "Admin manage coupons" ON public.coupons
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
 
--- 11.6 Orders Policies (Direct client insert revoked; read/update restricted)
+-- 5.5 Orders Policies (Direct public insert revoked; only RPC or Admin can insert)
 DROP POLICY IF EXISTS "Public checkout insert orders" ON public.orders;
 DROP POLICY IF EXISTS "Public checkout insert orders with pending status" ON public.orders;
 DROP POLICY IF EXISTS "Admin or customer read orders" ON public.orders;
@@ -383,7 +225,7 @@ CREATE POLICY "Super admin delete orders" ON public.orders
     FOR DELETE TO authenticated
     USING (public.is_super_admin());
 
--- 11.6.1 Order Status History Policies
+-- 5.5.1 Order Status History Policies
 DROP POLICY IF EXISTS "Admin view order status history" ON public.order_status_history;
 CREATE POLICY "Admin view order status history" ON public.order_status_history
     FOR SELECT TO authenticated
@@ -491,7 +333,7 @@ CREATE TRIGGER trg_validate_order_status_transition
     FOR EACH ROW
     EXECUTE FUNCTION public.fn_validate_order_status_transition();
 
--- 11.7 Order Items Policies
+-- 5.6 Order Items Policies
 DROP POLICY IF EXISTS "Public checkout insert order items" ON public.order_items;
 DROP POLICY IF EXISTS "Public checkout insert order items bound to pending orders" ON public.order_items;
 DROP POLICY IF EXISTS "Admin or customer read order items" ON public.order_items;
@@ -513,7 +355,7 @@ CREATE POLICY "Admin manage order items" ON public.order_items
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
 
--- 11.8 Customers Policies
+-- 5.7 Customers Policies
 DROP POLICY IF EXISTS "Public insert customer profile" ON public.customers;
 DROP POLICY IF EXISTS "Customer or admin read profile" ON public.customers;
 CREATE POLICY "Customer or admin read profile" ON public.customers
@@ -527,37 +369,8 @@ CREATE POLICY "Customer or admin update profile" ON public.customers
     WITH CHECK (public.is_admin() OR (auth.uid() IS NOT NULL AND id = auth.uid()));
 
 -- ------------------------------------------------------------------------------
--- 12. STORAGE BUCKET POLICIES FOR PRODUCT IMAGES
+-- 6. ATOMIC PRODUCTION CHECKOUT ENGINE WITH IDEMPOTENCY & ROW-LOCKING STOCK
 -- ------------------------------------------------------------------------------
-INSERT INTO storage.buckets (id, name, public) 
-VALUES ('product-images', 'product-images', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
-
-DROP POLICY IF EXISTS "Public view product images" ON storage.objects;
-CREATE POLICY "Public view product images" ON storage.objects
-    FOR SELECT
-    USING (bucket_id = 'product-images');
-
-DROP POLICY IF EXISTS "Admin upload product images" ON storage.objects;
-CREATE POLICY "Admin upload product images" ON storage.objects
-    FOR INSERT TO authenticated
-    WITH CHECK (bucket_id = 'product-images' AND public.is_admin());
-
-DROP POLICY IF EXISTS "Admin update product images" ON storage.objects;
-CREATE POLICY "Admin update product images" ON storage.objects
-    FOR UPDATE TO authenticated
-    USING (bucket_id = 'product-images' AND public.is_admin());
-
-DROP POLICY IF EXISTS "Admin delete product images" ON storage.objects;
-CREATE POLICY "Admin delete product images" ON storage.objects
-    FOR DELETE TO authenticated
-    USING (bucket_id = 'product-images' AND public.is_admin());
-
--- ------------------------------------------------------------------------------
--- 13. SECURE AUTHORITATIVE RPC FUNCTIONS (WITH IDEMPOTENCY & STOCK LOCKING)
--- ------------------------------------------------------------------------------
-
--- 13.1 Authoritative Checkout Order Creation RPC
 CREATE OR REPLACE FUNCTION public.create_checkout_order(
     p_customer_name TEXT,
     p_phone TEXT,
@@ -616,6 +429,7 @@ BEGIN
             FROM public.order_items 
             WHERE order_id = v_existing_order.id;
 
+            -- Return the existing order immediately without duplicate charging or stock depletion
             RETURN jsonb_build_object(
                 'success', true,
                 'order_id', v_existing_order.id,
@@ -665,7 +479,7 @@ BEGIN
         RAISE EXCEPTION 'আপনার কার্ট খালি! কোনো প্রোডাক্ট পাওয়া যায়নি';
     END IF;
 
-    -- 2. Customer Profile Synchronization
+    -- 2. Customer Profile Synchronization (FK Safe)
     SELECT id INTO v_customer_id 
     FROM public.customers 
     WHERE phone = v_clean_phone
@@ -992,207 +806,7 @@ BEGIN
 END;
 $$;
 
--- 13.2 Secure Guest Order Tracking RPC (With Privacy Data Masking)
-CREATE OR REPLACE FUNCTION public.track_guest_order(
-    p_order_number TEXT,
-    p_phone TEXT DEFAULT NULL
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-DECLARE
-    v_order RECORD;
-    v_items JSONB;
-    v_clean_phone TEXT := NULL;
-    v_clean_order_no TEXT := NULL;
-    v_is_verified BOOLEAN := false;
-    v_masked_name TEXT;
-    v_masked_phone TEXT;
-    v_masked_address TEXT;
-BEGIN
-    IF p_phone IS NOT NULL AND TRIM(p_phone) != '' THEN
-        v_clean_phone := REGEXP_REPLACE(p_phone, '[^0-9]', '', 'g');
-        IF v_clean_phone LIKE '880%' THEN
-            v_clean_phone := SUBSTRING(v_clean_phone FROM 3);
-        END IF;
-        IF LENGTH(v_clean_phone) = 10 AND v_clean_phone NOT LIKE '0%' THEN
-            v_clean_phone := '0' || v_clean_phone;
-        END IF;
-    END IF;
-
-    IF p_order_number IS NOT NULL AND TRIM(p_order_number) != '' THEN
-        v_clean_order_no := UPPER(TRIM(p_order_number));
-    END IF;
-
-    -- 1. Try matching by order number AND phone if both provided (Verified match)
-    IF v_clean_order_no IS NOT NULL AND v_clean_phone IS NOT NULL AND LENGTH(v_clean_phone) = 11 THEN
-        SELECT * INTO v_order
-        FROM public.orders
-        WHERE UPPER(order_number) = v_clean_order_no
-          AND phone = v_clean_phone
-        LIMIT 1;
-
-        IF v_order IS NOT NULL THEN
-            v_is_verified := true;
-        END IF;
-    END IF;
-
-    -- 2. Try matching by order number alone (Guest tracking -> will be privacy masked)
-    IF v_order IS NULL AND v_clean_order_no IS NOT NULL AND v_clean_order_no LIKE 'CT-%' THEN
-        SELECT * INTO v_order
-        FROM public.orders
-        WHERE UPPER(order_number) = v_clean_order_no
-        LIMIT 1;
-        
-        -- Check if phone matches
-        IF v_order IS NOT NULL AND v_clean_phone IS NOT NULL AND v_order.phone = v_clean_phone THEN
-            v_is_verified := true;
-        END IF;
-    END IF;
-
-    -- 3. Try matching by phone alone (if 11-digit phone number given)
-    IF v_order IS NULL AND v_clean_order_no IS NOT NULL AND v_clean_order_no ~ '^01[0-9]{9}$' THEN
-        SELECT * INTO v_order
-        FROM public.orders
-        WHERE phone = v_clean_order_no
-        ORDER BY created_at DESC
-        LIMIT 1;
-
-        IF v_order IS NOT NULL THEN
-            v_is_verified := true;
-        END IF;
-    END IF;
-
-    IF v_order IS NULL THEN
-        RETURN jsonb_build_object('found', false, 'message', 'কোনো অর্ডার পাওয়া যায়নি। সঠিক অর্ডার নম্বর বা মোবাইল নম্বর দিন।');
-    END IF;
-
-    -- Privacy Data Masking for unverified strangers
-    IF v_is_verified THEN
-        v_masked_name := v_order.customer_name;
-        v_masked_phone := v_order.phone;
-        v_masked_address := v_order.delivery_address;
-    ELSE
-        -- Mask Name: e.g. "Khairul Islam" -> "Kh****l I****m"
-        IF LENGTH(v_order.customer_name) <= 3 THEN
-            v_masked_name := SUBSTRING(v_order.customer_name FROM 1 FOR 1) || '***';
-        ELSE
-            v_masked_name := SUBSTRING(v_order.customer_name FROM 1 FOR 2) || '****' || SUBSTRING(v_order.customer_name FROM LENGTH(v_order.customer_name) FOR 1);
-        END IF;
-
-        -- Mask Phone: e.g. "01303030303" -> "0130****303"
-        IF LENGTH(v_order.phone) = 11 THEN
-            v_masked_phone := SUBSTRING(v_order.phone FROM 1 FOR 4) || '****' || SUBSTRING(v_order.phone FROM 8 FOR 4);
-        ELSE
-            v_masked_phone := '01******';
-        END IF;
-
-        -- Mask Address: hide street/house details, keep city/area note
-        v_masked_address := COALESCE(v_order.city, 'Dhaka') || ' (গোপনীয়/সুরক্ষিত)';
-    END IF;
-
-    SELECT jsonb_agg(jsonb_build_object(
-        'product_title', product_title,
-        'product_image', product_image,
-        'unit_price', unit_price,
-        'quantity', quantity,
-        'total_price', total_price
-    )) INTO v_items
-    FROM public.order_items
-    WHERE order_id = v_order.id;
-
-    RETURN jsonb_build_object(
-        'found', true,
-        'id', v_order.id,
-        'order_number', v_order.order_number,
-        'customer_name', v_masked_name,
-        'phone', v_masked_phone,
-        'is_masked', NOT v_is_verified,
-        'order_status', v_order.order_status,
-        'payment_status', v_order.payment_status,
-        'payment_method', v_order.payment_method,
-        'courier_name', v_order.courier_name,
-        'tracking_code', v_order.tracking_code,
-        'consignment_id', v_order.consignment_id,
-        'courier_status', v_order.courier_status,
-        'grand_total', v_order.grand_total,
-        'subtotal', v_order.subtotal,
-        'delivery_fee', v_order.delivery_fee,
-        'delivery_address', v_masked_address,
-        'city', v_order.city,
-        'created_at', v_order.created_at,
-        'items', COALESCE(v_items, '[]'::jsonb),
-        'order_items', COALESCE(v_items, '[]'::jsonb)
-    );
-END;
-$$;
-
--- 13.2.1 Secure Customer Orders Fetching RPC
-CREATE OR REPLACE FUNCTION public.get_customer_orders(p_phone TEXT)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-DECLARE
-    v_clean_phone TEXT;
-    v_orders JSONB;
-BEGIN
-    v_clean_phone := REGEXP_REPLACE(p_phone, '[^0-9]', '', 'g');
-    IF v_clean_phone LIKE '880%' THEN
-        v_clean_phone := SUBSTRING(v_clean_phone FROM 3);
-    END IF;
-    IF LENGTH(v_clean_phone) = 10 AND v_clean_phone NOT LIKE '0%' THEN
-        v_clean_phone := '0' || v_clean_phone;
-    END IF;
-
-    IF LENGTH(v_clean_phone) != 11 OR v_clean_phone NOT LIKE '01%' THEN
-        RETURN '[]'::jsonb;
-    END IF;
-
-    SELECT jsonb_agg(jsonb_build_object(
-        'id', o.id,
-        'order_number', o.order_number,
-        'customer_name', o.customer_name,
-        'phone', o.phone,
-        'delivery_address', o.delivery_address,
-        'city', o.city,
-        'subtotal', o.subtotal,
-        'delivery_fee', o.delivery_fee,
-        'grand_total', o.grand_total,
-        'payment_method', o.payment_method,
-        'payment_status', o.payment_status,
-        'order_status', o.order_status,
-        'courier_name', o.courier_name,
-        'tracking_code', o.tracking_code,
-        'consignment_id', o.consignment_id,
-        'courier_status', o.courier_status,
-        'notes', o.notes,
-        'created_at', o.created_at,
-        'updated_at', o.updated_at,
-        'order_items', COALESCE((
-            SELECT jsonb_agg(jsonb_build_object(
-                'id', oi.id,
-                'product_title', oi.product_title,
-                'product_image', oi.product_image,
-                'unit_price', oi.unit_price,
-                'quantity', oi.quantity,
-                'total_price', oi.total_price
-            ))
-            FROM public.order_items oi
-            WHERE oi.order_id = o.id
-        ), '[]'::jsonb)
-    ) ORDER BY o.created_at DESC) INTO v_orders
-    FROM public.orders o
-    WHERE o.phone = v_clean_phone;
-
-    RETURN COALESCE(v_orders, '[]'::jsonb);
-END;
-$$;
-
--- 13.3 Secure Coupon Code Validation RPC (Preview & Verification)
+-- 7. SECURE COUPON CODE VALIDATION RPC (PREVIEW & VERIFICATION)
 CREATE OR REPLACE FUNCTION public.validate_coupon_code(
     coupon_code TEXT, 
     order_subtotal NUMERIC,
@@ -1280,8 +894,220 @@ BEGIN
 END;
 $$;
 
+-- 8. GUEST ORDER TRACKING RPC (With Privacy Data Masking)
+CREATE OR REPLACE FUNCTION public.track_guest_order(
+    p_order_number TEXT,
+    p_phone TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_order RECORD;
+    v_items JSONB;
+    v_clean_phone TEXT := NULL;
+    v_clean_order_no TEXT := NULL;
+    v_is_verified BOOLEAN := false;
+    v_masked_name TEXT;
+    v_masked_phone TEXT;
+    v_masked_address TEXT;
+BEGIN
+    IF p_phone IS NOT NULL AND TRIM(p_phone) != '' THEN
+        v_clean_phone := REGEXP_REPLACE(p_phone, '[^0-9]', '', 'g');
+        IF v_clean_phone LIKE '880%' THEN
+            v_clean_phone := SUBSTRING(v_clean_phone FROM 3);
+        END IF;
+        IF LENGTH(v_clean_phone) = 10 AND v_clean_phone NOT LIKE '0%' THEN
+            v_clean_phone := '0' || v_clean_phone;
+        END IF;
+    END IF;
+
+    IF p_order_number IS NOT NULL AND TRIM(p_order_number) != '' THEN
+        v_clean_order_no := UPPER(TRIM(p_order_number));
+    END IF;
+
+    -- 1. Try matching by order number AND phone if both provided (Verified match)
+    IF v_clean_order_no IS NOT NULL AND v_clean_phone IS NOT NULL AND LENGTH(v_clean_phone) = 11 THEN
+        SELECT * INTO v_order
+        FROM public.orders
+        WHERE UPPER(order_number) = v_clean_order_no
+          AND phone = v_clean_phone
+        LIMIT 1;
+
+        IF v_order IS NOT NULL THEN
+            v_is_verified := true;
+        END IF;
+    END IF;
+
+    -- 2. Try matching by order number alone (Guest tracking -> will be privacy masked)
+    IF v_order IS NULL AND v_clean_order_no IS NOT NULL AND v_clean_order_no LIKE 'CT-%' THEN
+        SELECT * INTO v_order
+        FROM public.orders
+        WHERE UPPER(order_number) = v_clean_order_no
+        LIMIT 1;
+        
+        -- Check if phone matches
+        IF v_order IS NOT NULL AND v_clean_phone IS NOT NULL AND v_order.phone = v_clean_phone THEN
+            v_is_verified := true;
+        END IF;
+    END IF;
+
+    -- 3. Try matching by phone alone (if 11-digit phone number given)
+    IF v_order IS NULL AND v_clean_order_no IS NOT NULL AND v_clean_order_no ~ '^01[0-9]{9}$' THEN
+        SELECT * INTO v_order
+        FROM public.orders
+        WHERE phone = v_clean_order_no
+        ORDER BY created_at DESC
+        LIMIT 1;
+
+        IF v_order IS NOT NULL THEN
+            v_is_verified := true;
+        END IF;
+    END IF;
+
+    IF v_order IS NULL AND v_clean_phone IS NOT NULL AND LENGTH(v_clean_phone) = 11 THEN
+        SELECT * INTO v_order
+        FROM public.orders
+        WHERE phone = v_clean_phone
+        ORDER BY created_at DESC
+        LIMIT 1;
+
+        IF v_order IS NOT NULL THEN
+            v_is_verified := true;
+        END IF;
+    END IF;
+
+    IF v_order IS NULL THEN
+        RETURN jsonb_build_object('found', false, 'message', 'কোনো অর্ডার পাওয়া যায়নি। সঠিক অর্ডার নম্বর বা মোবাইল নম্বর দিন।');
+    END IF;
+
+    -- Privacy Data Masking for unverified strangers
+    IF v_is_verified THEN
+        v_masked_name := v_order.customer_name;
+        v_masked_phone := v_order.phone;
+        v_masked_address := v_order.delivery_address;
+    ELSE
+        -- Mask Name: e.g. "Khairul Islam" -> "Kh****l I****m"
+        IF LENGTH(v_order.customer_name) <= 3 THEN
+            v_masked_name := SUBSTRING(v_order.customer_name FROM 1 FOR 1) || '***';
+        ELSE
+            v_masked_name := SUBSTRING(v_order.customer_name FROM 1 FOR 2) || '****' || SUBSTRING(v_order.customer_name FROM LENGTH(v_order.customer_name) FOR 1);
+        END IF;
+
+        -- Mask Phone: e.g. "01303030303" -> "0130****303"
+        IF LENGTH(v_order.phone) = 11 THEN
+            v_masked_phone := SUBSTRING(v_order.phone FROM 1 FOR 4) || '****' || SUBSTRING(v_order.phone FROM 8 FOR 4);
+        ELSE
+            v_masked_phone := '01******';
+        END IF;
+
+        -- Mask Address: hide street/house details, keep city/area note
+        v_masked_address := COALESCE(v_order.city, 'Dhaka') || ' (গোপনীয়/সুরক্ষিত)';
+    END IF;
+
+    SELECT jsonb_agg(jsonb_build_object(
+        'product_title', product_title,
+        'product_image', product_image,
+        'unit_price', unit_price,
+        'quantity', quantity,
+        'total_price', total_price
+    )) INTO v_items
+    FROM public.order_items
+    WHERE order_id = v_order.id;
+
+    RETURN jsonb_build_object(
+        'found', true,
+        'id', v_order.id,
+        'order_number', v_order.order_number,
+        'customer_name', v_masked_name,
+        'phone', v_masked_phone,
+        'is_masked', NOT v_is_verified,
+        'order_status', v_order.order_status,
+        'payment_status', v_order.payment_status,
+        'payment_method', v_order.payment_method,
+        'courier_name', v_order.courier_name,
+        'tracking_code', v_order.tracking_code,
+        'consignment_id', v_order.consignment_id,
+        'courier_status', v_order.courier_status,
+        'grand_total', v_order.grand_total,
+        'subtotal', v_order.subtotal,
+        'delivery_fee', v_order.delivery_fee,
+        'delivery_address', v_masked_address,
+        'city', v_order.city,
+        'created_at', v_order.created_at,
+        'items', COALESCE(v_items, '[]'::jsonb),
+        'order_items', COALESCE(v_items, '[]'::jsonb)
+    );
+END;
+$$;
+
+-- 8.1 SECURE CUSTOMER ORDERS FETCHING RPC (By Phone)
+CREATE OR REPLACE FUNCTION public.get_customer_orders(p_phone TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_clean_phone TEXT;
+    v_orders JSONB;
+BEGIN
+    v_clean_phone := REGEXP_REPLACE(p_phone, '[^0-9]', '', 'g');
+    IF v_clean_phone LIKE '880%' THEN
+        v_clean_phone := SUBSTRING(v_clean_phone FROM 3);
+    END IF;
+    IF LENGTH(v_clean_phone) = 10 AND v_clean_phone NOT LIKE '0%' THEN
+        v_clean_phone := '0' || v_clean_phone;
+    END IF;
+
+    IF LENGTH(v_clean_phone) != 11 OR v_clean_phone NOT LIKE '01%' THEN
+        RETURN '[]'::jsonb;
+    END IF;
+
+    SELECT jsonb_agg(jsonb_build_object(
+        'id', o.id,
+        'order_number', o.order_number,
+        'customer_name', o.customer_name,
+        'phone', o.phone,
+        'delivery_address', o.delivery_address,
+        'city', o.city,
+        'subtotal', o.subtotal,
+        'delivery_fee', o.delivery_fee,
+        'grand_total', o.grand_total,
+        'payment_method', o.payment_method,
+        'payment_status', o.payment_status,
+        'order_status', o.order_status,
+        'courier_name', o.courier_name,
+        'tracking_code', o.tracking_code,
+        'consignment_id', o.consignment_id,
+        'courier_status', o.courier_status,
+        'notes', o.notes,
+        'created_at', o.created_at,
+        'updated_at', o.updated_at,
+        'order_items', COALESCE((
+            SELECT jsonb_agg(jsonb_build_object(
+                'id', oi.id,
+                'product_title', oi.product_title,
+                'product_image', oi.product_image,
+                'unit_price', oi.unit_price,
+                'quantity', oi.quantity,
+                'total_price', oi.total_price
+            ))
+            FROM public.order_items oi
+            WHERE oi.order_id = o.id
+        ), '[]'::jsonb)
+    ) ORDER BY o.created_at DESC) INTO v_orders
+    FROM public.orders o
+    WHERE o.phone = v_clean_phone;
+
+    RETURN COALESCE(v_orders, '[]'::jsonb);
+END;
+$$;
+
 -- ------------------------------------------------------------------------------
--- 13.4 SECURE ORDER STATUS UPDATE RPC (STRICT STATE MACHINE & CONCURRENCY SAFE)
+-- 9. SECURE ORDER STATUS UPDATE RPC (STRICT STATE MACHINE & CONCURRENCY SAFE)
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.update_order_status(
     p_order_id UUID,
@@ -1386,7 +1212,7 @@ END;
 $$;
 
 -- ------------------------------------------------------------------------------
--- 13.5 SECURE GET ORDER STATUS HISTORY RPC
+-- 10. SECURE GET ORDER STATUS HISTORY RPC
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.get_order_status_history(p_order_id UUID)
 RETURNS JSONB
@@ -1425,4 +1251,3 @@ BEGIN
     RETURN COALESCE(v_history, '[]'::jsonb);
 END;
 $$;
-

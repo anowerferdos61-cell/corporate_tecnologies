@@ -31,7 +31,7 @@ import {
   Box,
   RotateCcw
 } from 'lucide-react';
-import { updateAdminPin, fetchStaffUsers, createStaffUser, deleteStaffUser } from '../../../lib/adminAuth';
+import { updateAdminPassword, fetchStaffUsers, createStaffUser, deleteStaffUser } from '../../../lib/adminAuth';
 import { updateStoreSetting } from '../../../lib/adminOrderService';
 import { fetchFlashSaleSettings, updateFlashSaleSettings } from '../../../lib/flashSaleService';
 import { fetchShippingTiers, saveShippingTier, deleteShippingTier, DEFAULT_SHIPPING_TIERS } from '../../../lib/shippingService';
@@ -51,14 +51,12 @@ export default function SettingsTab({
   onDeliveryFeesUpdated,
   onCourierUpdated
 }) {
-  // PIN State
-  const [currentPin, setCurrentPin] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [pinMessage, setPinMessage] = useState(null);
-  const [pinLoading, setPinLoading] = useState(false);
-  const [pinSuccess, setPinSuccess] = useState('');
-  const [pinError, setPinError] = useState('');
+  // Password State (Supabase Auth)
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   // Delivery Fee State
   const [inDhaka, setInDhaka] = useState(insideDhakaFee);
@@ -119,21 +117,11 @@ export default function SettingsTab({
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [newStaffData, setNewStaffData] = useState({
     name: '',
-    username: '',
-    pin: '',
+    email: '',
+    password: '',
     role: 'staff'
   });
   const [staffActionMsg, setStaffActionMsg] = useState('');
-  const [visiblePins, setVisiblePins] = useState(new Set());
-
-  const togglePinVisibility = (key) => {
-    setVisiblePins((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
 
   // Flash Sale State (Super Admin Only)
   const [flashSettings, setFlashSettings] = useState({
@@ -593,38 +581,51 @@ export default function SettingsTab({
     setStaffActionMsg('');
     try {
       await createStaffUser(newStaffData);
-      setStaffActionMsg(`Staff user "${newStaffData.username}" created successfully!`);
+      setStaffActionMsg(`Staff account "${newStaffData.email}" created successfully in Supabase!`);
       setIsAddStaffOpen(false);
-      setNewStaffData({ name: '', username: '', pin: '', role: 'staff' });
+      setNewStaffData({ name: '', email: '', password: '', role: 'staff' });
       loadStaffList();
     } catch (err) {
       alert(err.message || 'Failed to create staff');
     }
   }
 
-  async function handleDeleteStaff(userId, username) {
-    if (!window.confirm(`Are you sure you want to remove staff account "${username}"?`)) return;
+  async function handleDeleteStaff(userId, email) {
+    if (!window.confirm(`Are you sure you want to remove staff account "${email}"?`)) return;
     try {
-      await deleteStaffUser(userId, username);
-      setStaffUsers((prev) => prev.filter((u) => u.username !== username));
-      setStaffActionMsg(`Staff "${username}" has been removed.`);
+      await deleteStaffUser(userId, email);
+      setStaffUsers((prev) => prev.filter((u) => u.id !== userId && u.email !== email));
+      setStaffActionMsg(`Staff "${email}" has been removed.`);
     } catch (err) {
       alert(err.message || 'Failed to delete staff');
     }
   }
 
-  // Handle Admin PIN update
-  async function handlePinSubmit(e) {
+  // Handle Admin Password update via Supabase Auth
+  async function handlePasswordSubmit(e) {
     e.preventDefault();
-    setPinSuccess('');
-    setPinError('');
+    setPasswordSuccess('');
+    setPasswordError('');
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters.');
+      return;
+    }
+
+    setPasswordLoading(true);
     try {
-      await updateAdminPin({ currentPin, newPin });
-      setPinSuccess('Security PIN successfully updated!');
-      setCurrentPin('');
-      setNewPin('');
+      await updateAdminPassword({ newPassword });
+      setPasswordSuccess('Admin password successfully updated via Supabase Auth!');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
-      setPinError(err.message || 'Failed to update PIN');
+      setPasswordError(err.message || 'Failed to update password');
+    } finally {
+      setPasswordLoading(false);
     }
   }
 
@@ -678,61 +679,64 @@ export default function SettingsTab({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 1. Security PIN Settings */}
+        {/* 1. Security Password Settings (Supabase Auth) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center gap-2 text-slate-900">
             <KeyRound className="w-5 h-5 text-[#c92127]" />
-            <h3 className="text-sm font-bold">Admin Security PIN</h3>
+            <h3 className="text-sm font-bold">Admin Password Settings</h3>
           </div>
           <p className="text-xs text-slate-500">
-            Change the PIN code used to unlock the /adminpanel portal
+            Change your password used to access the /adminpanel portal
           </p>
 
-          <form onSubmit={handlePinSubmit} className="space-y-3 pt-2">
-            {pinSuccess && (
+          <form onSubmit={handlePasswordSubmit} className="space-y-3 pt-2">
+            {passwordSuccess && (
               <p className="text-xs text-emerald-600 font-semibold bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
-                ✓ {pinSuccess}
+                ✓ {passwordSuccess}
               </p>
             )}
-            {pinError && (
+            {passwordError && (
               <p className="text-xs text-rose-600 font-semibold bg-rose-50 p-2.5 rounded-lg border border-rose-200">
-                ⚠ {pinError}
+                ⚠ {passwordError}
               </p>
             )}
 
             <div>
               <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                Current PIN
+                New Password (Min 6 Characters)
               </label>
               <input
                 type="password"
                 required
-                value={currentPin}
-                onChange={(e) => setCurrentPin(e.target.value)}
-                placeholder="Current PIN"
+                minLength={6}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#c92127]"
               />
             </div>
 
             <div>
               <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                New PIN (Min 4 Digits)
+                Confirm New Password
               </label>
               <input
                 type="password"
                 required
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value)}
-                placeholder="New PIN"
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#c92127]"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full bg-black hover:bg-zinc-800 text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+              disabled={passwordLoading}
+              className="w-full bg-black hover:bg-zinc-800 text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50"
             >
-              Update Security PIN
+              {passwordLoading ? 'Updating Password...' : 'Update Admin Password'}
             </button>
           </form>
         </div>
@@ -1577,17 +1581,14 @@ export default function SettingsTab({
                   <tr>
                     <th className="py-2.5 px-4">User</th>
                     <th className="py-2.5 px-4">Role</th>
-                    <th className="py-2.5 px-4">Password / PIN</th>
                     <th className="py-2.5 px-4">Access Permissions</th>
                     <th className="py-2.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {staffUsers.map((user) => {
-                    const isSuper = user.role === 'super_admin' || user.username === 'admin';
-                    const userKey = user.id || user.username;
-                    const isPinVisible = visiblePins.has(userKey);
-                    const displayPin = user.pin_or_password || (user.username === 'admin' ? '******' : '123456');
+                    const isSuper = user.role === 'super_admin' || user.email === 'admin@corporatetechbd.com';
+                    const userKey = user.id || user.email;
 
                     return (
                       <tr key={userKey} className="hover:bg-slate-50/50 transition-colors">
@@ -1596,11 +1597,11 @@ export default function SettingsTab({
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
                               isSuper ? 'bg-black text-white' : 'bg-slate-100 text-slate-700'
                             }`}>
-                              {user.username.slice(0, 1).toUpperCase()}
+                              {(user.name || user.email || 'A').slice(0, 1).toUpperCase()}
                             </div>
                             <div>
-                              <p className="font-bold text-slate-900">{user.name || user.username}</p>
-                              <p className="text-[10px] text-slate-400 font-mono">@{user.username}</p>
+                              <p className="font-bold text-slate-900">{user.name || user.email}</p>
+                              <p className="text-[10px] text-slate-400 font-mono">{user.email}</p>
                             </div>
                           </div>
                         </td>
@@ -1616,31 +1617,10 @@ export default function SettingsTab({
                           </span>
                         </td>
 
-                        {/* Password / PIN Column with Reveal Toggle */}
-                        <td className="py-3 px-4">
-                          <div className="inline-flex items-center gap-1.5 bg-slate-100/90 border border-slate-200/80 px-2.5 py-1 rounded-lg">
-                            <span className="font-mono font-bold text-xs text-slate-800 select-all">
-                              {isPinVisible ? displayPin : '••••••••'}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => togglePinVisibility(userKey)}
-                              className="p-0.5 text-slate-400 hover:text-black transition-colors cursor-pointer"
-                              title={isPinVisible ? "Hide Password" : "Show Password"}
-                            >
-                              {isPinVisible ? (
-                                <EyeOff className="w-3.5 h-3.5 text-slate-600" />
-                              ) : (
-                                <Eye className="w-3.5 h-3.5 text-slate-500" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-
                         <td className="py-3 px-4 text-slate-600 text-[11px]">
                           {isSuper ? (
                             <span className="font-medium text-slate-900">
-                              Full Access: PIN, Settings, Delete Products & Orders, Coupons
+                              Full Access: Settings, Delete Products & Orders, Manage Staff & Coupons
                             </span>
                           ) : (
                             <span className="text-slate-500">
@@ -1650,9 +1630,9 @@ export default function SettingsTab({
                         </td>
 
                         <td className="py-3 px-4 text-right">
-                          {user.username !== 'admin' ? (
+                          {user.email !== 'admin@corporatetechbd.com' ? (
                             <button
-                              onClick={() => handleDeleteStaff(user.id, user.username)}
+                              onClick={() => handleDeleteStaff(user.id, user.email)}
                               className="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                               title="Delete staff account"
                             >
@@ -1703,25 +1683,26 @@ export default function SettingsTab({
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">Username (Login ID) *</label>
+                <label className="block text-slate-600 font-semibold mb-1">Staff Email (Login ID) *</label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  placeholder="e.g. arif_staff"
-                  value={newStaffData.username}
-                  onChange={(e) => setNewStaffData({ ...newStaffData, username: e.target.value.toLowerCase().trim() })}
+                  placeholder="e.g. staff@corporatetechbd.com"
+                  value={newStaffData.email}
+                  onChange={(e) => setNewStaffData({ ...newStaffData, email: e.target.value.toLowerCase().trim() })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-[#c92127]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-600 font-semibold mb-1">Security PIN (Min 4 Digits) *</label>
+                <label className="block text-slate-600 font-semibold mb-1">Password (Min 6 Characters) *</label>
                 <input
                   type="password"
                   required
-                  placeholder="e.g. 123456"
-                  value={newStaffData.pin}
-                  onChange={(e) => setNewStaffData({ ...newStaffData, pin: e.target.value })}
+                  minLength={6}
+                  placeholder="Enter strong password"
+                  value={newStaffData.password}
+                  onChange={(e) => setNewStaffData({ ...newStaffData, password: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:bg-white focus:outline-none focus:border-[#c92127]"
                 />
               </div>
@@ -1753,7 +1734,7 @@ export default function SettingsTab({
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-black hover:bg-zinc-800 text-white font-bold transition-all cursor-pointer shadow-xs"
                 >
-                  Create Staff
+                  Create Staff Account
                 </button>
               </div>
             </form>
