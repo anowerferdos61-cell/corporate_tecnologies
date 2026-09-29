@@ -85,7 +85,6 @@ export default function ProductDetailPage({
         setSelectedVariation(null);
       }
       setQuantity(1);
-      document.title = `${product.title} – Corporate Technologies BD`;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [product]);
@@ -150,6 +149,11 @@ export default function ProductDetailPage({
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16 text-center">
+        <SEO 
+          title="Product Not Found"
+          description="The product you are looking for may have been removed or the link has changed."
+          noIndex={true}
+        />
         <div className="bg-slate-50 border border-slate-200 rounded-3xl p-12 max-w-lg mx-auto space-y-4 shadow-sm">
           <h2 className="text-xl font-bold text-slate-900">Product Not Found!</h2>
           <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
@@ -260,9 +264,35 @@ export default function ProductDetailPage({
     ? `${product.title}, ${product.brand} price bd, ${product.category} bangladesh, ${product.brand} printer dhaka, buy ${product.title}`
     : undefined;
 
+  // Breadcrumb Schema for Google Rich Snippets & AI Search
+  const breadcrumbSchema = product ? {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://corporatetechbd.com/',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: product.category || 'Shop',
+        item: `https://corporatetechbd.com/shop`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.title,
+        item: `https://corporatetechbd.com/product/${product.slug || product.id}`,
+      },
+    ],
+  } : null;
+
   return (
     <div className="bg-white min-h-screen pb-36 md:pb-12">
-      {/* 0. Dynamic Product SEO, Local GEO & Google Rich Snippet Schema */}
+      {/* 0. Dynamic Product SEO, Local GEO & Breadcrumb Schema */}
       <SEO 
         title={pageTitle}
         description={pageDescription}
@@ -275,19 +305,43 @@ export default function ProductDetailPage({
           regular_price: activeRegPrice || product.regular_price,
         } : null}
         canonicalUrl={product ? `/product/${product.slug || product.id}` : undefined}
+        schema={breadcrumbSchema}
       />
 
       {/* 2. Main Product Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-6">
 
-        {/* Back Button for mobile & desktop */}
-        <button
-          onClick={() => window.history.length > 1 ? window.history.back() : (onNavigate ? onNavigate('/shop/') : null)}
-          className="mb-6 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-[#c92127] transition-colors cursor-pointer group"
-        >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          <span>Back to Previous Page</span>
-        </button>
+        {/* Top Breadcrumbs & Back Navigation */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-slate-100 pb-3.5">
+          <nav className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 flex-wrap" aria-label="Breadcrumb">
+            <button 
+              onClick={() => handleNav('/')} 
+              className="hover:text-[#c92127] transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>হোম</span>
+            </button>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+            <button 
+              onClick={() => handleNav('/shop')} 
+              className="hover:text-[#c92127] transition-colors cursor-pointer"
+            >
+              {product.category || 'শপ'}
+            </button>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+            <span className="text-slate-800 font-bold truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+              {product.title}
+            </span>
+          </nav>
+
+          <button
+            onClick={() => window.history.length > 1 ? window.history.back() : handleNav('/shop/')}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#c92127] transition-colors cursor-pointer group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+            <span>পূর্ববর্তী পেজ</span>
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
 
@@ -403,7 +457,11 @@ export default function ProductDetailPage({
             <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-3.5 flex items-center gap-3 text-emerald-800">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
               <div className="text-xs sm:text-[13px] font-semibold">
-                <span>100% Official Authentic Product & 1 Year Official Warranty</span>
+                <span>
+                  {product.category?.toLowerCase().includes('ink') || product.brand?.toLowerCase().includes('splashjet')
+                    ? '100% Official Splashjet Authentic Formula & Printhead Safe Guarantee'
+                    : '100% Official Authentic Product & Official Service Warranty'}
+                </span>
               </div>
             </div>
 
@@ -433,23 +491,41 @@ export default function ProductDetailPage({
                 {product.title}
               </h1>
 
-              {/* Ratings */}
-              <div className="flex items-center gap-2 pt-1">
-                <div className="flex text-amber-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-current" />
-                  ))}
-                </div>
-                <span className="text-xs font-bold text-slate-800">
-                  {product.rating || '4.9'}
-                </span>
-                <span className="text-xs text-slate-400">
-                  ({product.reviews_count || '24'} Reviews)
-                </span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs font-bold text-emerald-600">
-                  In Stock (Ready to Ship)
-                </span>
+              {/* Ratings & Real Stock Status */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {product.reviews_count && Number(product.reviews_count) > 0 ? (
+                  <>
+                    <div className="flex text-amber-400">
+                      {[...Array(Math.min(5, Math.max(1, Math.round(Number(product.rating) || 5))))].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-current" />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-slate-800">
+                      {product.rating || '5.0'}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      ({product.reviews_count} Reviews)
+                    </span>
+                    <span className="text-slate-300">|</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      100% Genuine Guaranteed
+                    </span>
+                    <span className="text-slate-300">|</span>
+                  </>
+                )}
+                {isSoldOut ? (
+                  <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                    Stock Out (কল করুন)
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    In Stock (রেডি টু শিপ)
+                  </span>
+                )}
               </div>
             </div>
 
@@ -719,15 +795,19 @@ export default function ProductDetailPage({
             <div className="border border-slate-200/90 rounded-2xl p-4 bg-slate-50/50 space-y-3">
               <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-700">
                 <Truck className="w-4 h-4 text-[#c92127] flex-shrink-0" />
-                <span>24-Hour Delivery in Dhaka & 48-Hour Nationwide Cash on Delivery</span>
+                <span>ঢাকা সিটিতে ২৪ ঘণ্টা | সারাদেশে ৪৮-৭২ ঘণ্টায় ক্যাশ অন ডেলিভারি (COD)</span>
               </div>
               <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-700">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <span>1 Year Official Service Support & 100% Genuine Parts Warranty</span>
+                <span>
+                  {product.category?.toLowerCase().includes('ink') || product.brand?.toLowerCase().includes('splashjet')
+                    ? '১০০% অরিজিনাল Splashjet প্রিমিয়াম ইঙ্ক ও প্রিন্টহেড সেফ গ্যারান্টি'
+                    : (product.warranty_badge || '১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি ও ১০০% জেনুইন প্রডাক্ট')}
+                </span>
               </div>
               <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-700">
                 <Phone className="w-4 h-4 text-slate-800 flex-shrink-0" />
-                <span>Call to Order: <a href="tel:01777277740" className="font-bold text-[#c92127] hover:underline">01777-277740</a> / <a href="tel:01777177730" className="font-bold text-[#c92127] hover:underline">01777-177730</a></span>
+                <span>সরাসরি অর্ডার বা তথ্যের জন্য কল করুন: <a href="tel:01777177730" className="font-bold text-[#c92127] hover:underline">01777-177730</a> / <a href="tel:01777277740" className="font-bold text-[#c92127] hover:underline">01777-277740</a></span>
               </div>
             </div>
 
@@ -840,7 +920,7 @@ export default function ProductDetailPage({
       </div>
 
       {/* 5. Mobile Sticky Bottom Action Bar (stacked right above mobile bottom nav) */}
-      <div className="md:hidden fixed bottom-16 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 shadow-lg flex items-center justify-between gap-3">
+      <div className="md:hidden fixed bottom-16 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 shadow-lg flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <img
             src={selectedImage || product.image_url}
@@ -849,10 +929,10 @@ export default function ProductDetailPage({
           />
           <div className="min-w-0">
             <span className="text-xs font-extrabold text-[#c92127] block truncate">
-              ৳{activeSalePrice.toLocaleString()}
+              {isCallForPrice ? 'মূল্যের জন্য কল করুন' : `৳${activeSalePrice.toLocaleString()}`}
             </span>
             <span className="text-[10px] text-slate-500 truncate block">
-              {selectedVariation ? selectedVariation.name : 'In Stock'}
+              {isSoldOut ? 'স্টক আউট' : (selectedVariation ? selectedVariation.name : 'ইন স্টক')}
             </span>
           </div>
         </div>
@@ -872,20 +952,34 @@ export default function ProductDetailPage({
             </button>
           )}
 
-          <button
-            onClick={handleAddToCart}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-800 p-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-            aria-label="Add to cart"
-          >
-            <ShoppingCart className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleBuyNow}
-            className="bg-[#c92127] hover:bg-[#b91c1c] text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-colors shadow-md flex items-center gap-1.5 cursor-pointer"
-          >
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>Order Now</span>
-          </button>
+          {isCallForPrice ? (
+            <a
+              href="tel:01777177730"
+              className="bg-[#c92127] hover:bg-[#b91c1c] text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-colors shadow-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <Phone className="w-3.5 h-3.5 fill-current" />
+              <span>কল করুন</span>
+            </a>
+          ) : (
+            <>
+              <button
+                onClick={handleAddToCart}
+                disabled={isSoldOut}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 p-2.5 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                aria-label="Add to cart"
+              >
+                <ShoppingCart className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleBuyNow}
+                disabled={isSoldOut}
+                className="bg-[#c92127] hover:bg-[#b91c1c] text-white px-4 py-2.5 rounded-xl text-xs font-extrabold transition-colors shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>অর্ডার করুন</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

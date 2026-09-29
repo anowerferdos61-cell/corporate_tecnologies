@@ -94,7 +94,8 @@ export default function HomePage({ products = [], loading = false }) {
     <>
       {/* 0. Dynamic SEO, Local GEO Metadata & Generative AI FAQ Schema */}
       <SEO 
-        title="প্রিন্টার, ফটোকপিয়ার ও অফিসিয়াল Splashjet Ink"
+        isHome={true}
+        title="Corporate Technologies BD | প্রিন্টার, ফটোকপিয়ার ও অফিসিয়াল Splashjet Ink"
         description="Corporate Technologies BD - বাংলাদেশে Epson, Canon, HP, Brother প্রিন্টার, তোশিবা ফটোকপিয়ার এবং অফিসিয়াল Splashjet Ink ও টোনারের সবচেয়ে বিশ্বস্ত প্রতিষ্ঠান। ১ বছরের সার্ভিস ওয়ারেন্টি ও সারাদেশে দ্রুত ডেলিভারি।"
         canonicalUrl="https://corporatetechbd.com/"
         schema={homeFaqSchema}
