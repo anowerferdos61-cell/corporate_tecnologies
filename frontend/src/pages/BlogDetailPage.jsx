@@ -103,6 +103,7 @@ export default function BlogDetailPage({ allProducts = [] }) {
   if (!blog) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <SEO title="ব্লগ আর্টিকেল পাওয়া যায়নি" noIndex={true} />
         <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 text-center space-y-4 shadow-sm">
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
           <h2 className="text-xl font-bold text-slate-800">আর্টিকেলটি পাওয়া যায়নি</h2>

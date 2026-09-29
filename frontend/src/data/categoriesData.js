@@ -366,3 +366,66 @@ export function productMatchesCategory(product, parentCatName, subCatName = null
 
   return false;
 }
+
+export const CATEGORY_SEO_METADATA = {
+  'shop': {
+    title: 'প্রিন্টার, ফটোকপিয়ার ও ইঙ্ক শপ | Corporate Technologies BD',
+    description: 'বাংলাদেশে আসল প্রিন্টার, ফটোকপিয়ার মেশিন, টোনার এবং অফিসিয়াল Splashjet কালির সেরা দাম ও ১ বছরের অফিসিয়াল ওয়ারেন্টি।'
+  },
+  'splashjet-ink': {
+    title: 'Splashjet Ink Price in Bangladesh | Official Importer & Distributor',
+    description: 'Splashjet ডাই, পিগমেন্ট, সাবলিমেশন ও DTF কালির অফিসিয়াল কালেকশন। ১০০% প্রিন্টহেড সেফ ও ভাইব্রেন্ট কালার গ্যারান্টি।'
+  },
+  'photocopy-machine': {
+    title: 'Photocopy Machine Price in Bangladesh | Heavy & Light Duty Copiers',
+    description: 'বাংলাদেশে তোশিবা, ক্যানন ও জনপ্রিয় ব্র্যান্ডের হেভি ডিউটি ও লাইট ডিউটি ফটোকপিয়ার মেশিন কিনুন অফিসিয়াল সার্ভিস ওয়ারেন্টি সহ।'
+  },
+  'printers': {
+    title: 'Printer Price in Bangladesh | Epson, Canon, Brother & HP Printers',
+    description: 'সেরা মূল্যে ইপসন, ক্যানন, ব্রাদার এবং এইচপি কালার ও লেজার প্রিন্টার কিনুন Corporate Technologies BD থেকে।'
+  },
+  'desktop-printer-ink': {
+    title: 'Desktop Printer Refill Ink Price in BD | Splashjet Genuine Inks',
+    description: 'Epson, Canon, HP ও Brother ডেস্কটপ প্রিন্টারের জন্য সেরা কোয়ালিটির রিফিল ইঙ্ক। নিখুঁত কালার ও হেডের দীর্ঘস্থায়িত্ব।'
+  },
+  'digital-textile-printing-ink': {
+    title: 'DTF & Sublimation Textile Ink Price in Bangladesh | Splashjet',
+    description: 'টি-শার্ট ও ফেব্রিক প্রিন্টিংয়ের জন্য ১০০% ওয়াশ-ফাস্ট Splashjet DTF ও সাবলিমেশন ইঙ্ক সরাসরি ইম্পোর্টার থেকে কিনুন।'
+  },
+  'large-format-printer-ink': {
+    title: 'Large Format Plotter Printer Ink Price in BD | Splashjet',
+    description: 'ব্যানার, পোস্টার ও আর্কিটেকচারাল ব্লুপ্রিন্ট প্লটারের জন্য উচ্চ ঘনত্বের ওয়াটারপ্রুফ Splashjet লার্জ ফরম্যাট ইঙ্ক।'
+  },
+  'industrial-inkjet-ink': {
+    title: 'Industrial Batch Coding & Marking Ink in Bangladesh',
+    description: 'হাই-স্পিড প্যাকেজিং, ম্যানুফ্যাকচারিং ও ডেট কোডিং মেশিনের জন্য নির্ভরযোগ্য ইন্ডাস্ট্রিয়াল ইঙ্কজেট ইঙ্ক।'
+  },
+  'office-equipment': {
+    title: 'Office Equipment & Scanners Price in Bangladesh',
+    description: 'অফিস ও ব্যাংকের জন্য হাই-স্পিড ডকুমেন্ট স্ক্যানার, ক্যাশ ড্রয়ার ও প্রয়োজনীয় অটোমেশন ইকুইপমেন্ট।'
+  },
+  'accessories-parts': {
+    title: 'Printer & Photocopier Spare Parts Price in Bangladesh',
+    description: '১০০% অরিজিনাল প্রিন্টার হেড, রোলার, ফিডার, ফটোকপিয়ার ড্রাম ও প্রয়োজনীয় স্পেয়ার পার্টস।'
+  },
+  'toner-inks': {
+    title: 'Photocopier Toner & Original Inkjets Price in BD',
+    description: 'ফটোকপিয়ার ও প্রিন্টারের জেনুইন টোনার এবং অরিজিনাল কালির সেরা রেট ও দ্রুত ডেলিভারি।'
+  }
+};
+
+export function getCategorySeo(categorySlug, activeParentCat, activeSubCat) {
+  const slug = (categorySlug || '').toLowerCase();
+  if (CATEGORY_SEO_METADATA[slug]) {
+    return CATEGORY_SEO_METADATA[slug];
+  }
+  
+  const displayTitle = activeSubCat 
+    ? `${activeSubCat} – ${activeParentCat}` 
+    : (activeParentCat === 'All Products' ? 'সকল পণ্য' : activeParentCat);
+    
+  return {
+    title: `${displayTitle} Price in Bangladesh | Corporate Technologies BD`,
+    description: `বাংলাদেশে সেরা মূল্যে আসল ${displayTitle} কিনুন Corporate Technologies BD থেকে। ১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি ও ক্যাশ অন ডেলিভারি সুবিধা।`
+  };
+}

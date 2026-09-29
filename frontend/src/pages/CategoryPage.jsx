@@ -7,7 +7,8 @@ import {
   CATEGORIES_TREE, 
   SPLASHJET_INK_CATEGORIES,
   productMatchesCategory, 
-  findCategoryBySlug 
+  findCategoryBySlug,
+  getCategorySeo
 } from '../data/categoriesData';
 import { getAvailableCategories, getCachedCategoriesTree } from '../lib/categoryService';
 import { 
@@ -32,7 +33,7 @@ export default function CategoryPage({
   onNavigate 
 }) {
   const { categorySlug: paramCat, subCategorySlug: paramSub } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const [categoryRevision, setCategoryRevision] = useState(0);
@@ -80,20 +81,31 @@ export default function CategoryPage({
 
   const [searchQuery, setSearchQuery] = useState(cartSearchQuery || '');
   const [sortBy, setSortBy] = useState('default');
-  const [currentPage, setCurrentPage] = useState(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Read current page from URL params (?page=...)
+  const pageFromUrl = parseInt(searchParams.get('page'), 10);
+  const currentPage = !isNaN(pageFromUrl) && pageFromUrl > 0 ? pageFromUrl : 1;
+
+  const setPageInUrl = (page) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (page > 1) {
+      nextParams.set('page', page.toString());
+    } else {
+      nextParams.delete('page');
+    }
+    setSearchParams(nextParams, { replace: false });
+  };
 
   // Sync state when URL slug changes
   useEffect(() => {
     if (isShopPage) {
       setActiveParentCat('All Products');
       setActiveSubCat(null);
-      setCurrentPage(1);
     } else if (resolved) {
       setActiveParentCat(resolved.parent.name);
       setActiveSubCat(resolved.sub ? resolved.sub.name : null);
       setExpandedCategories(prev => ({ ...prev, [resolved.parent.name]: true }));
-      setCurrentPage(1);
     }
   }, [resolved, isShopPage]);
 
@@ -101,7 +113,6 @@ export default function CategoryPage({
   useEffect(() => {
     if (cartSearchQuery !== undefined && cartSearchQuery !== searchQuery) {
       setSearchQuery(cartSearchQuery);
-      setCurrentPage(1);
     }
   }, [cartSearchQuery]);
 
@@ -110,17 +121,8 @@ export default function CategoryPage({
     const urlQuery = searchParams.get('search');
     if (urlQuery !== null && urlQuery !== searchQuery) {
       setSearchQuery(urlQuery);
-      setCurrentPage(1);
     }
   }, [searchParams]);
-
-  // Update page title
-  useEffect(() => {
-    const pageTitle = activeSubCat 
-      ? `${activeSubCat} – ${activeParentCat} – Corporate Technologies BD`
-      : `${activeParentCat} – Corporate Technologies BD`;
-    document.title = pageTitle;
-  }, [activeParentCat, activeSubCat]);
 
   // Determine category price bounds
   const categoryProductsAll = useMemo(() => {
@@ -203,11 +205,11 @@ export default function CategoryPage({
     return 0;
   };
 
-  // Sort products (always prioritizes products with highest discount/offers on top by default)
+  // Sort products
   const sortedProducts = useMemo(() => {
     return [...filteredProducts].sort((a, b) => {
-      const priceA = a.sale_price || a.regular_price || 0;
-      const priceB = b.sale_price || b.regular_price || 0;
+      const priceA = Number(a.sale_price || a.regular_price || 0);
+      const priceB = Number(b.sale_price || b.regular_price || 0);
       const discA = getDiscountPercentage(a);
       const discB = getDiscountPercentage(b);
 
@@ -220,12 +222,15 @@ export default function CategoryPage({
         return scoreB - scoreA;
       }
       if (sortBy === 'rating') {
-        const ratingA = a.rating || (a.is_featured ? 5.0 : 4.8);
-        const ratingB = b.rating || (b.is_featured ? 5.0 : 4.8);
+        const ratingA = Number(a.rating) || 0;
+        const ratingB = Number(b.rating) || 0;
         return ratingB - ratingA;
       }
       if (sortBy === 'latest') {
-        return (b.id || 0) - (a.id || 0);
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        if (dateB !== dateA) return dateB - dateA;
+        return Number(b.id || 0) - Number(a.id || 0);
       }
       if (sortBy === 'name_asc') return (a.title || '').localeCompare(b.title || '');
 
@@ -233,11 +238,14 @@ export default function CategoryPage({
       if (discB !== discA) {
         return discB - discA; // Highest discount % first
       }
-      return (b.id || 0) - (a.id || 0);
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (dateB !== dateA) return dateB - dateA;
+      return Number(b.id || 0) - Number(a.id || 0);
     });
   }, [filteredProducts, sortBy]);
 
-  // Pagination (9 items per page matching user request)
+  // Pagination (14 items per page matching user request)
   const totalPages = Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
@@ -263,7 +271,7 @@ export default function CategoryPage({
   }, [totalPages, currentPage]);
 
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    setPageInUrl(page);
     window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
@@ -272,7 +280,6 @@ export default function CategoryPage({
     setActiveSubCat(sub ? sub.name : null);
     setSearchQuery('');
     setCartSearchQuery('');
-    setCurrentPage(1);
     setIsMobileFilterOpen(false);
 
     // Expand parent in tree
@@ -312,20 +319,105 @@ export default function CategoryPage({
     ? `${activeSubCat} - ${activeParentCat}` 
     : (activeParentCat === 'All Products' ? 'সকল পণ্য (Shop All Products)' : activeParentCat);
 
-  const categoryDescription = `বাংলাদেশে সেরা মূল্যে আসল ${activeCategoryTitle} কিনুন Corporate Technologies BD থেকে। ১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি ও দ্রুত ডেলিভারি সুবিধা।`;
+  // Dynamic Category SEO & GEO Data
+  const seoInfo = useMemo(() => {
+    return getCategorySeo(subCategorySlug || categorySlug, activeParentCat, activeSubCat);
+  }, [categorySlug, subCategorySlug, activeParentCat, activeSubCat]);
+
+  // Breadcrumb schema for Google Rich Snippets
+  const breadcrumbSchema = useMemo(() => {
+    const items = [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://corporatetechbd.com/',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: activeParentCat === 'All Products' ? 'Shop' : activeParentCat,
+        item: isShopPage ? 'https://corporatetechbd.com/shop' : `https://corporatetechbd.com/product-category/${resolved?.parent?.slug || categorySlug}`,
+      }
+    ];
+
+    if (activeSubCat && resolved?.sub) {
+      items.push({
+        '@type': 'ListItem',
+        position: 3,
+        name: activeSubCat,
+        item: `https://corporatetechbd.com/product-category/${resolved.parent.slug}/${resolved.sub.slug}`,
+      });
+    }
+
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: items,
+    };
+  }, [activeParentCat, activeSubCat, isShopPage, resolved, categorySlug]);
+
+  // FAQ Schema for Splashjet Hub
+  const splashjetFaqSchema = useMemo(() => {
+    if (!isSplashjetHub) return null;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'বাংলাদেশে Splashjet কালির অফিসিয়াল ইম্পোর্টার ও ডিস্ট্রিবিউটর কে?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Corporate Technologies BD হলো বাংলাদেশে Splashjet কালির একমাত্র অনুমোদিত অফিসিয়াল ডিস্ট্রিবিউটর ও আমদানিকারক।'
+          }
+        },
+        {
+          '@type': 'Question',
+          name: 'Splashjet কালি ব্যবহার করলে প্রিন্টারের হেড নষ্ট হওয়ার ঝুঁকি আছে কি?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'না। Splashjet ইঙ্ক সম্পূর্ণ 0.2 মাইক্রন ডাবল-ফিল্টার্ড এবং মাইক্রো-ক্যাপসুল প্রযুক্তিতে তৈরি, যা প্রিন্টহেড নজলে কোনো ক্লগ বা ব্লকেজ তৈরি করে না এবং প্রিন্টহেডের দীর্ঘায়ু নিশ্চিত করে।'
+          }
+        },
+        {
+          '@type': 'Question',
+          name: 'DTF এবং Sublimation কালির প্রধান পার্থক্য কী?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'DTF কালি ১০০% কটন, ব্লেন্ডেড ও ডার্ক ফেব্রিকের টি-শার্ট প্রিন্টিংয়ে চমৎকার ওয়াশ-ফাস্টনেস দেয়। অন্যদিকে Sublimation কালি পলিয়েস্টার ফেব্রিক, জার্সি ও সিরামিক মগে নিখুঁত হিট-ট্রান্সফার প্রিন্টিংয়ের জন্য ব্যবহার করা হয়।'
+          }
+        }
+      ]
+    };
+  }, [isSplashjetHub]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex-1 w-full pb-24 md:pb-8">
-      {/* 0. Dynamic Category SEO & GEO Tags */}
+      {/* 0. Dynamic Category SEO & GEO Tags + Breadcrumb Schema */}
       <SEO 
-        title={`${activeCategoryTitle} Price in Bangladesh`}
-        description={categoryDescription}
+        title={seoInfo.title}
+        description={seoInfo.description}
         keywords={`${activeCategoryTitle}, ${activeCategoryTitle} price in bangladesh, buy ${activeCategoryTitle} dhaka, splashjet ink, photocopier`}
+        schema={[breadcrumbSchema, splashjetFaqSchema].filter(Boolean)}
       />
 
-      {/* 1. SPLASHJET HUB VIEW: SHOW ONLY THE 4 CATEGORY CARDS */}
+      {/* 1. SPLASHJET HUB VIEW: 4 CATEGORY CARDS + RICH TOPICAL & FAQ SECTION FOR GEO */}
       {isSplashjetHub ? (
-        <div className="py-4 sm:py-8">
+        <div className="py-4 sm:py-8 space-y-12">
+          {/* Header Banner */}
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-[#c92127] bg-red-50 border border-red-200 px-3.5 py-1 rounded-full inline-block">
+              Official Distributor in Bangladesh
+            </span>
+            <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              Splashjet Digital Inks & Solutions
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              ডেস্কটপ, লার্জ ফরম্যাট প্লটার, টেক্সটাইল (DTF/Sublimation) ও ইন্ডাস্ট্রিয়াল প্রিন্টিংয়ের জন্য বিশ্বমানের আসল Splashjet কালির সম্পূর্ণ সম্ভার।
+            </p>
+          </div>
+
           {/* 4 CARDS GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {SPLASHJET_INK_CATEGORIES.map((card) => (
@@ -370,6 +462,58 @@ export default function CategoryPage({
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Authority Highlights & FAQ Section for GEO / AI Search */}
+          <div className="mt-12 bg-slate-50 rounded-3xl p-6 sm:p-10 border border-slate-200/80 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                  ✓
+                </div>
+                <h4 className="text-sm font-extrabold text-slate-900">১০০% প্রিন্টহেড সেফ গ্যারান্টি</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Splashjet-এর বিশেষ মাইক্রো-ফিল্ট্রেশন ফর্মুলা নজল ক্লগিং সম্পূর্ণ প্রতিরোধ করে এবং হেড দীর্ঘস্থায়ী রাখে।
+                </p>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                  ★
+                </div>
+                <h4 className="text-sm font-extrabold text-slate-900">ভাইব্রেন্ট ও নিখুঁত কালার গ্যামুট</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  ফটো পেপার ও ফেব্রিক প্রিন্টিংয়ে হাই-ঘনত্ব ও আসল রঙের নিখুঁত প্রতিচ্ছবি ফুটিয়ে তোলে।
+                </p>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-red-100 text-[#c92127] flex items-center justify-center font-bold">
+                  ♥
+                </div>
+                <h4 className="text-sm font-extrabold text-slate-900">সরাসরি ইম্পোর্টার সাপোর্ট</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Corporate Technologies BD সরাসরি আমদানিকারক হওয়ায় পাচ্ছেন শতভাগ অথেনটিক প্রোডাক্ট ও রেডি স্টক।
+                </p>
+              </div>
+            </div>
+
+            {/* Informative FAQ for Search Engines */}
+            <div className="space-y-4 pt-4 border-t border-slate-200">
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                Splashjet কালির সাধারণ প্রশ্নোত্তর (FAQ)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+                  <p className="font-bold text-slate-800">১. Epson EcoTank-এ Splashjet ব্যবহার করা যাবে?</p>
+                  <p className="text-slate-600">হ্যাঁ, Epson L-সিরিজ এবং সকল EcoTank ও MegaTank মডেলের জন্য স্প্ল্যাশজেটের নির্দিষ্ট ফর্মুলেটেড কালি রয়েছে।</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1">
+                  <p className="font-bold text-slate-800">২. DTF কালির ওয়াশ-ফাস্টনেস কেমন?</p>
+                  <p className="text-slate-600">Splashjet DTF কালি উচ্চমানের স্ট্রেচেবিলিটি ও ৬০+ ওয়াশ পর্যন্ত উজ্জ্বল কালার ধরে রাখতে সক্ষম।</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
