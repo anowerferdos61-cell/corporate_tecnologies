@@ -30,6 +30,7 @@ import { placeOrder } from '../lib/orderService';
 import { getCurrentCustomer } from '../lib/customerAuth';
 import { validateCoupon, fetchActiveCoupons } from '../lib/couponService';
 import { calculateCartShipping } from '../lib/shippingService';
+import SEO from '../components/SEO';
 
 // Popular Bangladesh Districts
 const BANGLADESH_DISTRICTS = [
@@ -420,6 +421,13 @@ export default function CheckoutPage() {
   // --------------------------------------------------------------------------
   return (
     <div className="bg-slate-50 min-h-screen py-8 sm:py-12">
+      {/* 0. SEO Meta (NoIndex for checkout security & privacy) */}
+      <SEO 
+        title="নিরাপদ চেকআউট (Secure Checkout)"
+        description="Corporate Technologies BD - নিরাপদ ও দ্রুত চেকআউট।"
+        noIndex={true}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Page Title Header */}

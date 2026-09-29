@@ -1,0 +1,48 @@
+# ==============================================================================
+# Corporate Technologies BD - robots.txt
+# Website: https://corporatetechbd.com/
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /shop
+Allow: /product-category/
+Allow: /product/
+Allow: /blog/
+Allow: /compare
+Allow: /splashjet_images/
+Allow: /assets/
+
+# Block Private Admin & Customer Sensitive Portals
+Disallow: /adminpanel
+Disallow: /admin
+Disallow: /checkout
+Disallow: /my-account
+Disallow: /account
+Disallow: /dashboard
+Disallow: /cart
+
+# Crawl Delay & Search Engine Directives
+Crawl-delay: 1
+
+# Generative AI & Search Engine Bots (Allow indexing for AI Citations)
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# Sitemap Location
+Sitemap: https://corporatetechbd.com/sitemap.xml

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import SEO from '../components/SEO';
 import { useCart } from '../context/CartContext';
 import { 
   CATEGORIES_TREE, 
@@ -307,8 +308,20 @@ export default function CategoryPage({
   const startIdx = sortedProducts.length === 0 ? 0 : (currentPage - 1) * PRODUCTS_PER_PAGE + 1;
   const endIdx = Math.min(currentPage * PRODUCTS_PER_PAGE, sortedProducts.length);
 
+  const activeCategoryTitle = activeSubCat 
+    ? `${activeSubCat} - ${activeParentCat}` 
+    : (activeParentCat === 'All Products' ? 'সকল পণ্য (Shop All Products)' : activeParentCat);
+
+  const categoryDescription = `বাংলাদেশে সেরা মূল্যে আসল ${activeCategoryTitle} কিনুন Corporate Technologies BD থেকে। ১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি ও দ্রুত ডেলিভারি সুবিধা।`;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 flex-1 w-full pb-24 md:pb-8">
+      {/* 0. Dynamic Category SEO & GEO Tags */}
+      <SEO 
+        title={`${activeCategoryTitle} Price in Bangladesh`}
+        description={categoryDescription}
+        keywords={`${activeCategoryTitle}, ${activeCategoryTitle} price in bangladesh, buy ${activeCategoryTitle} dhaka, splashjet ink, photocopier`}
+      />
 
       {/* 1. SPLASHJET HUB VIEW: SHOW ONLY THE 4 CATEGORY CARDS */}
       {isSplashjetHub ? (
@@ -328,11 +341,13 @@ export default function CategoryPage({
                 <div className="bg-[#f8fafc] rounded-xl p-3 sm:p-4 flex items-center justify-center h-44 mb-4 border border-slate-100 overflow-hidden relative">
                   <img
                     src={card.image}
-                    alt={card.title}
+                    alt={`${card.title} - Official Splashjet Digital Ink Solution Bangladesh`}
                     className="max-h-36 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       e.target.src = '/splashjet_images/about-splashjet.jpg';
                     }}
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
 

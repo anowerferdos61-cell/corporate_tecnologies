@@ -16,6 +16,7 @@ import {
   fetchBlogPosts,
   DEFAULT_BLOG_CATEGORIES
 } from '../lib/blogService';
+import SEO from '../components/SEO';
 
 export default function BlogPage({ onNavigate }) {
   const navigate = useNavigate();
@@ -59,6 +60,14 @@ export default function BlogPage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
+      {/* 0. SEO Meta & Local GEO */}
+      <SEO 
+        title="টেক ব্লগ ও প্রিন্টিং গাইড"
+        description="প্রিন্টার হেড যত্ন, অরিজিনাল কালির সঠিক ব্যবহার, ফটোকপিয়ার মেইনটেন্যান্স ও টেক্সটাইল প্রিন্টিং টেকনোলজির নির্ভরযোগ্য তথ্যভাণ্ডার ও গাইড।"
+        keywords="printing guide bangladesh, printer maintenance tips bd, splashjet ink review, photocopier guide dhaka"
+        canonicalUrl="/blog"
+      />
+
       <div className="max-w-7xl mx-auto space-y-8">
 
         {/* 1. Header Hero Banner */}

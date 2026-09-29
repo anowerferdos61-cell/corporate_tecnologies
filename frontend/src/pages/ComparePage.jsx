@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { isComparableProduct } from '../components/ProductCard';
+import SEO from '../components/SEO';
 
 export default function ComparePage({ allProducts = [], onNavigate }) {
   const navigate = useNavigate();
@@ -155,6 +156,13 @@ export default function ComparePage({ allProducts = [], onNavigate }) {
 
   return (
     <div className="min-h-screen bg-slate-50 py-6 sm:py-10 pb-24 sm:pb-10">
+      {/* 0. SEO Meta */}
+      <SEO 
+        title="প্রোডাক্ট তুলনা (Compare Products)"
+        description="একসাথে বিভিন্ন প্রিন্টার, ফটোকপিয়ার ও কালির স্পেসিফিকেশন এবং মূল্য পাশাপাশি তুলনা করুন।"
+        canonicalUrl="/compare"
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs mb-8">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { CartProvider } from './context/CartContext';
 import { SettingsProvider } from './context/SettingsContext';
 import Root from './layouts/Root';
@@ -68,126 +69,128 @@ export default function App() {
   }, []);
 
   return (
-    <SettingsProvider>
-      <CartProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Suspense fallback={<PageLoadingFallback />}>
-            <Routes>
-              {/* Secret Standalone Admin Panel - Completely hidden from all public menus and pages */}
-              <Route 
-                path="adminpanel" 
-                element={
-                  <AdminPanelPage 
-                    products={products} 
-                    onProductsUpdate={setProducts} 
-                  />
-                } 
-              />
-              <Route 
-                path="admin" 
-                element={<Navigate to="/adminpanel" replace />} 
-              />
-
-              {/* Persistent Root Layout with Header, Footer, Drawers & Modals */}
-              <Route 
-                path="/" 
-                element={
-                  <Root 
-                    products={products} 
-                    setProducts={setProducts} 
-                    loading={loading} 
-                  />
-                }
-              >
-                {/* 1. Home Page (Eagerly loaded for instant first paint) */}
+    <HelmetProvider>
+      <SettingsProvider>
+        <CartProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <Routes>
+                {/* Secret Standalone Admin Panel - Completely hidden from all public menus and pages */}
                 <Route 
-                  index 
+                  path="adminpanel" 
                   element={
-                    <HomePage 
+                    <AdminPanelPage 
                       products={products} 
+                      onProductsUpdate={setProducts} 
+                    />
+                  } 
+                />
+                <Route 
+                  path="admin" 
+                  element={<Navigate to="/adminpanel" replace />} 
+                />
+
+                {/* Persistent Root Layout with Header, Footer, Drawers & Modals */}
+                <Route 
+                  path="/" 
+                  element={
+                    <Root 
+                      products={products} 
+                      setProducts={setProducts} 
                       loading={loading} 
                     />
                   } 
-                />
+                >
+                  {/* 1. Home Page (Eagerly loaded for instant first paint) */}
+                  <Route 
+                    index 
+                    element={
+                      <HomePage 
+                        products={products} 
+                        loading={loading} 
+                      />
+                    } 
+                  />
 
-                {/* 2. Shop Page (All Products) */}
-                <Route 
-                  path="shop" 
-                  element={
-                    <CategoryPage 
-                      products={products} 
-                      categorySlug="shop" 
-                    />
-                  } 
-                />
+                  {/* 2. Shop Page (All Products) */}
+                  <Route 
+                    path="shop" 
+                    element={
+                      <CategoryPage 
+                        products={products} 
+                        categorySlug="shop" 
+                      />
+                    } 
+                  />
 
-                {/* 3. Category & Sub-Category Pages */}
-                <Route 
-                  path="product-category/:categorySlug" 
-                  element={<CategoryPage products={products} />} 
-                />
-                <Route 
-                  path="product-category/:categorySlug/:subCategorySlug" 
-                  element={<CategoryPage products={products} />} 
-                />
+                  {/* 3. Category & Sub-Category Pages */}
+                  <Route 
+                    path="product-category/:categorySlug" 
+                    element={<CategoryPage products={products} />} 
+                  />
+                  <Route 
+                    path="product-category/:categorySlug/:subCategorySlug" 
+                    element={<CategoryPage products={products} />} 
+                  />
 
-                {/* 4. Product Detail Page */}
-                <Route 
-                  path="product/:productSlug" 
-                  element={<ProductDetailPage allProducts={products} />} 
-                />
+                  {/* 4. Product Detail Page */}
+                  <Route 
+                    path="product/:productSlug" 
+                    element={<ProductDetailPage allProducts={products} />} 
+                  />
 
-                {/* 5. Product Comparison Page */}
-                <Route 
-                  path="compare" 
-                  element={<ComparePage allProducts={products} />} 
-                />
+                  {/* 5. Product Comparison Page */}
+                  <Route 
+                    path="compare" 
+                    element={<ComparePage allProducts={products} />} 
+                  />
 
-                {/* 6. Blog & Tech Guides */}
-                <Route 
-                  path="blog" 
-                  element={<BlogPage />} 
-                />
-                <Route 
-                  path="blog/:slug" 
-                  element={<BlogDetailPage allProducts={products} />} 
-                />
+                  {/* 6. Blog & Tech Guides */}
+                  <Route 
+                    path="blog" 
+                    element={<BlogPage />} 
+                  />
+                  <Route 
+                    path="blog/:slug" 
+                    element={<BlogDetailPage allProducts={products} />} 
+                  />
 
-                {/* 7. Dedicated Checkout Page & Cart Redirect */}
-                <Route 
-                  path="checkout" 
-                  element={<CheckoutPage />} 
-                />
-                <Route 
-                  path="cart" 
-                  element={<Navigate to="/checkout" replace />} 
-                />
+                  {/* 7. Dedicated Checkout Page & Cart Redirect */}
+                  <Route 
+                    path="checkout" 
+                    element={<CheckoutPage />} 
+                  />
+                  <Route 
+                    path="cart" 
+                    element={<Navigate to="/checkout" replace />} 
+                  />
 
-                {/* 8. Dedicated Customer Account & Order Dashboard */}
-                <Route 
-                  path="my-account" 
-                  element={<CustomerDashboardPage products={products} />} 
-                />
-                <Route 
-                  path="account" 
-                  element={<CustomerDashboardPage products={products} />} 
-                />
-                <Route 
-                  path="dashboard" 
-                  element={<CustomerDashboardPage products={products} />} 
-                />
+                  {/* 8. Dedicated Customer Account & Order Dashboard */}
+                  <Route 
+                    path="my-account" 
+                    element={<CustomerDashboardPage products={products} />} 
+                  />
+                  <Route 
+                    path="account" 
+                    element={<CustomerDashboardPage products={products} />} 
+                  />
+                  <Route 
+                    path="dashboard" 
+                    element={<CustomerDashboardPage products={products} />} 
+                  />
 
-                {/* 9. Catch-All Fallback -> Home */}
-                <Route 
-                  path="*" 
-                  element={<Navigate to="/" replace />} 
-                />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </CartProvider>
-    </SettingsProvider>
+                  {/* 9. Catch-All Fallback -> Home */}
+                  <Route 
+                    path="*" 
+                    element={<Navigate to="/" replace />} 
+                  />
+                </Route>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </CartProvider>
+      </SettingsProvider>
+    </HelmetProvider>
   );
 }

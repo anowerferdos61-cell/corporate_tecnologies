@@ -25,6 +25,7 @@ import {
   incrementBlogViews
 } from '../lib/blogService';
 import ProductCard from '../components/ProductCard';
+import SEO from '../components/SEO';
 
 export default function BlogDetailPage({ allProducts = [] }) {
   const { slug } = useParams();
@@ -198,8 +199,43 @@ export default function BlogDetailPage({ allProducts = [] }) {
       })
     : 'Recent';
 
+  const articleSchema = blog ? {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: blog.title,
+    image: blog.image_url ? [blog.image_url] : [],
+    datePublished: blog.created_at || new Date().toISOString(),
+    dateModified: blog.updated_at || blog.created_at || new Date().toISOString(),
+    author: {
+      '@type': 'Person',
+      name: blog.author || 'Corporate Tech Team',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Corporate Technologies BD',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://corporatetechbd.com/logo-icon.svg',
+      },
+    },
+    description: blog.excerpt || blog.summary || blog.title,
+  } : null;
+
   return (
     <div className="min-h-screen bg-slate-50 py-6 sm:py-10 px-4 sm:px-6 lg:px-8">
+      {/* 0. SEO Meta, Local GEO & Article Schema */}
+      {blog && (
+        <SEO 
+          title={blog.title}
+          description={blog.excerpt || blog.summary || `${blog.title} - Corporate Technologies BD টেক ব্লগ।`}
+          keywords={`${blog.title}, ${blog.category}, printing technology bangladesh, corporate technologies blog`}
+          ogImage={blog.image_url}
+          ogType="article"
+          schema={articleSchema}
+          canonicalUrl={`/blog/${blog.slug || slug}`}
+        />
+      )}
+
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* 1. Breadcrumbs */}

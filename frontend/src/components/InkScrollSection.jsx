@@ -376,13 +376,14 @@ export default function InkScrollSection({ allProducts = [], onNavigate }) {
                 <div className="relative py-2 flex items-center justify-center h-34 sm:h-42 bg-slate-50/60 rounded-xl sm:rounded-2xl overflow-hidden pointer-events-none mb-2">
                   <img
                     src={product.image_url}
-                    alt={product.title}
+                    alt={`${product.title} - Authentic Splashjet Refill Ink Bottle Bangladesh`}
                     draggable={false}
                     className="max-h-28 sm:max-h-36 w-auto object-contain transition-transform duration-300 group-hover/card:scale-105 pointer-events-none select-none"
                     onError={(e) => {
                       e.target.src = '/splashjet_images/about-splashjet.jpg';
                     }}
                     loading="lazy"
+                    decoding="async"
                   />
                 </div>
 

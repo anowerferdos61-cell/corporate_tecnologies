@@ -36,6 +36,7 @@ import {
   updateCustomerProfile
 } from '../lib/customerAuth';
 import { getCustomerOrders, trackOrder } from '../lib/orderService';
+import SEO from '../components/SEO';
 
 export default function CustomerDashboardPage({ products = [] }) {
   const navigate = useNavigate();
@@ -309,6 +310,13 @@ export default function CustomerDashboardPage({ products = [] }) {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-36 md:pb-24 pt-4 text-slate-800">
+      {/* 0. SEO Meta (Private user portal) */}
+      <SEO 
+        title="আমার অ্যাকাউন্ট ও অর্ডার ট্র্যাকিং (Customer Account)"
+        description="Corporate Technologies BD - কাস্টমার ড্যাশবোর্ড ও লাইভ পার্সেল ট্র্যাকিং।"
+        noIndex={true}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
 
         {!customer ? (

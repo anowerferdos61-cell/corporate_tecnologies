@@ -23,6 +23,7 @@ import {
 import { useCart } from '../context/CartContext';
 import ProductCard, { isComparableProduct, triggerFlyToCompareAnimation } from '../components/ProductCard';
 import FlashSaleUrgencyBox from '../components/FlashSaleUrgencyBox';
+import SEO from '../components/SEO';
 
 export default function ProductDetailPage({
   productSlug: propProductSlug,
@@ -247,8 +248,35 @@ export default function ProductDetailPage({
     }
   };
 
+  const pageTitle = product 
+    ? `${product.title} Price in Bangladesh`
+    : 'Product Details';
+  
+  const pageDescription = product
+    ? `${product.title} - ${product.short_description || product.description || '১ বছরের অফিসিয়াল সার্ভিস ওয়ারেন্টি ও দ্রুত ডেলিভারি সহ সেরা মূল্যে কিনুন Corporate Technologies BD থেকে।'}`
+    : 'প্রিন্টার, ফটোকপিয়ার ও অফিসিয়াল কালির সম্পূর্ণ স্পেসিফিকেশন ও মূল্য তালিকা।';
+
+  const pageKeywords = product
+    ? `${product.title}, ${product.brand} price bd, ${product.category} bangladesh, ${product.brand} printer dhaka, buy ${product.title}`
+    : undefined;
+
   return (
     <div className="bg-white min-h-screen pb-36 md:pb-12">
+      {/* 0. Dynamic Product SEO, Local GEO & Google Rich Snippet Schema */}
+      <SEO 
+        title={pageTitle}
+        description={pageDescription}
+        keywords={pageKeywords}
+        ogImage={selectedImage || product?.image_url}
+        ogType="product"
+        productData={product ? {
+          ...product,
+          sale_price: activeSalePrice || product.sale_price,
+          regular_price: activeRegPrice || product.regular_price,
+        } : null}
+        canonicalUrl={product ? `/product/${product.slug || product.id}` : undefined}
+      />
+
       {/* 2. Main Product Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
 
@@ -335,9 +363,11 @@ export default function ProductDetailPage({
               {/* High-res Main Image */}
               <img
                 src={selectedImage || product.image_url}
-                alt={product.title}
+                alt={`${product.title} - ${product.brand || 'Corporate Technologies'} Official Product in Bangladesh`}
                 className="max-h-[280px] sm:max-h-[380px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
+                loading="eager"
+                decoding="async"
               />
             </div>
 
@@ -357,9 +387,11 @@ export default function ProductDetailPage({
                     >
                       <img
                         src={img}
-                        alt={`thumbnail-${idx}`}
+                        alt={`${product.title} photo ${idx + 1}`}
                         className="w-full h-full object-contain"
                         onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
+                        loading="lazy"
+                        decoding="async"
                       />
                     </button>
                   );

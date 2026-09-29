@@ -11,6 +11,7 @@ import TrustAndBrandsSection from '../components/TrustAndBrandsSection';
 import SeoAuthoritySection from '../components/SeoAuthoritySection';
 import HomeInfoSections from '../components/HomeInfoSections';
 import FlashSaleSection from '../components/FlashSaleSection';
+import SEO from '../components/SEO';
 import {
   fetchPopularCategoriesSettings,
   DEFAULT_POPULAR_CATEGORIES_SETTINGS
@@ -50,8 +51,55 @@ export default function HomePage({ products = [], loading = false }) {
     }
   };
 
+  const homeFaqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'Are Splashjet Inks 100% safe for printer printheads and warranties?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes, Splashjet Inks are ISO 9001 and ISO 14001 certified, microfiltered to < 0.2 microns for Epson, Canon, HP and Brother printheads without nozzle clogging.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How can I verify genuine Splashjet ink in Bangladesh?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Every authentic bottle distributed by Corporate Technologies BD has a tamper-evident seal and official QR verification code.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What warranty is provided for photocopiers and printers in Bangladesh?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Toshiba photocopiers come with a 1-year parts warranty and free on-site service. Printers have official brand warranties.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How fast is nationwide delivery across Bangladesh?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Inside Dhaka orders are delivered within 24 hours (৳60) and outside Dhaka within 48 to 72 hours (৳120) with 100% Cash on Delivery.',
+        },
+      },
+    ],
+  };
+
   return (
     <>
+      {/* 0. Dynamic SEO, Local GEO Metadata & Generative AI FAQ Schema */}
+      <SEO 
+        title="প্রিন্টার, ফটোকপিয়ার ও অফিসিয়াল Splashjet Ink"
+        description="Corporate Technologies BD - বাংলাদেশে Epson, Canon, HP, Brother প্রিন্টার, তোশিবা ফটোকপিয়ার এবং অফিসিয়াল Splashjet Ink ও টোনারের সবচেয়ে বিশ্বস্ত প্রতিষ্ঠান। ১ বছরের সার্ভিস ওয়ারেন্টি ও সারাদেশে দ্রুত ডেলিভারি।"
+        canonicalUrl="https://corporatetechbd.com/"
+        schema={homeFaqSchema}
+      />
+
       {/* 1. Hero Banner Showcase */}
       <HeroBanner 
         onExploreClick={() => navigateTo('/shop')} 

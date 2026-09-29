@@ -239,12 +239,13 @@ export default function ProductCard({ product, onNavigate }) {
       <div className="relative pt-4 sm:pt-6 pb-2 flex items-center justify-center min-h-[170px] sm:min-h-[210px] md:min-h-[230px] bg-white">
         <img
           src={product.image_url || '/splashjet_images/about-splashjet.jpg'}
-          alt={product.title}
+          alt={`${product.title} - ${product.brand || 'Corporate Technologies'} Price in Bangladesh`}
           className="max-h-36 sm:max-h-48 md:max-h-52 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.target.src = '/splashjet_images/about-splashjet.jpg';
           }}
           loading="lazy"
+          decoding="async"
         />
 
         {/* Hover Action Button (Desktop Only) */}
