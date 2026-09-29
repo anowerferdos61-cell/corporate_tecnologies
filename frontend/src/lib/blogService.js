@@ -205,15 +205,23 @@ export async function fetchBlogPosts({ onlyPublished = false } = {}) {
 
 /**
  * Fetch a single blog post by slug
+ * @param {string} slug - The slug or ID of the post
+ * @param {Object} options - Options object
+ * @param {boolean} [options.onlyPublished=true] - Whether to only fetch published articles
  */
-export async function fetchBlogPostBySlug(slug) {
+export async function fetchBlogPostBySlug(slug, { onlyPublished = true } = {}) {
   if (!slug) return null;
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('blog_posts')
       .select('*')
-      .eq('slug', slug)
-      .maybeSingle();
+      .eq('slug', slug);
+
+    if (onlyPublished) {
+      query = query.eq('is_published', true);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (!error && data) {
       return data;
@@ -223,7 +231,12 @@ export async function fetchBlogPostBySlug(slug) {
   }
 
   const localList = getLocalBlogs();
-  return localList.find(b => b.slug === slug || String(b.id) === String(slug)) || null;
+  const found = localList.find(b => b.slug === slug || String(b.id) === String(slug));
+  if (found) {
+    if (onlyPublished && !found.is_published) return null;
+    return found;
+  }
+  return null;
 }
 
 /**

@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   BookOpen,
-  Calendar,
   Clock,
-  ChevronRight,
   Search,
   Sparkles,
   Eye,
-  Tag,
-  ArrowRight,
-  Filter
+  ArrowRight
 } from 'lucide-react';
 import {
   fetchBlogPosts,
@@ -19,7 +15,6 @@ import {
 import SEO from '../components/SEO';
 
 export default function BlogPage({ onNavigate }) {
-  const navigate = useNavigate();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,7 +59,6 @@ export default function BlogPage({ onNavigate }) {
       <SEO 
         title="টেক ব্লগ ও প্রিন্টিং গাইড"
         description="প্রিন্টার হেড যত্ন, অরিজিনাল কালির সঠিক ব্যবহার, ফটোকপিয়ার মেইনটেন্যান্স ও টেক্সটাইল প্রিন্টিং টেকনোলজির নির্ভরযোগ্য তথ্যভাণ্ডার ও গাইড।"
-        keywords="printing guide bangladesh, printer maintenance tips bd, splashjet ink review, photocopier guide dhaka"
         canonicalUrl="/blog"
       />
 
@@ -144,9 +138,9 @@ export default function BlogPage({ onNavigate }) {
             
             {/* 3. Highlighted / Featured Post (Top Hero Card) */}
             {featuredPost && (
-              <div
-                onClick={() => navigate(`/blog/${featuredPost.slug}`)}
-                className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer group grid grid-cols-1 lg:grid-cols-12 gap-0"
+              <Link
+                to={`/blog/${featuredPost.slug}`}
+                className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 group grid grid-cols-1 lg:grid-cols-12 gap-0 block"
               >
                 <div className="lg:col-span-7 relative aspect-[16/10] sm:aspect-video lg:aspect-auto w-full bg-slate-100 overflow-hidden">
                   <img
@@ -197,68 +191,71 @@ export default function BlogPage({ onNavigate }) {
                     </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             )}
 
             {/* 4. Regular Articles Grid */}
             {regularPosts.length > 0 && (
               <div className="space-y-4">
-                <h3 className="text-base font-black text-slate-800">সর্বশেষ প্রকাশিত গাইডসমূহ</h3>
+                <h2 className="text-base font-black text-slate-800">সর্বশেষ প্রকাশিত গাইডসমূহ</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {regularPosts.map((article) => (
-                    <article
+                    <Link
                       key={article.id}
-                      onClick={() => navigate(`/blog/${article.slug}`)}
-                      className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group cursor-pointer"
+                      to={`/blog/${article.slug}`}
+                      className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group block"
                     >
-                      <div>
-                        {/* Thumbnail */}
-                        <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
-                          <img
-                            src={article.image_url || '/splashjet_images/about-splashjet.jpg'}
-                            alt={article.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
-                          />
-                          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-black uppercase tracking-wider">
-                            {article.category}
-                          </span>
-                        </div>
-
-                        {/* Details */}
-                        <div className="p-5 space-y-3">
-                          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-slate-400" />
-                              {article.read_time || '4 min read'}
-                            </span>
-                            <span className="flex items-center gap-1 font-mono">
-                              <Eye className="w-3 h-3" />
-                              {(Number(article.views_count) || 0).toLocaleString()}
+                      <article className="flex flex-col justify-between h-full">
+                        <div>
+                          {/* Thumbnail */}
+                          <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
+                            <img
+                              src={article.image_url || '/splashjet_images/about-splashjet.jpg'}
+                              alt={article.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
+                            />
+                            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-black uppercase tracking-wider">
+                              {article.category}
                             </span>
                           </div>
 
-                          <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#c92127] transition-colors line-clamp-2 leading-snug">
-                            {article.title}
-                          </h3>
+                          {/* Details */}
+                          <div className="p-5 space-y-3">
+                            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                {article.read_time || '4 min read'}
+                              </span>
+                              <span className="flex items-center gap-1 font-mono">
+                                <Eye className="w-3 h-3" />
+                                {(Number(article.views_count) || 0).toLocaleString()}
+                              </span>
+                            </div>
 
-                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                            {article.summary}
-                          </p>
+                            <h3 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-[#c92127] transition-colors line-clamp-2 leading-snug">
+                              {article.title}
+                            </h3>
+
+                            <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                              {article.summary}
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Footer */}
-                      <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
-                        <span className="text-slate-400 font-normal">
-                          {article.created_at ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
-                        </span>
-                        <span className="text-[#c92127] inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                          <span>পড়ুন →</span>
-                        </span>
-                      </div>
-
-                    </article>
+                        {/* Footer */}
+                        <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between text-xs font-bold">
+                          {article.created_at ? (
+                            <span className="text-slate-400 font-normal">
+                              {new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          ) : <span />}
+                          <span className="text-[#c92127] inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            <span>পড়ুন →</span>
+                          </span>
+                        </div>
+                      </article>
+                    </Link>
                   ))}
                 </div>
               </div>

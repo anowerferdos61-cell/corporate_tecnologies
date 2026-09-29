@@ -103,7 +103,12 @@ export default function BlogDetailPage({ allProducts = [] }) {
   if (!blog) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <SEO title="ব্লগ আর্টিকেল পাওয়া যায়নি" noIndex={true} />
+        <SEO 
+          title="Article Not Found" 
+          description="The requested article could not be found." 
+          canonicalUrl="/blog" 
+          noIndex={true} 
+        />
         <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 text-center space-y-4 shadow-sm">
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
           <h2 className="text-xl font-bold text-slate-800">আর্টিকেলটি পাওয়া যায়নি</h2>
@@ -198,19 +203,22 @@ export default function BlogDetailPage({ allProducts = [] }) {
         day: 'numeric',
         year: 'numeric'
       })
-    : 'Recent';
+    : null;
+
+  const isTeamAuthor = !blog.author || /team|specialist|support|solutions|distributor|corporate/i.test(blog.author);
+  const authorSchema = {
+    '@type': isTeamAuthor ? 'Organization' : 'Person',
+    name: blog.author || 'Corporate Tech Team',
+  };
 
   const articleSchema = blog ? {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: blog.title,
-    image: blog.image_url ? [blog.image_url] : [],
-    datePublished: blog.created_at || new Date().toISOString(),
-    dateModified: blog.updated_at || blog.created_at || new Date().toISOString(),
-    author: {
-      '@type': 'Person',
-      name: blog.author || 'Corporate Tech Team',
-    },
+    ...(blog.image_url ? { image: [blog.image_url] } : {}),
+    ...(blog.created_at ? { datePublished: blog.created_at } : {}),
+    ...(blog.updated_at || blog.created_at ? { dateModified: blog.updated_at || blog.created_at } : {}),
+    author: authorSchema,
     publisher: {
       '@type': 'Organization',
       name: 'Corporate Technologies BD',
@@ -219,7 +227,32 @@ export default function BlogDetailPage({ allProducts = [] }) {
         url: 'https://corporatetechbd.com/logo-icon.svg',
       },
     },
-    description: blog.excerpt || blog.summary || blog.title,
+    ...((blog.excerpt || blog.summary) ? { description: blog.excerpt || blog.summary } : {}),
+  } : null;
+
+  const breadcrumbSchema = blog ? {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://corporatetechbd.com/',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Blog',
+        item: 'https://corporatetechbd.com/blog',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: blog.title,
+        item: `https://corporatetechbd.com/blog/${blog.slug || slug}`,
+      },
+    ],
   } : null;
 
   return (
@@ -229,10 +262,9 @@ export default function BlogDetailPage({ allProducts = [] }) {
         <SEO 
           title={blog.title}
           description={blog.excerpt || blog.summary || `${blog.title} - Corporate Technologies BD টেক ব্লগ।`}
-          keywords={`${blog.title}, ${blog.category}, printing technology bangladesh, corporate technologies blog`}
           ogImage={blog.image_url}
           ogType="article"
-          schema={articleSchema}
+          schema={[articleSchema, breadcrumbSchema].filter(Boolean)}
           canonicalUrl={`/blog/${blog.slug || slug}`}
         />
       )}
@@ -261,10 +293,12 @@ export default function BlogDetailPage({ allProducts = [] }) {
                 <Clock className="w-3.5 h-3.5 text-slate-400" />
                 <span>{blog.read_time || '5 min read'}</span>
               </span>
-              <span className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                <Calendar className="w-3.5 h-3.5" />
-                <span>{publishDate}</span>
-              </span>
+              {publishDate && (
+                <span className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{publishDate}</span>
+                </span>
+              )}
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight sm:leading-snug">
@@ -323,6 +357,7 @@ export default function BlogDetailPage({ allProducts = [] }) {
                 src={blog.image_url}
                 alt={blog.title}
                 className="w-full h-full object-cover"
+                decoding="async"
                 onError={(e) => { e.target.src = '/splashjet_images/about-splashjet.jpg'; }}
               />
             </div>
